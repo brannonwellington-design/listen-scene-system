@@ -14,10 +14,13 @@ import {
   REGISTRY, STAGES, framingOptions, resolveContent, Framing, RegistryEntry,
 } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
+import { PRESETS, getPreset, presetNames } from "./ListenPresets"
 
 // ----------------------------------------------------------------- types ----
 export type SceneCanvasProps = {
   variant?: "hero" | "callout"
+  /** apply a named composition from ListenPresets; touched controls override */
+  preset?: string
   // hero
   autoCycle?: boolean
   resumeDelay?: number
@@ -53,6 +56,34 @@ export type SceneCanvasProps = {
   padY?: number
   radius?: number
   maxWidth?: number
+  // workbench-only passthroughs (not exposed as Framer controls)
+  debugHold?: number
+  debugPlayFrom?: number
+  debugOnTime?: (t: number) => void
+  debugCanvasRef?: React.Ref<HTMLDivElement>
+}
+
+/** control defaults — single source for destructuring and preset merging */
+export const CANVAS_DEFAULTS = {
+  autoCycle: true, resumeDelay: 14, scrubber: false, maxWidth: 1200,
+  content: "reach-people@Audience criteria", customScene: "design-study",
+  cropX: 0, cropY: 0, cropW: 0, cropH: 0,
+  loop: true, loopPause: 3, segStart: 0, segEnd: 0,
+  fit: "responsive" as const, anchor: "top-left" as const, insetX: 40, insetY: 40,
+  zoom: 1, smallBehavior: "fit" as const, fitBelow: 480, canvasHeight: 0,
+  pattern: "none" as PatternType, patternSpacing: 24, patternOpacity: 0.5,
+  bgColor: T.pageContainer, padX: 56, padY: 44, radius: 0,
+}
+
+/** preset values fill in wherever the instance still has the stock default */
+function mergePreset(props: SceneCanvasProps): typeof CANVAS_DEFAULTS {
+  const presetProps = props.preset && props.preset !== "custom" ? getPreset(props.preset)?.props ?? {} : {}
+  const out: any = { ...CANVAS_DEFAULTS, ...presetProps }
+  for (const k of Object.keys(CANVAS_DEFAULTS) as Array<keyof typeof CANVAS_DEFAULTS>) {
+    const v = (props as any)[k]
+    if (v !== undefined && v !== CANVAS_DEFAULTS[k]) out[k] = v
+  }
+  return out
 }
 
 // ------------------------------------------------------------- shot unit ----
@@ -76,16 +107,18 @@ function ShotUnit(props: {
 }
 
 // -------------------------------------------------------------- callout -----
-function Callout(props: Required<Pick<SceneCanvasProps,
-  "content" | "customScene" | "cropX" | "cropY" | "cropW" | "cropH" |
-  "loop" | "loopPause" | "segStart" | "segEnd" |
-  "fit" | "anchor" | "insetX" | "insetY" | "zoom" | "smallBehavior" | "fitBelow" | "canvasHeight" |
-  "pattern" | "patternSpacing" | "patternOpacity" | "bgColor" | "padX" | "padY" | "radius">>): JSX.Element {
+function Callout(props: typeof CANVAS_DEFAULTS & {
+  debugHold?: number
+  debugPlayFrom?: number
+  debugOnTime?: (t: number) => void
+  debugCanvasRef?: React.Ref<HTMLDivElement>
+}): JSX.Element {
   const {
     content, customScene, cropX, cropY, cropW, cropH,
     loop, loopPause, segStart, segEnd,
     fit, anchor, insetX, insetY, zoom, smallBehavior, fitBelow, canvasHeight,
     pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius,
+    debugHold, debugPlayFrom, debugOnTime, debugCanvasRef,
   } = props
 
   const { entry, framing } = content === "custom"
@@ -118,13 +151,22 @@ function Callout(props: Required<Pick<SceneCanvasProps,
     if (segment && t >= segEnd) scheduleRestart()
   }, [segment, segEnd, scheduleRestart])
 
-  const sceneProps: SceneProps = {
-    active: inView,
-    runKey,
-    onDone: segment ? undefined : scheduleRestart,
-    playFrom: segment ? segStart : undefined,
-    onTime: segment ? onTime : undefined,
-  }
+  const debugging = debugHold != null || debugPlayFrom != null
+  const sceneProps: SceneProps = debugging
+    ? {
+        active: true,
+        runKey,
+        hold: debugHold,
+        playFrom: debugHold == null ? debugPlayFrom : undefined,
+        onTime: debugOnTime,
+      }
+    : {
+        active: inView,
+        runKey,
+        onDone: segment ? undefined : scheduleRestart,
+        playFrom: segment ? segStart : undefined,
+        onTime: segment ? onTime : undefined,
+      }
 
   // measure available width for responsive scale + pinned fallback
   const [availW, setAvailW] = React.useState(0)
@@ -136,6 +178,12 @@ function Callout(props: Required<Pick<SceneCanvasProps,
     setAvailW(el.clientWidth - padX * 2)
     return () => ro.disconnect()
   }, [padX])
+
+  const setRefs = (el: HTMLDivElement | null) => {
+    ;(rootRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+    if (typeof debugCanvasRef === "function") debugCanvasRef(el)
+    else if (debugCanvasRef) (debugCanvasRef as React.MutableRefObject<HTMLDivElement | null>).current = el
+  }
 
   const usePinned = fit === "pinned" && !(smallBehavior === "fit" && availW > 0 && availW + padX * 2 < fitBelow)
 
@@ -149,7 +197,7 @@ function Callout(props: Required<Pick<SceneCanvasProps,
     if (anchor.includes("top")) pos.top = insetY; else pos.bottom = insetY
     if (anchor.includes("left")) pos.left = insetX; else pos.right = insetX
     return (
-      <div ref={rootRef} style={{ ...containerStyle, height: canvasHeight || 420 }}>
+      <div ref={setRefs} style={{ ...containerStyle, height: canvasHeight || 420 }}>
         <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
         {/* keyed fade so loop restarts read as intentional, not a flicker */}
         <div key={runKey} className="ll-scene-fade" style={pos}>
@@ -165,7 +213,7 @@ function Callout(props: Required<Pick<SceneCanvasProps,
   const availH = fixedH ? canvasHeight - padY * 2 : Infinity
   const scale = availW > 0 ? Math.min(availW / rect.w, availH / rect.h) : 1
   return (
-    <div ref={rootRef} style={{
+    <div ref={setRefs} style={{
       ...containerStyle, padding: `${padY}px ${padX}px`,
       ...(fixedH ? { height: canvasHeight, display: "flex", alignItems: "center", justifyContent: "center" } : {}),
     }}>
@@ -312,28 +360,20 @@ function Hero(props: Required<Pick<SceneCanvasProps,
  */
 export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   ensureCss()
-  const {
-    variant = "callout",
-    autoCycle = true, resumeDelay = 14, scrubber = false, maxWidth = 1200,
-    content = "reach-people@Audience criteria", customScene = "design-study",
-    cropX = 0, cropY = 0, cropW = 0, cropH = 0,
-    loop = true, loopPause = 3, segStart = 0, segEnd = 0,
-    fit = "responsive", anchor = "top-left", insetX = 40, insetY = 40,
-    zoom = 1, smallBehavior = "fit", fitBelow = 480, canvasHeight = 0,
-    pattern = "none", patternSpacing = 24, patternOpacity = 0.5,
-    bgColor = T.pageContainer, padX = 56, padY = 44, radius = 0,
-  } = props
+  const variant = props.variant ?? "callout"
+  const merged = mergePreset(props)
 
   if (variant === "hero") {
+    const { autoCycle, resumeDelay, scrubber, maxWidth, pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius } = merged
     return <Hero {...{ autoCycle, resumeDelay, scrubber, maxWidth, pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius }} />
   }
   return (
-    <Callout {...{
-      content, customScene, cropX, cropY, cropW, cropH,
-      loop, loopPause, segStart, segEnd,
-      fit, anchor, insetX, insetY, zoom, smallBehavior, fitBelow, canvasHeight,
-      pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius,
-    }} />
+    <Callout {...merged}
+      debugHold={props.debugHold}
+      debugPlayFrom={props.debugPlayFrom}
+      debugOnTime={props.debugOnTime}
+      debugCanvasRef={props.debugCanvasRef}
+    />
   )
 }
 
@@ -342,6 +382,7 @@ const isHero = (p: SceneCanvasProps) => (p.variant ?? "callout") === "hero"
 
 addPropertyControls(SceneCanvas, {
   variant: { type: ControlType.Enum, title: "Variant", options: ["hero", "callout"], optionTitles: ["Hero (stages)", "Callout (snippet)"], defaultValue: "callout" },
+  preset: { type: ControlType.Enum, title: "Preset", options: ["custom", ...presetNames()], defaultValue: "custom", hidden: isHero },
   // hero
   autoCycle: { type: ControlType.Boolean, title: "Auto-cycle", defaultValue: true, hidden: isCallout },
   resumeDelay: { type: ControlType.Number, title: "Resume after (s)", defaultValue: 14, min: 4, max: 60, step: 1, hidden: isCallout },

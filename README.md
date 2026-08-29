@@ -71,6 +71,13 @@ node scripts/dev-server.mjs   # → http://localhost:4173
 - `/?scene=design-study&hold=9700&frame=1` adds the **framing helper**:
   drag a box over the frozen scene to read off a crop rect in design
   coordinates, ready to paste into `ListenRegistry`'s `framings`.
+- `/?compose=1` is the **composition workbench**: tune every SceneCanvas
+  setting live (content, crop, fit, pattern, fill, padding, segment beat)
+  with direct manipulation — drag the canvas to reposition a pinned shot,
+  scroll to zoom, drag-resize the crop over a ghosted scene, punch segment
+  in/out from the scrub playhead — preview at any width/breakpoint, then
+  save as a named preset (localStorage draft + copy-paste TS block for
+  `ListenPresets.tsx`). Presets appear in SceneCanvas's Framer dropdown.
 
 ## Motion & state vocabulary (harvested from the live app)
 

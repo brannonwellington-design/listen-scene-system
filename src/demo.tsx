@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client"
 import HowItWorks from "./HowItWorks"
 import ProductShot from "./ProductShot"
 import SceneCanvas from "./SceneCanvas"
+import Workbench from "./Workbench"
 import { byKey } from "./ListenRegistry"
 import { T, ScaleBox } from "./ListenKit"
 
@@ -259,7 +260,9 @@ const solo = params.get("scene")
 const refImg = params.get("ref")
 if (params.get("hold")) (window as any).__llHold = +params.get("hold")!
 createRoot(document.getElementById("root")!).render(
-  solo && refImg ? (
+  params.get("compose") ? (
+    <Workbench />
+  ) : solo && refImg ? (
     <Compare scene={solo} refImg={refImg} />
   ) : solo ? (
     <Solo scene={solo} />
