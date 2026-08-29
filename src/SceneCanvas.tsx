@@ -15,6 +15,7 @@ import {
 } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
 import { PRESETS, getPreset, presetNames } from "./ListenPresets"
+import { I } from "./ListenIcons"
 
 // ----------------------------------------------------------------- types ----
 export type SceneCanvasProps = {
@@ -295,12 +296,12 @@ function Hero(props: Required<Pick<SceneCanvasProps,
       {scrubber && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, fontSize: 12, color: T.inkSoft }}>
           {!scrubOn ? (
-            <button onClick={toggleScrub} style={btn}>🎚 scrub</button>
+            <button onClick={toggleScrub} style={btn}><I name="sliders-horizontal" size={12} style={{ marginRight: 5, verticalAlign: -2 }} />Scrub</button>
           ) : (
             <>
               <button onClick={() => setPlayStart(scrubPlay ? null : scrubT)}
-                style={{ ...btn, width: 64, background: T.ink, color: "#F9F4EB", borderColor: T.ink }}>
-                {scrubPlay ? "⏸ pause" : "▶ play"}
+                style={{ ...btn, width: 40, textAlign: "center", background: T.ink, color: "#F9F4EB", borderColor: T.ink }}>
+                <I name={scrubPlay ? "pause" : "play"} size={11} style={{ verticalAlign: -1 }} />
               </button>
               <input type="range" min={0} max={25000} step={100} value={scrubT}
                 onChange={(e) => seek(+e.target.value)} style={{ flex: 1, maxWidth: 440 }} />
@@ -310,7 +311,7 @@ function Hero(props: Required<Pick<SceneCanvasProps,
                   {d > 0 ? `+${d / 1000}s` : `${d / 1000}s`}
                 </button>
               ))}
-              <button onClick={toggleScrub} style={btn}>✕ live</button>
+              <button onClick={toggleScrub} style={btn}>Live</button>
             </>
           )}
         </div>

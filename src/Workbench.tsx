@@ -56,9 +56,11 @@ const WB_CSS = `
     padding: 8px 20px 28px; overflow-y: auto; height: calc(100vh - 57px); position: sticky; top: 0; }
   .wb-panel::-webkit-scrollbar { width: 8px; }
   .wb-panel::-webkit-scrollbar-thumb { background: #E7E1D6; border-radius: 4px; }
-  .wb-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; min-height: 38px; }
-  .wb-tools { display: inline-flex; align-items: center; gap: 8px; background: #FFF;
-    border: 1px solid #E7E1D6; border-radius: 10px; padding: 4px 8px; }
+  .wb-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; min-height: 38px; }
+  .wb-tools { display: inline-flex; align-items: center; gap: 6px; background: #FFF;
+    border: 1px solid #E7E1D6; border-radius: 12px; padding: 4px; }
+  .wb-tools .wb-slider { margin: 0 6px; }
+  .wb-tools .wb-time { margin-right: 4px; }
   .wb-section { font-size: 11px; font-weight: 500; color: ${T.inkFaint}; text-transform: uppercase; margin: 22px 0 8px; }
   .wb-field { display: grid; grid-template-columns: 104px 1fr; align-items: center; min-height: 34px; gap: 8px; }
   .wb-label { font-size: 12.5px; color: ${T.inkSoft}; }
@@ -88,6 +90,8 @@ const WB_CSS = `
   .wb-seg button { height: 24px; padding: 0 10px; border-radius: 6px; border: none; background: transparent;
     font: 12px ${T.font}; color: ${T.inkSoft}; cursor: pointer; }
   .wb-seg button.on { background: #FFF; color: ${T.ink}; box-shadow: 0 1px 2px rgba(0,0,0,.07); }
+  .wb-seg.block { display: flex; margin: 2px 0 6px; }
+  .wb-seg.block button { flex: 1; height: 26px; }
   .wb-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
     background: #E2DCCF; width: 104px; cursor: pointer; }
   .wb-slider.grow { flex: 1; width: auto; min-width: 120px; }
@@ -278,7 +282,19 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
 }
 
 // -------------------------------------------------------------- workbench ---
+// snippet-scoped picker: framings + fragments, never bare full scenes
+const SNIPPETS: Array<[string, string]> = REGISTRY.flatMap((e) =>
+  e.kind === "fragment"
+    ? ([[e.key, e.title]] as Array<[string, string]>)
+    : (e.framings ?? []).map((f) => [`${e.key}@${f.name}`, `${e.title} · ${f.name}`] as [string, string]),
+)
+const DEFAULT_SNIPPET = "design-study@Chat rail"
+
+const HERO_KEYS: Array<keyof Cfg> = ["autoCycle", "resumeDelay", "pattern", "patternSpacing", "patternOpacity", "bgColor", "padX", "padY", "radius"]
+const SNIPPET_EXCLUDE: Array<keyof Cfg> = ["autoCycle", "resumeDelay", "scrubber", "maxWidth"]
+
 export default function Workbench(): JSX.Element {
+  const [mode, setMode] = React.useState<"scene" | "snippet">("scene")
   const [cfg, setCfg] = React.useState<Cfg>({ ...CANVAS_DEFAULTS })
   const [presetSel, setPresetSel] = React.useState("")
   const [drafts, setDrafts] = React.useState<Preset[]>(loadDrafts)
@@ -366,31 +382,47 @@ export default function Workbench(): JSX.Element {
   const applyPreset = (name: string) => {
     setPresetSel(name)
     const p = allPresets.find((x) => x.name === name)
-    if (p) setCfg({ ...CANVAS_DEFAULTS, ...(p.props as Partial<Cfg>) })
+    if (!p) return
+    setMode((p.props as any).variant === "hero" ? "scene" : "snippet")
+    setCfg({ ...CANVAS_DEFAULTS, ...(p.props as Partial<Cfg>) })
+    setCropEdit(false)
   }
   const changedProps = (): Partial<Cfg> => {
     const out: Partial<Cfg> = {}
     for (const k of Object.keys(CANVAS_DEFAULTS) as Array<keyof Cfg>) {
+      if (mode === "scene" && !HERO_KEYS.includes(k)) continue
+      if (mode === "snippet" && SNIPPET_EXCLUDE.includes(k)) continue
       if (cfg[k] !== CANVAS_DEFAULTS[k]) (out as any)[k] = cfg[k]
     }
     return out
   }
+  const serialize = (props: Record<string, unknown>) =>
+    Object.entries(props).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")
   const presetBlock = () => {
-    const props = changedProps()
-    const body = Object.entries(props).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")
-    return `  {\n    name: ${JSON.stringify(saveName || "untitled")},\n    props: { ${body} },\n  },`
+    const props: Record<string, unknown> = mode === "scene" ? { variant: "hero", ...changedProps() } : changedProps()
+    return `  {\n    name: ${JSON.stringify(saveName || "untitled")},\n    props: { ${serialize(props)} },\n  },`
   }
   const jsxBlock = () => {
     const props = changedProps()
     const body = Object.entries(props).map(([k, v]) => typeof v === "string" ? `${k}=${JSON.stringify(v)}` : `${k}={${JSON.stringify(v)}}`).join(" ")
-    return `<SceneCanvas variant="callout" ${body} />`
+    return `<SceneCanvas variant=${JSON.stringify(mode === "scene" ? "hero" : "callout")} ${body} />`
   }
   const saveDraft = () => {
     if (!saveName) return
-    const next = [...drafts.filter((d) => d.name !== saveName), { name: saveName, props: changedProps() as Partial<SceneCanvasProps> }]
+    const props = (mode === "scene" ? { variant: "hero" as const, ...changedProps() } : changedProps()) as Partial<SceneCanvasProps>
+    const next = [...drafts.filter((d) => d.name !== saveName), { name: saveName, props }]
     setDrafts(next)
     localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
     setPresetSel(saveName)
+  }
+
+  const switchMode = (m: "scene" | "snippet") => {
+    setMode(m)
+    setCropEdit(false)
+    setPresetSel("")
+    if (m === "snippet" && !cfg.content.includes("@") && byKey(cfg.content).kind !== "fragment") {
+      setCfg((c) => ({ ...c, content: DEFAULT_SNIPPET }))
+    }
   }
 
   const punch = (k: "segStart" | "segEnd") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })); setPresetSel("") }
@@ -407,7 +439,7 @@ export default function Workbench(): JSX.Element {
 
   const pw = previewW === "full" ? "100%" : previewW
   const bpValue = previewW === "full" ? "full" : String(previewW)
-  const sizeLabel = `${previewW === "full" ? "full width" : Math.round(previewW as number) + "px"} × ${cfg.canvasHeight ? cfg.canvasHeight + "px" : "auto"}`
+  const sizeLabel = `${previewW === "full" ? "full width" : Math.round(previewW as number) + "px"} × ${mode === "snippet" && cfg.canvasHeight ? cfg.canvasHeight + "px" : "auto"}`
 
   return (
     <div className="wb" style={{ background: T.pageBg, minHeight: "100vh" }}>
@@ -431,44 +463,58 @@ export default function Workbench(): JSX.Element {
         {/* stage */}
         <div className="wb-stage">
           <div className="wb-toolbar">
-            <span className="wb-tools">
-              {!scrubOn ? (
-                <button className="wb-btn" onClick={() => { setScrubOn(true); setPlayStart(null) }}>
-                  <I name="sliders-horizontal" size={13} /> Scrub
-                </button>
-              ) : (
-                <>
-                  <button className="wb-btn primary" style={{ width: 40, justifyContent: "center", padding: 0 }}
-                    onClick={() => setPlayStart(playing ? null : t)} title={playing ? "Pause" : "Play"}>
-                    <I name={playing ? "pause" : "play"} size={12} />
+            {mode === "snippet" && (
+              <span className="wb-tools">
+                {!scrubOn ? (
+                  <button className="wb-btn" onClick={() => { setScrubOn(true); setPlayStart(null) }}>
+                    <I name="sliders-horizontal" size={13} /> Scrub
                   </button>
-                  <input type="range" className="wb-slider grow" style={{ maxWidth: 280 }} min={0} max={25000} step={100}
-                    value={t} onChange={(e) => { setPlayStart(null); setT(+e.target.value) }} />
-                  <span className="wb-time">{(t / 1000).toFixed(1)}s</span>
-                  <button className="wb-btn" onClick={punch("segStart")} title="Set segment start from playhead">⇤ In</button>
-                  <button className="wb-btn" onClick={punch("segEnd")} title="Set segment end from playhead">⇥ Out</button>
-                  <button className="wb-btn" onClick={() => { setScrubOn(false); setPlayStart(null); setCropEdit(false); setRunNonce((n) => n + 1) }}>Live</button>
-                </>
-              )}
-            </span>
+                ) : (
+                  <>
+                    <button className="wb-btn primary" style={{ width: 40, justifyContent: "center", padding: 0 }}
+                      onClick={() => setPlayStart(playing ? null : t)} title={playing ? "Pause" : "Play"}>
+                      <I name={playing ? "pause" : "play"} size={12} />
+                    </button>
+                    <input type="range" className="wb-slider grow" style={{ maxWidth: 280 }} min={0} max={25000} step={100}
+                      value={t} onChange={(e) => { setPlayStart(null); setT(+e.target.value) }} />
+                    <span className="wb-time">{(t / 1000).toFixed(1)}s</span>
+                    <button className="wb-btn" onClick={punch("segStart")} title="Set segment start from playhead">
+                      <I name="arrow-left-to-line" size={12} /> In
+                    </button>
+                    <button className="wb-btn" onClick={punch("segEnd")} title="Set segment end from playhead">
+                      <I name="arrow-right-to-line" size={12} /> Out
+                    </button>
+                    <button className="wb-btn" onClick={() => { setScrubOn(false); setPlayStart(null); setCropEdit(false); setRunNonce((n) => n + 1) }}>Live</button>
+                  </>
+                )}
+              </span>
+            )}
             <span style={{ flex: 1 }} />
             <Seg v={bpValue} set={(v) => setPreviewW(v === "full" ? "full" : +v)}
               options={[["375", "375"], ["768", "768"], ["1024", "1024"], ["full", "Full"]]} />
-            <button className={"wb-btn" + (cropEdit ? " accent" : "")}
-              onClick={() => (cropEdit ? setCropEdit(false) : editCropStart())}>
-              <I name="crop" size={13} /> {cropEdit ? "Done" : "Edit crop"}
-            </button>
+            {mode === "snippet" && (
+              <button className={"wb-btn" + (cropEdit ? " accent" : "")}
+                onClick={() => (cropEdit ? setCropEdit(false) : editCropStart())}>
+                <I name="crop" size={13} /> {cropEdit ? "Done" : "Edit crop"}
+              </button>
+            )}
           </div>
 
           {/* resizable preview frame */}
           <div style={{ position: "relative", width: pw, maxWidth: "100%", margin: "0 auto", transition: dragging ? "none" : "width .2s ease" }}>
             {dragging && <span className="wb-chip">{sizeLabel}</span>}
             <div ref={previewRef}
-              className={scrubOn && !playing ? "ll-noanim" : undefined}
-              onMouseDown={onPinDown}
-              style={{ position: "relative", cursor: cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
+              className={mode === "snippet" && scrubOn && !playing ? "ll-noanim" : undefined}
+              onMouseDown={mode === "snippet" ? onPinDown : undefined}
+              style={{ position: "relative", cursor: mode === "snippet" && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
             >
-              {cropEdit ? (
+              {mode === "scene" ? (
+                <SceneCanvas key={runNonce} variant="hero" scrubber maxWidth={4000}
+                  autoCycle={cfg.autoCycle} resumeDelay={cfg.resumeDelay}
+                  pattern={cfg.pattern} patternSpacing={cfg.patternSpacing} patternOpacity={cfg.patternOpacity}
+                  bgColor={cfg.bgColor} padX={cfg.padX} padY={cfg.padY} radius={cfg.radius}
+                />
+              ) : cropEdit ? (
                 <CropEditor sceneKey={cfg.customScene} holdT={t}
                   rect={{ x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }}
                   onChange={(r) => { setCfg((c) => ({ ...c, cropX: r.x, cropY: r.y, cropW: r.w, cropH: r.h })); setPresetSel("") }} />
@@ -487,7 +533,7 @@ export default function Workbench(): JSX.Element {
               )}
             </div>
             <div className={"wb-grab-w" + (dragging === "w" ? " on" : "")} onMouseDown={onWidthDown} />
-            {!cropEdit && <div className={"wb-grab-h" + (dragging === "h" ? " on" : "")} onMouseDown={onHeightDown} />}
+            {mode === "snippet" && !cropEdit && <div className={"wb-grab-h" + (dragging === "h" ? " on" : "")} onMouseDown={onHeightDown} />}
           </div>
           <div style={{ textAlign: "center", marginTop: 26 }} className="wb-hint">
             {sizeLabel} · drag the handles to test any size
@@ -496,52 +542,77 @@ export default function Workbench(): JSX.Element {
 
         {/* inspector */}
         <div className="wb-panel">
-          <Section title="Content" />
-          <Field label="Snippet">
-            <Sel v={cfg.content} set={(v) => set("content")(v)} options={[...framingOptions(), "custom"]} />
-          </Field>
-          {cfg.content === "custom" && (
-            <>
-              <Field label="Scene">
-                <Sel v={cfg.customScene} set={(v) => set("customScene")(v)}
-                  options={REGISTRY.map((e) => e.key)} titles={REGISTRY.map((e) => e.title)} />
-              </Field>
-              <Field label="Crop x · y">
-                <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
-              </Field>
-              <Field label="Crop w · h">
-                <Num v={cfg.cropW} set={set("cropW")} /><Num v={cfg.cropH} set={set("cropH")} />
-              </Field>
-            </>
-          )}
+          <Section title="Mode" />
+          <Seg v={mode} set={(v) => switchMode(v as "scene" | "snippet")}
+            options={[["scene", "Scene (hero)"], ["snippet", "Snippet"]]} />
 
-          <Section title="Layout" />
-          <Field label="Fit">
-            <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Responsive"], ["pinned", "Pinned"]]} />
-          </Field>
-          {cfg.fit === "pinned" && (
+          {mode === "scene" ? (
             <>
-              <Field label="Anchor">
-                <CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} />
+              <div className="wb-hint" style={{ margin: "8px 0 2px" }}>
+                The hero cycles all five stages; the rail below the canvas is
+                live — click a stage to jump, just like the site.
+              </div>
+              <Section title="Hero" />
+              <Field label="Auto-cycle">
+                <Toggle v={cfg.autoCycle} set={set("autoCycle")} />
               </Field>
-              <Field label="Insets x · y">
-                <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
+              <Field label="Resume after">
+                <Num v={cfg.resumeDelay} set={set("resumeDelay")} min={4} max={60} />
+                <span className="wb-hint">sec</span>
               </Field>
-              <Field label="Zoom">
-                <Slider v={cfg.zoom} set={set("zoom")} min={0.4} max={2} step={0.05} fmt={(n) => n.toFixed(2)} />
+            </>
+          ) : (
+            <>
+              <Section title="Content" />
+              <Field label="Snippet">
+                <Sel v={cfg.content} set={(v) => set("content")(v)}
+                  options={[...SNIPPETS.map(([v]) => v), "custom"]}
+                  titles={[...SNIPPETS.map(([, t]) => t), "Custom crop…"]} />
               </Field>
-              <Field label="When small">
-                <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Mask"]]} />
-              </Field>
-              {cfg.smallBehavior === "fit" && (
-                <Field label="Below (px)"><Num v={cfg.fitBelow} set={set("fitBelow")} wide /></Field>
+              {cfg.content === "custom" && (
+                <>
+                  <Field label="Scene">
+                    <Sel v={cfg.customScene} set={(v) => set("customScene")(v)}
+                      options={REGISTRY.map((e) => e.key)} titles={REGISTRY.map((e) => e.title)} />
+                  </Field>
+                  <Field label="Crop x · y">
+                    <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
+                  </Field>
+                  <Field label="Crop w · h">
+                    <Num v={cfg.cropW} set={set("cropW")} /><Num v={cfg.cropH} set={set("cropH")} />
+                  </Field>
+                </>
               )}
+
+              <Section title="Layout" />
+              <Field label="Fit">
+                <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Responsive"], ["pinned", "Pinned"]]} />
+              </Field>
+              {cfg.fit === "pinned" && (
+                <>
+                  <Field label="Anchor">
+                    <CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} />
+                  </Field>
+                  <Field label="Insets x · y">
+                    <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
+                  </Field>
+                  <Field label="Zoom">
+                    <Slider v={cfg.zoom} set={set("zoom")} min={0.4} max={2} step={0.05} fmt={(n) => n.toFixed(2)} />
+                  </Field>
+                  <Field label="When small">
+                    <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Mask"]]} />
+                  </Field>
+                  {cfg.smallBehavior === "fit" && (
+                    <Field label="Below (px)"><Num v={cfg.fitBelow} set={set("fitBelow")} wide /></Field>
+                  )}
+                </>
+              )}
+              <Field label="Canvas height">
+                <Num v={cfg.canvasHeight} set={set("canvasHeight")} wide />
+                <span className="wb-hint">0 = auto</span>
+              </Field>
             </>
           )}
-          <Field label="Canvas height">
-            <Num v={cfg.canvasHeight} set={set("canvasHeight")} wide />
-            <span className="wb-hint">0 = auto</span>
-          </Field>
 
           <Section title="Canvas" />
           <Field label="Pattern">
@@ -568,19 +639,23 @@ export default function Workbench(): JSX.Element {
           </Field>
           <Field label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Field>
 
-          <Section title="Playback" />
-          <Field label="Loop">
-            <Toggle v={cfg.loop} set={set("loop")} />
-            <span className="wb-label">pause</span>
-            <Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} />
-          </Field>
-          <Field label="Segment in · out">
-            <Num v={cfg.segStart} set={set("segStart")} step={100} wide />
-            <Num v={cfg.segEnd} set={set("segEnd")} step={100} wide />
-          </Field>
-          <div className="wb-hint" style={{ marginTop: 6 }}>
-            Scrub to a beat and use ⇤ In / ⇥ Out to set the loop window. 0 · 0 plays the whole session.
-          </div>
+          {mode === "snippet" && (
+            <>
+              <Section title="Playback" />
+              <Field label="Loop">
+                <Toggle v={cfg.loop} set={set("loop")} />
+                <span className="wb-label">pause</span>
+                <Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} />
+              </Field>
+              <Field label="Segment in · out">
+                <Num v={cfg.segStart} set={set("segStart")} step={100} wide />
+                <Num v={cfg.segEnd} set={set("segEnd")} step={100} wide />
+              </Field>
+              <div className="wb-hint" style={{ marginTop: 6 }}>
+                Scrub to a beat and use In / Out to set the loop window. 0 · 0 plays the whole session.
+              </div>
+            </>
+          )}
 
           <div className="wb-hint" style={{ marginTop: 22, borderTop: "1px solid #EEE8DD", paddingTop: 12 }}>
             <strong style={{ fontWeight: 500, color: T.inkSoft }}>Saving:</strong> drafts live in this browser and
