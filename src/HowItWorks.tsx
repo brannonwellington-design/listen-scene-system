@@ -43,6 +43,10 @@ const STAGES: Stage[] = [
   },
 ]
 
+/**
+ * @framerSupportedLayoutWidth any
+ * @framerSupportedLayoutHeight auto
+ */
 export default function HowItWorks(props: {
   autoCycle?: boolean
   resumeDelay?: number

@@ -24,6 +24,10 @@ export const REGISTRY: Record<string, { Scene: (p: SceneProps) => JSX.Element; w
   "emotion-quote-card": { Scene: FragmentEmotionQuote, w: EMOTION_QUOTE_W, h: EMOTION_QUOTE_H },
 }
 
+/**
+ * @framerSupportedLayoutWidth any
+ * @framerSupportedLayoutHeight auto
+ */
 export default function ProductShot(props: { scene?: string; loop?: boolean; loopPause?: number }): JSX.Element {
   const { scene = "deliver-results", loop = true, loopPause = 3 } = props
   ensureCss()
