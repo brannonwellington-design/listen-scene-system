@@ -66,12 +66,12 @@ export type SceneCanvasProps = {
 /** control defaults — single source for destructuring and preset merging */
 export const CANVAS_DEFAULTS = {
   autoCycle: true, resumeDelay: 14, scrubber: false, maxWidth: 1200,
-  content: "reach-people@Audience criteria", customScene: "design-study",
+  content: "design-study", customScene: "design-study",
   cropX: 0, cropY: 0, cropW: 0, cropH: 0,
   loop: true, loopPause: 3, segStart: 0, segEnd: 0,
   fit: "responsive" as const, anchor: "top-left" as const, insetX: 40, insetY: 40,
   zoom: 1, smallBehavior: "fit" as const, fitBelow: 480, canvasHeight: 0,
-  pattern: "none" as PatternType, patternSpacing: 24, patternOpacity: 0.5,
+  pattern: "none" as PatternType, patternSpacing: 16, patternOpacity: 1,
   bgColor: T.pageContainer, padX: 56, padY: 44, radius: 0,
 }
 
@@ -389,7 +389,7 @@ addPropertyControls(SceneCanvas, {
   scrubber: { type: ControlType.Boolean, title: "Scrubber (dev)", defaultValue: false, hidden: isCallout },
   maxWidth: { type: ControlType.Number, title: "Max width", defaultValue: 1200, min: 640, max: 1600, step: 10, hidden: isCallout },
   // callout content
-  content: { type: ControlType.Enum, title: "Content", options: [...framingOptions(), "custom"], defaultValue: "reach-people@Audience criteria", hidden: isHero },
+  content: { type: ControlType.Enum, title: "Content", options: [...framingOptions(), "custom"], defaultValue: "design-study", hidden: isHero },
   customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), hidden: (p) => isHero(p) || p.content !== "custom" },
   cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isHero(p) || p.content !== "custom" },
   cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: 640, hidden: (p) => isHero(p) || p.content !== "custom" },
@@ -411,8 +411,8 @@ addPropertyControls(SceneCanvas, {
   fitBelow: { type: ControlType.Number, title: "Fall back below (px)", defaultValue: 480, min: 240, max: 900, hidden: (p) => isHero(p) || p.fit !== "pinned" || p.smallBehavior !== "fit" },
   // canvas
   pattern: { type: ControlType.Enum, title: "Pattern", options: ["none", "dots", "grid", "circles", "crosshairs"], defaultValue: "none" },
-  patternSpacing: { type: ControlType.Number, title: "Pattern spacing", defaultValue: 24, min: 8, max: 120, step: 4, hidden: (p) => p.pattern === "none" },
-  patternOpacity: { type: ControlType.Number, title: "Pattern opacity", defaultValue: 0.5, min: 0.05, max: 1, step: 0.05, hidden: (p) => p.pattern === "none" },
+  patternSpacing: { type: ControlType.Number, title: "Pattern spacing", defaultValue: 16, min: 8, max: 120, step: 4, hidden: (p) => p.pattern === "none" },
+  patternOpacity: { type: ControlType.Number, title: "Pattern opacity", defaultValue: 1, min: 0.05, max: 1, step: 0.05, hidden: (p) => p.pattern === "none" },
   bgColor: { type: ControlType.Color, title: "Canvas fill", defaultValue: "#EEE8DD" },
   padX: { type: ControlType.Number, title: "Padding X", defaultValue: 56, min: 0, max: 160 },
   padY: { type: ControlType.Number, title: "Padding Y", defaultValue: 44, min: 0, max: 160 },

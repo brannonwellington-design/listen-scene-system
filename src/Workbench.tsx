@@ -1,13 +1,14 @@
 // Workbench — the composition studio (/?compose=1). Local-only; not pasted
 // into Framer. Tune every SceneCanvas setting live, manipulate the shot
-// directly (drag to pin, wheel to zoom, drag-resize the crop), scrub to the
-// beat, then save the composition as a named preset.
+// directly (drag to pin, wheel to zoom, drag-resize the crop and the
+// preview frame), scrub to the beat, then save as a named preset.
 // UI: a shadcn-style inspector kit hand-rolled on the Listen Labs tokens.
 import * as React from "react"
 import SceneCanvas, { CANVAS_DEFAULTS, SceneCanvasProps } from "./SceneCanvas"
 import { PRESETS, Preset } from "./ListenPresets"
 import { framingOptions, resolveContent, byKey, REGISTRY } from "./ListenRegistry"
 import { T, Logo, ScaleBox, PatternLayer, PatternType } from "./ListenKit"
+import { I } from "./ListenIcons"
 
 type Cfg = typeof CANVAS_DEFAULTS
 const DRAFT_KEY = "llPresetDrafts"
@@ -16,28 +17,61 @@ const loadDrafts = (): Preset[] => {
   try { return JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "[]") } catch { return [] }
 }
 
+// -------------------------------------------------------------- drag engine --
+/** window-scoped drag: survives leaving the handle, suppresses text selection */
+function startDrag(
+  e: React.MouseEvent,
+  opts: { cursor: string; onMove: (dx: number, dy: number, ev: MouseEvent) => void; onEnd?: () => void },
+): void {
+  e.preventDefault()
+  const sx = e.clientX, sy = e.clientY
+  const prevSelect = document.body.style.userSelect
+  const prevCursor = document.body.style.cursor
+  document.body.style.userSelect = "none"
+  document.body.style.cursor = opts.cursor
+  const move = (ev: MouseEvent) => opts.onMove(ev.clientX - sx, ev.clientY - sy, ev)
+  const up = () => {
+    window.removeEventListener("mousemove", move)
+    window.removeEventListener("mouseup", up)
+    document.body.style.userSelect = prevSelect
+    document.body.style.cursor = prevCursor
+    opts.onEnd?.()
+  }
+  window.addEventListener("mousemove", move)
+  window.addEventListener("mouseup", up)
+}
+
 // ------------------------------------------------------------------ styles --
+const CHEVRON = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236B6861' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
+
 const WB_CSS = `
   .wb * { box-sizing: border-box; }
   .wb { font-family: ${T.font}; font-weight: 400; color: ${T.ink}; }
-  .wb-header { display: flex; align-items: center; gap: 14px; padding: 12px 20px;
+  .wb-header { display: flex; align-items: center; gap: 12px; padding: 12px 20px;
     background: #FFF; border-bottom: 1px solid #E7E1D6; flex-wrap: wrap; }
-  .wb-title { display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 500; }
+  .wb-title { display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 500; margin-right: 6px; }
   .wb-main { display: flex; align-items: stretch; }
-  .wb-stage { flex: 1; min-width: 0; padding: 20px 24px 64px; }
+  .wb-stage { flex: 1; min-width: 0; padding: 24px 32px 72px; }
   .wb-panel { width: 336px; flex-shrink: 0; background: #FFF; border-left: 1px solid #E7E1D6;
-    padding: 8px 20px 24px; overflow-y: auto; height: calc(100vh - 57px); position: sticky; top: 0; }
-  .wb-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
-  .wb-section { font-size: 11px; font-weight: 500; color: ${T.inkFaint}; text-transform: uppercase;
-    margin: 20px 0 6px; }
-  .wb-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 32px; }
-  .wb-label { font-size: 12.5px; color: ${T.inkSoft}; flex-shrink: 0; }
+    padding: 8px 20px 28px; overflow-y: auto; height: calc(100vh - 57px); position: sticky; top: 0; }
+  .wb-panel::-webkit-scrollbar { width: 8px; }
+  .wb-panel::-webkit-scrollbar-thumb { background: #E7E1D6; border-radius: 4px; }
+  .wb-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; min-height: 38px; }
+  .wb-tools { display: inline-flex; align-items: center; gap: 8px; background: #FFF;
+    border: 1px solid #E7E1D6; border-radius: 10px; padding: 4px 8px; }
+  .wb-section { font-size: 11px; font-weight: 500; color: ${T.inkFaint}; text-transform: uppercase; margin: 22px 0 8px; }
+  .wb-field { display: grid; grid-template-columns: 104px 1fr; align-items: center; min-height: 34px; gap: 8px; }
+  .wb-label { font-size: 12.5px; color: ${T.inkSoft}; }
+  .wb-ctl { display: flex; align-items: center; gap: 6px; justify-content: flex-end; min-width: 0; }
   .wb-input, .wb-select { height: 28px; border: 1px solid #DDD6C8; border-radius: 8px; padding: 0 8px;
     font: 12.5px ${T.font}; background: #FCFBF8; color: ${T.ink}; }
-  .wb-input { width: 60px; }
-  .wb-input.wide { width: 76px; }
-  .wb-input.grow { width: 100%; }
-  .wb-select { max-width: 196px; }
+  .wb-input { width: 58px; text-align: center; appearance: textfield; -moz-appearance: textfield; }
+  .wb-input::-webkit-outer-spin-button, .wb-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .wb-input.wide { width: 72px; }
+  .wb-input.text { text-align: left; }
+  .wb-select { appearance: none; -webkit-appearance: none; padding-right: 24px; max-width: 200px;
+    background-image: ${CHEVRON}; background-repeat: no-repeat; background-position: right 8px center;
+    text-overflow: ellipsis; }
   .wb-input:focus, .wb-select:focus { outline: none; border-color: ${T.brand};
     box-shadow: 0 0 0 2px rgba(0, 33, 204, 0.12); }
   .wb-btn { height: 28px; padding: 0 12px; border-radius: 8px; border: 1px solid #DDD6C8;
@@ -48,16 +82,21 @@ const WB_CSS = `
   .wb-btn.primary { background: ${T.ink}; color: #F9F4EB; border-color: ${T.ink}; }
   .wb-btn.primary:hover { background: #33302A; }
   .wb-btn.accent { background: ${T.brand}; color: #F9F4EB; border-color: ${T.brand}; }
+  .wb-btn:focus-visible, .wb-seg button:focus-visible, .wb-switch:focus-visible,
+  .wb-swatch:focus-visible, .wb-corner span:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(0, 33, 204, 0.35); }
   .wb-seg { display: inline-flex; background: #F0EBDF; border-radius: 8px; padding: 2px; gap: 2px; }
   .wb-seg button { height: 24px; padding: 0 10px; border-radius: 6px; border: none; background: transparent;
     font: 12px ${T.font}; color: ${T.inkSoft}; cursor: pointer; }
   .wb-seg button.on { background: #FFF; color: ${T.ink}; box-shadow: 0 1px 2px rgba(0,0,0,.07); }
   .wb-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
-    background: #E2DCCF; flex: 1; min-width: 60px; cursor: pointer; }
+    background: #E2DCCF; width: 104px; cursor: pointer; }
+  .wb-slider.grow { flex: 1; width: auto; min-width: 120px; }
   .wb-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
     background: ${T.brand}; border: 2px solid #FFF; box-shadow: 0 1px 3px rgba(0,0,0,.25); cursor: pointer; }
   .wb-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: ${T.brand};
     border: 2px solid #FFF; box-shadow: 0 1px 3px rgba(0,0,0,.25); cursor: pointer; }
+  .wb-val { width: 34px; font-size: 12px; color: ${T.inkSoft}; text-align: right;
+    font-variant-numeric: tabular-nums; flex-shrink: 0; }
   .wb-switch { width: 34px; height: 20px; border-radius: 10px; background: #DDD6C8; border: none;
     position: relative; cursor: pointer; transition: background .15s ease; flex-shrink: 0; }
   .wb-switch.on { background: ${T.brand}; }
@@ -67,18 +106,25 @@ const WB_CSS = `
   .wb-corner { width: 46px; height: 38px; border: 1px solid #DDD6C8; border-radius: 8px;
     position: relative; background: #FCFBF8; flex-shrink: 0; }
   .wb-corner span { position: absolute; width: 10px; height: 10px; border-radius: 3px;
-    border: 1.5px solid #C6BEAC; background: #FFF; cursor: pointer; }
+    border: 1.5px solid #C6BEAC; background: #FFF; cursor: pointer; transition: background .1s, border-color .1s; }
+  .wb-corner span:hover { border-color: ${T.brand}; }
   .wb-corner span.on { background: ${T.brand}; border-color: ${T.brand}; }
   .wb-swatch { width: 38px; height: 28px; border: 1px solid #DDD6C8; border-radius: 7px;
-    background: ${T.pageContainer}; position: relative; overflow: hidden; cursor: pointer; padding: 0; }
+    background: ${T.pageContainer}; position: relative; overflow: hidden; cursor: pointer; padding: 0;
+    transition: border-color .1s ease; }
+  .wb-swatch:hover { border-color: #B9B09B; }
   .wb-swatch.on { border-color: ${T.brand}; box-shadow: 0 0 0 2px rgba(0, 33, 204, 0.15); }
-  .wb-time { font-variant-numeric: tabular-nums; font-size: 12px; color: ${T.inkSoft}; width: 42px; }
+  .wb-time { font-variant-numeric: tabular-nums; font-size: 12px; color: ${T.inkSoft}; width: 42px; text-align: right; }
   .wb-hint { font-size: 11.5px; color: ${T.inkFaint}; line-height: 1.5; }
-  .wb-grab { position: absolute; right: -16px; top: 50%; transform: translateY(-50%);
-    width: 10px; height: 52px; border-radius: 5px; background: #D8D1C2; cursor: ew-resize; }
-  .wb-grab:hover { background: #C6BEAC; }
+  .wb-grab-w { position: absolute; right: -18px; top: 50%; transform: translateY(-50%);
+    width: 10px; height: 56px; border-radius: 5px; background: #D8D1C2; cursor: ew-resize; transition: background .12s; }
+  .wb-grab-h { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+    height: 10px; width: 56px; border-radius: 5px; background: #D8D1C2; cursor: ns-resize; transition: background .12s; }
+  .wb-grab-w:hover, .wb-grab-h:hover, .wb-grab-w.on, .wb-grab-h.on { background: ${T.brand}; }
   .wb-float { position: absolute; left: 12px; bottom: 12px; background: rgba(26,26,26,.82); color: #F9F4EB;
-    font-size: 11px; padding: 5px 10px; border-radius: 7px; pointer-events: none; }
+    font-size: 11px; padding: 5px 10px; border-radius: 7px; pointer-events: none; z-index: 5; }
+  .wb-chip { position: absolute; top: -30px; right: 0; background: ${T.ink}; color: #F9F4EB; font-size: 11px;
+    padding: 4px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; z-index: 5; }
 `
 
 // -------------------------------------------------------------- UI pieces ---
@@ -87,7 +133,7 @@ const Section = (p: { title: string }) => <div className="wb-section">{p.title}<
 const Field = (p: { label: string; children: React.ReactNode }) => (
   <div className="wb-field">
     <span className="wb-label">{p.label}</span>
-    <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: "0 1 auto" }}>{p.children}</span>
+    <span className="wb-ctl">{p.children}</span>
   </div>
 )
 
@@ -96,8 +142,8 @@ const Num = (p: { v: number; set: (n: number) => void; min?: number; max?: numbe
     step={p.step ?? 1} onChange={(e) => p.set(+e.target.value)} />
 )
 
-const Sel = (p: { v: string; set: (s: string) => void; options: string[]; titles?: string[]; grow?: boolean }) => (
-  <select className="wb-select" style={p.grow ? { width: "100%", maxWidth: "none" } : undefined}
+const Sel = (p: { v: string; set: (s: string) => void; options: string[]; titles?: string[]; width?: number }) => (
+  <select className="wb-select" style={p.width ? { width: p.width, maxWidth: p.width } : undefined}
     value={p.v} onChange={(e) => p.set(e.target.value)}>
     {p.options.map((o, i) => <option key={o + i} value={o}>{p.titles?.[i] ?? o}</option>)}
   </select>
@@ -119,14 +165,14 @@ const Slider = (p: { v: number; set: (n: number) => void; min: number; max: numb
   <>
     <input type="range" className="wb-slider" min={p.min} max={p.max} step={p.step} value={p.v}
       onChange={(e) => p.set(+e.target.value)} />
-    <span style={{ width: 36, fontSize: 12, color: T.inkSoft, textAlign: "right" }}>{p.fmt ? p.fmt(p.v) : p.v}</span>
+    <span className="wb-val">{p.fmt ? p.fmt(p.v) : p.v}</span>
   </>
 )
 
 const CornerPick = (p: { v: string; set: (s: string) => void }) => (
   <span className="wb-corner">
     {(["top-left", "top-right", "bottom-left", "bottom-right"] as const).map((c) => (
-      <span key={c} className={p.v === c ? "on" : ""} onClick={() => p.set(c)} style={{
+      <span key={c} tabIndex={0} className={p.v === c ? "on" : ""} onClick={() => p.set(c)} style={{
         top: c.includes("top") ? 5 : undefined, bottom: c.includes("bottom") ? 5 : undefined,
         left: c.includes("left") ? 5 : undefined, right: c.includes("right") ? 5 : undefined,
       }} />
@@ -162,39 +208,35 @@ type Rect = { x: number; y: number; w: number; h: number }
 function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChange: (r: Rect) => void }): JSX.Element {
   const entry = byKey(props.sceneKey)
   const wrapRef = React.useRef<HTMLDivElement>(null)
-  const dragRef = React.useRef<{ mode: string; startX: number; startY: number; r0: Rect } | null>(null)
 
-  const toDesign = (e: React.MouseEvent) => {
-    const b = wrapRef.current!.getBoundingClientRect()
-    const s = b.width / entry.w
-    return { x: (e.clientX - b.left) / s, y: (e.clientY - b.top) / s }
-  }
   const clampRect = (r: Rect): Rect => ({
     x: Math.round(Math.max(0, Math.min(entry.w - 60, r.x))),
     y: Math.round(Math.max(0, Math.min(entry.h - 40, r.y))),
     w: Math.round(Math.max(60, Math.min(entry.w - Math.max(0, r.x), r.w))),
     h: Math.round(Math.max(40, Math.min(entry.h - Math.max(0, r.y), r.h))),
   })
-  const onMove = (e: React.MouseEvent) => {
-    const d = dragRef.current
-    if (!d) return
-    const p = toDesign(e)
-    const dx = p.x - d.startX, dy = p.y - d.startY
-    const r0 = d.r0
-    let r = { ...r0 }
-    if (d.mode === "move") { r.x = r0.x + dx; r.y = r0.y + dy }
-    else {
-      if (d.mode.includes("w")) { r.x = r0.x + dx; r.w = r0.w - dx }
-      if (d.mode.includes("e")) { r.w = r0.w + dx }
-      if (d.mode.includes("n")) { r.y = r0.y + dy; r.h = r0.h - dy }
-      if (d.mode.includes("s")) { r.h = r0.h + dy }
-    }
-    props.onChange(clampRect(r))
-  }
+
   const start = (mode: string) => (e: React.MouseEvent) => {
     e.stopPropagation()
-    const p = toDesign(e)
-    dragRef.current = { mode, startX: p.x, startY: p.y, r0: { ...props.rect } }
+    const b = wrapRef.current!.getBoundingClientRect()
+    const s = b.width / entry.w
+    const r0 = { ...props.rect }
+    const cursor = mode === "move" ? "move" : `${mode}-resize`
+    startDrag(e, {
+      cursor,
+      onMove: (dxPx, dyPx) => {
+        const dx = dxPx / s, dy = dyPx / s
+        let r = { ...r0 }
+        if (mode === "move") { r.x = r0.x + dx; r.y = r0.y + dy }
+        else {
+          if (mode.includes("w")) { r.x = r0.x + dx; r.w = r0.w - dx }
+          if (mode.includes("e")) { r.w = r0.w + dx }
+          if (mode.includes("n")) { r.y = r0.y + dy; r.h = r0.h - dy }
+          if (mode.includes("s")) { r.h = r0.h + dy }
+        }
+        props.onChange(clampRect(r))
+      },
+    })
   }
 
   const b = wrapRef.current?.getBoundingClientRect()
@@ -202,15 +244,8 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
   const r = props.rect
   const Scene = entry.Scene
   return (
-    <div
-      ref={wrapRef}
-      className="ll-noanim"
-      style={{ position: "relative", cursor: "crosshair", userSelect: "none", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}
-      onMouseMove={onMove}
-      onMouseUp={() => (dragRef.current = null)}
-      onMouseLeave={() => (dragRef.current = null)}
-      onMouseDown={start("move")}
-    >
+    <div ref={wrapRef} className="ll-noanim"
+      style={{ position: "relative", userSelect: "none", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}>
       <ScaleBox designWidth={entry.w} designHeight={entry.h}>
         <Scene active runKey={0} hold={props.holdT} />
       </ScaleBox>
@@ -223,31 +258,34 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
       <div style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
         <div style={{ position: "absolute", left: r.x * s, top: r.y * s, width: r.w * s, height: r.h * s, pointerEvents: "auto", cursor: "move" }} onMouseDown={start("move")} />
         {[
-          ["nw", 0, 0, "nwse-resize"], ["n", 0.5, 0, "ns-resize"], ["ne", 1, 0, "nesw-resize"],
-          ["e", 1, 0.5, "ew-resize"], ["se", 1, 1, "nwse-resize"], ["s", 0.5, 1, "ns-resize"],
-          ["sw", 0, 1, "nesw-resize"], ["w", 0, 0.5, "ew-resize"],
-        ].map(([m, fx, fy, cur]) => (
-          <div key={m as string} onMouseDown={start(m as string)} style={{
-            position: "absolute",
-            left: (r.x + r.w * (fx as number)) * s - 5, top: (r.y + r.h * (fy as number)) * s - 5,
-            width: 10, height: 10, background: "#FFF", border: "1.5px solid #0021CC", borderRadius: 3,
-            cursor: cur as string, pointerEvents: "auto",
-          }} />
-        ))}
+          ["nw", 0, 0], ["n", 0.5, 0], ["ne", 1, 0], ["e", 1, 0.5],
+          ["se", 1, 1], ["s", 0.5, 1], ["sw", 0, 1], ["w", 0, 0.5],
+        ].map(([m, fx, fy]) => {
+          const cur = { nw: "nwse", n: "ns", ne: "nesw", e: "ew", se: "nwse", s: "ns", sw: "nesw", w: "ew" }[m as string]
+          return (
+            <div key={m as string} onMouseDown={start(m as string)} style={{
+              position: "absolute",
+              left: (r.x + r.w * (fx as number)) * s - 5, top: (r.y + r.h * (fy as number)) * s - 5,
+              width: 10, height: 10, background: "#FFF", border: "1.5px solid #0021CC", borderRadius: 3,
+              cursor: `${cur}-resize`, pointerEvents: "auto",
+            }} />
+          )
+        })}
       </div>
-      <div className="wb-float">frame the crop · drag to move, handles to resize</div>
+      <div className="wb-float">frame the crop · drag to move, handles to resize · {r.w} × {r.h}</div>
     </div>
   )
 }
 
 // -------------------------------------------------------------- workbench ---
 export default function Workbench(): JSX.Element {
-  const [cfg, setCfg] = React.useState<Cfg>({ ...CANVAS_DEFAULTS, canvasHeight: 300, pattern: "dots", radius: 16 })
+  const [cfg, setCfg] = React.useState<Cfg>({ ...CANVAS_DEFAULTS })
   const [presetSel, setPresetSel] = React.useState("")
   const [drafts, setDrafts] = React.useState<Preset[]>(loadDrafts)
   const [saveName, setSaveName] = React.useState("")
   const [previewW, setPreviewW] = React.useState<number | "full">("full")
   const [cropEdit, setCropEdit] = React.useState(false)
+  const [dragging, setDragging] = React.useState<"" | "w" | "h" | "pin">("")
   // transport
   const [scrubOn, setScrubOn] = React.useState(false)
   const [t, setT] = React.useState(0)
@@ -267,29 +305,27 @@ export default function Workbench(): JSX.Element {
   const rect: Rect = resolved.framing ?? { x: 0, y: 0, w: resolved.entry.w, h: resolved.entry.h }
 
   // --- pin drag + wheel zoom over the live canvas ---------------------------
-  const pinDrag = React.useRef<{ mx: number; my: number; left: number; top: number } | null>(null)
   const onPinDown = (e: React.MouseEvent) => {
-    if (cfg.fit !== "pinned" || !canvasRef.current) return
+    if (cfg.fit !== "pinned" || !canvasRef.current || cropEdit) return
     const cb = canvasRef.current.getBoundingClientRect()
     const shotW = rect.w * cfg.zoom, shotH = rect.h * cfg.zoom
-    const left = cfg.anchor.includes("left") ? cfg.insetX : cb.width - cfg.insetX - shotW
-    const top = cfg.anchor.includes("top") ? cfg.insetY : cb.height - cfg.insetY - shotH
-    pinDrag.current = { mx: e.clientX, my: e.clientY, left, top }
-  }
-  const onPinMove = (e: React.MouseEvent) => {
-    const d = pinDrag.current
-    if (!d || !canvasRef.current) return
-    const cb = canvasRef.current.getBoundingClientRect()
-    const shotW = rect.w * cfg.zoom, shotH = rect.h * cfg.zoom
-    const left = d.left + (e.clientX - d.mx)
-    const top = d.top + (e.clientY - d.my)
-    // anchor follows the pointer: drag toward a corner to pin there
-    const px = e.clientX - cb.left, py = e.clientY - cb.top
-    const anchor = `${py < cb.height / 2 ? "top" : "bottom"}-${px < cb.width / 2 ? "left" : "right"}` as Cfg["anchor"]
-    const insetX = Math.round(Math.max(0, anchor.includes("left") ? left : cb.width - left - shotW))
-    const insetY = Math.round(Math.max(0, anchor.includes("top") ? top : cb.height - top - shotH))
-    setCfg((c) => ({ ...c, anchor, insetX, insetY }))
-    setPresetSel("")
+    const left0 = cfg.anchor.includes("left") ? cfg.insetX : cb.width - cfg.insetX - shotW
+    const top0 = cfg.anchor.includes("top") ? cfg.insetY : cb.height - cfg.insetY - shotH
+    setDragging("pin")
+    startDrag(e, {
+      cursor: "grabbing",
+      onMove: (dx, dy, ev) => {
+        const left = left0 + dx, top = top0 + dy
+        // anchor follows the pointer: drag toward a corner to pin there
+        const px = ev.clientX - cb.left, py = ev.clientY - cb.top
+        const anchor = `${py < cb.height / 2 ? "top" : "bottom"}-${px < cb.width / 2 ? "left" : "right"}` as Cfg["anchor"]
+        const insetX = Math.round(Math.max(0, anchor.includes("left") ? left : cb.width - left - shotW))
+        const insetY = Math.round(Math.max(0, anchor.includes("top") ? top : cb.height - top - shotH))
+        setCfg((c) => ({ ...c, anchor, insetX, insetY }))
+        setPresetSel("")
+      },
+      onEnd: () => setDragging(""),
+    })
   }
   React.useEffect(() => {
     const el = previewRef.current
@@ -304,7 +340,26 @@ export default function Workbench(): JSX.Element {
     return () => el.removeEventListener("wheel", onWheel)
   }, [cfg.fit, cropEdit])
 
-  const widthDrag = React.useRef<{ mx: number; w: number } | null>(null)
+  // --- frame resize handles -------------------------------------------------
+  const onWidthDown = (e: React.MouseEvent) => {
+    const w0 = previewRef.current?.getBoundingClientRect().width ?? 800
+    if (previewW === "full") setPreviewW(w0)
+    setDragging("w")
+    startDrag(e, {
+      cursor: "ew-resize",
+      onMove: (dx) => setPreviewW(Math.max(320, Math.round(w0 + dx))),
+      onEnd: () => setDragging(""),
+    })
+  }
+  const onHeightDown = (e: React.MouseEvent) => {
+    const h0 = cfg.canvasHeight || canvasRef.current?.getBoundingClientRect().height || 420
+    setDragging("h")
+    startDrag(e, {
+      cursor: "ns-resize",
+      onMove: (_dx, dy) => { setCfg((c) => ({ ...c, canvasHeight: Math.max(160, Math.min(1200, Math.round(h0 + dy))) })); setPresetSel("") },
+      onEnd: () => setDragging(""),
+    })
+  }
 
   // --- preset apply / save --------------------------------------------------
   const allPresets = [...PRESETS, ...drafts]
@@ -352,6 +407,7 @@ export default function Workbench(): JSX.Element {
 
   const pw = previewW === "full" ? "100%" : previewW
   const bpValue = previewW === "full" ? "full" : String(previewW)
+  const sizeLabel = `${previewW === "full" ? "full width" : Math.round(previewW as number) + "px"} × ${cfg.canvasHeight ? cfg.canvasHeight + "px" : "auto"}`
 
   return (
     <div className="wb" style={{ background: T.pageBg, minHeight: "100vh" }}>
@@ -360,11 +416,11 @@ export default function Workbench(): JSX.Element {
       {/* header */}
       <div className="wb-header">
         <span className="wb-title"><Logo /> Scene Workbench</span>
-        <Sel v={presetSel} set={applyPreset}
+        <Sel v={presetSel} set={applyPreset} width={210}
           options={["", ...allPresets.map((p) => p.name)]}
           titles={["Load a preset…", ...allPresets.map((p) => p.name)]} />
         <span style={{ flex: 1 }} />
-        <input className="wb-input" style={{ width: 170 }} placeholder="Preset name…" value={saveName}
+        <input className="wb-input text" style={{ width: 170 }} placeholder="Preset name…" value={saveName}
           onChange={(e) => setSaveName(e.target.value)} />
         <button className="wb-btn primary" onClick={saveDraft}>Save draft</button>
         <CopyBtn label="Copy preset TS" text={presetBlock} />
@@ -375,43 +431,42 @@ export default function Workbench(): JSX.Element {
         {/* stage */}
         <div className="wb-stage">
           <div className="wb-toolbar">
-            {!scrubOn ? (
-              <button className="wb-btn" onClick={() => { setScrubOn(true); setPlayStart(null) }}>🎚 Scrub</button>
-            ) : (
-              <>
-                <button className="wb-btn primary" style={{ width: 44, justifyContent: "center" }}
-                  onClick={() => setPlayStart(playing ? null : t)}>
-                  {playing ? "⏸" : "▶"}
+            <span className="wb-tools">
+              {!scrubOn ? (
+                <button className="wb-btn" onClick={() => { setScrubOn(true); setPlayStart(null) }}>
+                  <I name="sliders-horizontal" size={13} /> Scrub
                 </button>
-                <input type="range" className="wb-slider" style={{ maxWidth: 300 }} min={0} max={25000} step={100}
-                  value={t} onChange={(e) => { setPlayStart(null); setT(+e.target.value) }} />
-                <span className="wb-time">{(t / 1000).toFixed(1)}s</span>
-                <button className="wb-btn" onClick={punch("segStart")}>⇤ In</button>
-                <button className="wb-btn" onClick={punch("segEnd")}>⇥ Out</button>
-                <button className="wb-btn" onClick={() => { setScrubOn(false); setPlayStart(null); setCropEdit(false); setRunNonce((n) => n + 1) }}>Live</button>
-              </>
-            )}
+              ) : (
+                <>
+                  <button className="wb-btn primary" style={{ width: 40, justifyContent: "center", padding: 0 }}
+                    onClick={() => setPlayStart(playing ? null : t)} title={playing ? "Pause" : "Play"}>
+                    <I name={playing ? "pause" : "play"} size={12} />
+                  </button>
+                  <input type="range" className="wb-slider grow" style={{ maxWidth: 280 }} min={0} max={25000} step={100}
+                    value={t} onChange={(e) => { setPlayStart(null); setT(+e.target.value) }} />
+                  <span className="wb-time">{(t / 1000).toFixed(1)}s</span>
+                  <button className="wb-btn" onClick={punch("segStart")} title="Set segment start from playhead">⇤ In</button>
+                  <button className="wb-btn" onClick={punch("segEnd")} title="Set segment end from playhead">⇥ Out</button>
+                  <button className="wb-btn" onClick={() => { setScrubOn(false); setPlayStart(null); setCropEdit(false); setRunNonce((n) => n + 1) }}>Live</button>
+                </>
+              )}
+            </span>
             <span style={{ flex: 1 }} />
             <Seg v={bpValue} set={(v) => setPreviewW(v === "full" ? "full" : +v)}
               options={[["375", "375"], ["768", "768"], ["1024", "1024"], ["full", "Full"]]} />
             <button className={"wb-btn" + (cropEdit ? " accent" : "")}
               onClick={() => (cropEdit ? setCropEdit(false) : editCropStart())}>
-              {cropEdit ? "✓ Done cropping" : "▣ Edit crop"}
+              <I name="crop" size={13} /> {cropEdit ? "Done" : "Edit crop"}
             </button>
           </div>
 
           {/* resizable preview frame */}
-          <div style={{ position: "relative", width: pw, maxWidth: "100%", margin: "0 auto", transition: widthDrag.current ? "none" : "width .2s ease" }}
-            onMouseMove={(e) => { const d = widthDrag.current; if (d) setPreviewW(Math.max(300, d.w + (e.clientX - d.mx))) }}
-            onMouseUp={() => (widthDrag.current = null)}
-            onMouseLeave={() => (widthDrag.current = null)}
-          >
+          <div style={{ position: "relative", width: pw, maxWidth: "100%", margin: "0 auto", transition: dragging ? "none" : "width .2s ease" }}>
+            {dragging && <span className="wb-chip">{sizeLabel}</span>}
             <div ref={previewRef}
               className={scrubOn && !playing ? "ll-noanim" : undefined}
               onMouseDown={onPinDown}
-              onMouseMove={onPinMove}
-              onMouseUp={() => (pinDrag.current = null)}
-              style={{ position: "relative", cursor: cfg.fit === "pinned" && !cropEdit ? "grab" : undefined }}
+              style={{ position: "relative", cursor: cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
             >
               {cropEdit ? (
                 <CropEditor sceneKey={cfg.customScene} holdT={t}
@@ -431,12 +486,11 @@ export default function Workbench(): JSX.Element {
                 </>
               )}
             </div>
-            <div className="wb-grab"
-              onMouseDown={(e) => { widthDrag.current = { mx: e.clientX, w: previewRef.current?.getBoundingClientRect().width ?? 0 }; if (previewW === "full") setPreviewW(previewRef.current?.getBoundingClientRect().width ?? 800) }}
-            />
+            <div className={"wb-grab-w" + (dragging === "w" ? " on" : "")} onMouseDown={onWidthDown} />
+            {!cropEdit && <div className={"wb-grab-h" + (dragging === "h" ? " on" : "")} onMouseDown={onHeightDown} />}
           </div>
-          <div style={{ textAlign: "center", marginTop: 10 }} className="wb-hint">
-            {previewW === "full" ? "full width" : `${Math.round(previewW as number)}px`} · drag the handle to test any width
+          <div style={{ textAlign: "center", marginTop: 26 }} className="wb-hint">
+            {sizeLabel} · drag the handles to test any size
           </div>
         </div>
 
@@ -484,7 +538,10 @@ export default function Workbench(): JSX.Element {
               )}
             </>
           )}
-          <Field label="Canvas height"><Num v={cfg.canvasHeight} set={set("canvasHeight")} wide /><span className="wb-hint">0 = auto</span></Field>
+          <Field label="Canvas height">
+            <Num v={cfg.canvasHeight} set={set("canvasHeight")} wide />
+            <span className="wb-hint">0 = auto</span>
+          </Field>
 
           <Section title="Canvas" />
           <Field label="Pattern">
@@ -504,7 +561,7 @@ export default function Workbench(): JSX.Element {
             <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(cfg.bgColor) ? cfg.bgColor : "#EEE8DD"}
               onChange={(e) => set("bgColor")(e.target.value)}
               style={{ width: 28, height: 28, border: "1px solid #DDD6C8", borderRadius: 8, background: "none", padding: 2, cursor: "pointer" }} />
-            <input className="wb-input wide" value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} />
+            <input className="wb-input wide text" value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} />
           </Field>
           <Field label="Padding x · y">
             <Num v={cfg.padX} set={set("padX")} /><Num v={cfg.padY} set={set("padY")} />
@@ -525,7 +582,7 @@ export default function Workbench(): JSX.Element {
             Scrub to a beat and use ⇤ In / ⇥ Out to set the loop window. 0 · 0 plays the whole session.
           </div>
 
-          <div className="wb-hint" style={{ marginTop: 20, borderTop: "1px solid #EEE8DD", paddingTop: 12 }}>
+          <div className="wb-hint" style={{ marginTop: 22, borderTop: "1px solid #EEE8DD", paddingTop: 12 }}>
             <strong style={{ fontWeight: 500, color: T.inkSoft }}>Saving:</strong> drafts live in this browser and
             appear in the preset menu. Copy preset TS into <code>ListenPresets.tsx</code> to make a composition
             permanent — it then shows up in SceneCanvas's Preset dropdown in Framer.

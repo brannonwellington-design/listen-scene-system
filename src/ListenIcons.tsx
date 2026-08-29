@@ -56,6 +56,9 @@ const ICONS: Record<string, El[]> = {
   layers: [["p", "M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"], ["p", "m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"], ["p", "m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"]],
   "log-out": [["p", "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"], ["p", "m16 17 5-5-5-5"], ["p", "M21 12H9"]],
   "audio-lines": [["p", "M2 10v3"], ["p", "M6 6v11"], ["p", "M10 3v18"], ["p", "M14 8v7"], ["p", "M18 5v13"], ["p", "M22 10v3"]],
+  pause: [["r", 14, 4, 4, 16, 1], ["r", 6, 4, 4, 16, 1]],
+  crop: [["p", "M6 2v14a2 2 0 0 0 2 2h14"], ["p", "M18 22V8a2 2 0 0 0-2-2H2"]],
+  "sliders-horizontal": [["p", "M10 5H3"], ["p", "M12 19H3"], ["p", "M14 3v4"], ["p", "M16 17v4"], ["p", "M21 12h-9"], ["p", "M21 19h-5"], ["p", "M21 5h-7"], ["p", "M8 10v4"], ["p", "M8 12H3"]],
 }
 
 export function I(props: { name: keyof typeof ICONS | string; size?: number; style?: React.CSSProperties }): JSX.Element {

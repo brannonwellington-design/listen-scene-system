@@ -358,7 +358,7 @@ export function PatternLayer(props: {
   opacity?: number
   color?: string
 }): JSX.Element | null {
-  const { type, spacing = 24, opacity = 0.5, color = "#E2DCCF" } = props
+  const { type, spacing = 16, opacity = 1, color = "#E2DCCF" } = props
   if (type === "none") return null
   const common: React.CSSProperties = { position: "absolute", inset: 0, pointerEvents: "none", opacity }
 
