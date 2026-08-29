@@ -259,14 +259,15 @@ const params = new URLSearchParams(location.search)
 const solo = params.get("scene")
 const refImg = params.get("ref")
 if (params.get("hold")) (window as any).__llHold = +params.get("hold")!
+// The workbench is the landing page; the showcase demo lives at ?demo=1.
 createRoot(document.getElementById("root")!).render(
-  params.get("compose") ? (
-    <Workbench />
+  params.get("demo") ? (
+    <Demo />
   ) : solo && refImg ? (
     <Compare scene={solo} refImg={refImg} />
   ) : solo ? (
     <Solo scene={solo} />
   ) : (
-    <Demo />
+    <Workbench />
   ),
 )

@@ -15,7 +15,7 @@ ready to paste into **Framer**.
 | `src/ListenRegistry.tsx` | **The canonical catalog**: scenes, fragments, hero-stage copy, and named **framings** (crop-window rects). Register content once here; the hero, callouts, and demo tooling all read from it. |
 | `src/SceneCanvas.tsx` | **The universal Framer component.** `variant="hero"` = the multi-stage How-It-Works (auto-cycle, stage rail, dev scrubber). `variant="callout"` = a single scene, fragment, or **crop-window snippet**. Every instance gets the canvas system: surface-secondary container, optional background pattern, and the fit engine — `responsive` (scales with container) or `pinned` (native pixels anchored to a corner with X/Y insets while the container flexes and masks; optional fall-back-to-fit below a breakpoint). Callouts can also **loop a time-slice** of a session (`segStart`/`segEnd`). |
 | `src/HowItWorks.tsx`, `src/ProductShot.tsx` | Thin back-compat presets over SceneCanvas. |
-| `demo.html` + `src/demo.tsx` | Local demo page rendering everything outside Framer, including a SceneCanvas showcase. |
+| `demo.html` + `src/demo.tsx` | Local demo page rendering everything outside Framer, including a SceneCanvas showcase (at ?demo=1; the root URL is the workbench). |
 
 ## Install in Framer
 
@@ -71,7 +71,7 @@ node scripts/dev-server.mjs   # → http://localhost:4173
 - `/?scene=design-study&hold=9700&frame=1` adds the **framing helper**:
   drag a box over the frozen scene to read off a crop rect in design
   coordinates, ready to paste into `ListenRegistry`'s `framings`.
-- `/?compose=1` is the **composition workbench**: tune every SceneCanvas
+- `/` (the landing page) is the **composition workbench**: tune every SceneCanvas
   setting live (content, crop, fit, pattern, fill, padding, segment beat)
   with direct manipulation — drag the canvas to reposition a pinned shot,
   scroll to zoom, drag-resize the crop over a ghosted scene, punch segment
