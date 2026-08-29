@@ -2,11 +2,12 @@
 // into Framer. Tune every SceneCanvas setting live, manipulate the shot
 // directly (drag to pin, wheel to zoom, drag-resize the crop), scrub to the
 // beat, then save the composition as a named preset.
+// UI: a shadcn-style inspector kit hand-rolled on the Listen Labs tokens.
 import * as React from "react"
 import SceneCanvas, { CANVAS_DEFAULTS, SceneCanvasProps } from "./SceneCanvas"
 import { PRESETS, Preset } from "./ListenPresets"
 import { framingOptions, resolveContent, byKey, REGISTRY } from "./ListenRegistry"
-import { T, ScaleBox } from "./ListenKit"
+import { T, Logo, ScaleBox, PatternLayer, PatternType } from "./ListenKit"
 
 type Cfg = typeof CANVAS_DEFAULTS
 const DRAFT_KEY = "llPresetDrafts"
@@ -15,32 +16,143 @@ const loadDrafts = (): Preset[] => {
   try { return JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "[]") } catch { return [] }
 }
 
-// ------------------------------------------------------------ UI helpers ----
-const rowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.inkSoft }
-const inputStyle: React.CSSProperties = { font: "inherit", fontSize: 12, border: "1px solid #C6C0B4", borderRadius: 6, padding: "3px 6px", background: "#FFF", width: 64 }
-const btnStyle: React.CSSProperties = { font: "inherit", fontSize: 12, border: "1px solid #C6C0B4", borderRadius: 6, padding: "3px 10px", background: "transparent", cursor: "pointer" }
+// ------------------------------------------------------------------ styles --
+const WB_CSS = `
+  .wb * { box-sizing: border-box; }
+  .wb { font-family: ${T.font}; font-weight: 400; color: ${T.ink}; }
+  .wb-header { display: flex; align-items: center; gap: 14px; padding: 12px 20px;
+    background: #FFF; border-bottom: 1px solid #E7E1D6; flex-wrap: wrap; }
+  .wb-title { display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 500; }
+  .wb-main { display: flex; align-items: stretch; }
+  .wb-stage { flex: 1; min-width: 0; padding: 20px 24px 64px; }
+  .wb-panel { width: 336px; flex-shrink: 0; background: #FFF; border-left: 1px solid #E7E1D6;
+    padding: 8px 20px 24px; overflow-y: auto; height: calc(100vh - 57px); position: sticky; top: 0; }
+  .wb-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .wb-section { font-size: 11px; font-weight: 500; color: ${T.inkFaint}; text-transform: uppercase;
+    margin: 20px 0 6px; }
+  .wb-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 32px; }
+  .wb-label { font-size: 12.5px; color: ${T.inkSoft}; flex-shrink: 0; }
+  .wb-input, .wb-select { height: 28px; border: 1px solid #DDD6C8; border-radius: 8px; padding: 0 8px;
+    font: 12.5px ${T.font}; background: #FCFBF8; color: ${T.ink}; }
+  .wb-input { width: 60px; }
+  .wb-input.wide { width: 76px; }
+  .wb-input.grow { width: 100%; }
+  .wb-select { max-width: 196px; }
+  .wb-input:focus, .wb-select:focus { outline: none; border-color: ${T.brand};
+    box-shadow: 0 0 0 2px rgba(0, 33, 204, 0.12); }
+  .wb-btn { height: 28px; padding: 0 12px; border-radius: 8px; border: 1px solid #DDD6C8;
+    background: #FFF; font: 12.5px ${T.font}; color: ${T.ink}; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    transition: background .12s ease, border-color .12s ease; }
+  .wb-btn:hover { background: #F6F2E9; }
+  .wb-btn.primary { background: ${T.ink}; color: #F9F4EB; border-color: ${T.ink}; }
+  .wb-btn.primary:hover { background: #33302A; }
+  .wb-btn.accent { background: ${T.brand}; color: #F9F4EB; border-color: ${T.brand}; }
+  .wb-seg { display: inline-flex; background: #F0EBDF; border-radius: 8px; padding: 2px; gap: 2px; }
+  .wb-seg button { height: 24px; padding: 0 10px; border-radius: 6px; border: none; background: transparent;
+    font: 12px ${T.font}; color: ${T.inkSoft}; cursor: pointer; }
+  .wb-seg button.on { background: #FFF; color: ${T.ink}; box-shadow: 0 1px 2px rgba(0,0,0,.07); }
+  .wb-slider { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px;
+    background: #E2DCCF; flex: 1; min-width: 60px; cursor: pointer; }
+  .wb-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: ${T.brand}; border: 2px solid #FFF; box-shadow: 0 1px 3px rgba(0,0,0,.25); cursor: pointer; }
+  .wb-slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: ${T.brand};
+    border: 2px solid #FFF; box-shadow: 0 1px 3px rgba(0,0,0,.25); cursor: pointer; }
+  .wb-switch { width: 34px; height: 20px; border-radius: 10px; background: #DDD6C8; border: none;
+    position: relative; cursor: pointer; transition: background .15s ease; flex-shrink: 0; }
+  .wb-switch.on { background: ${T.brand}; }
+  .wb-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: #FFF; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .15s ease; }
+  .wb-switch.on::after { left: 16px; }
+  .wb-corner { width: 46px; height: 38px; border: 1px solid #DDD6C8; border-radius: 8px;
+    position: relative; background: #FCFBF8; flex-shrink: 0; }
+  .wb-corner span { position: absolute; width: 10px; height: 10px; border-radius: 3px;
+    border: 1.5px solid #C6BEAC; background: #FFF; cursor: pointer; }
+  .wb-corner span.on { background: ${T.brand}; border-color: ${T.brand}; }
+  .wb-swatch { width: 38px; height: 28px; border: 1px solid #DDD6C8; border-radius: 7px;
+    background: ${T.pageContainer}; position: relative; overflow: hidden; cursor: pointer; padding: 0; }
+  .wb-swatch.on { border-color: ${T.brand}; box-shadow: 0 0 0 2px rgba(0, 33, 204, 0.15); }
+  .wb-time { font-variant-numeric: tabular-nums; font-size: 12px; color: ${T.inkSoft}; width: 42px; }
+  .wb-hint { font-size: 11.5px; color: ${T.inkFaint}; line-height: 1.5; }
+  .wb-grab { position: absolute; right: -16px; top: 50%; transform: translateY(-50%);
+    width: 10px; height: 52px; border-radius: 5px; background: #D8D1C2; cursor: ew-resize; }
+  .wb-grab:hover { background: #C6BEAC; }
+  .wb-float { position: absolute; left: 12px; bottom: 12px; background: rgba(26,26,26,.82); color: #F9F4EB;
+    font-size: 11px; padding: 5px 10px; border-radius: 7px; pointer-events: none; }
+`
 
-function Row(props: { label: string; children: React.ReactNode }): JSX.Element {
-  return (
-    <div style={rowStyle}>
-      <span style={{ width: 92, flexShrink: 0 }}>{props.label}</span>
-      {props.children}
-    </div>
-  )
-}
+// -------------------------------------------------------------- UI pieces ---
+const Section = (p: { title: string }) => <div className="wb-section">{p.title}</div>
 
-function Num(props: { v: number; set: (n: number) => void; min?: number; max?: number; step?: number; wide?: boolean }): JSX.Element {
-  return (
-    <input type="number" value={props.v} min={props.min} max={props.max} step={props.step ?? 1}
-      onChange={(e) => props.set(+e.target.value)} style={{ ...inputStyle, width: props.wide ? 84 : 64 }} />
-  )
-}
+const Field = (p: { label: string; children: React.ReactNode }) => (
+  <div className="wb-field">
+    <span className="wb-label">{p.label}</span>
+    <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: "0 1 auto" }}>{p.children}</span>
+  </div>
+)
 
-function Sel(props: { v: string; set: (s: string) => void; options: string[]; titles?: string[] }): JSX.Element {
+const Num = (p: { v: number; set: (n: number) => void; min?: number; max?: number; step?: number; wide?: boolean }) => (
+  <input type="number" className={"wb-input" + (p.wide ? " wide" : "")} value={p.v} min={p.min} max={p.max}
+    step={p.step ?? 1} onChange={(e) => p.set(+e.target.value)} />
+)
+
+const Sel = (p: { v: string; set: (s: string) => void; options: string[]; titles?: string[]; grow?: boolean }) => (
+  <select className="wb-select" style={p.grow ? { width: "100%", maxWidth: "none" } : undefined}
+    value={p.v} onChange={(e) => p.set(e.target.value)}>
+    {p.options.map((o, i) => <option key={o + i} value={o}>{p.titles?.[i] ?? o}</option>)}
+  </select>
+)
+
+const Seg = (p: { v: string; set: (s: string) => void; options: Array<[string, string]> }) => (
+  <span className="wb-seg">
+    {p.options.map(([v, label]) => (
+      <button key={v} className={p.v === v ? "on" : ""} onClick={() => p.set(v)}>{label}</button>
+    ))}
+  </span>
+)
+
+const Toggle = (p: { v: boolean; set: (b: boolean) => void }) => (
+  <button className={"wb-switch" + (p.v ? " on" : "")} onClick={() => p.set(!p.v)} aria-pressed={p.v} />
+)
+
+const Slider = (p: { v: number; set: (n: number) => void; min: number; max: number; step: number; fmt?: (n: number) => string }) => (
+  <>
+    <input type="range" className="wb-slider" min={p.min} max={p.max} step={p.step} value={p.v}
+      onChange={(e) => p.set(+e.target.value)} />
+    <span style={{ width: 36, fontSize: 12, color: T.inkSoft, textAlign: "right" }}>{p.fmt ? p.fmt(p.v) : p.v}</span>
+  </>
+)
+
+const CornerPick = (p: { v: string; set: (s: string) => void }) => (
+  <span className="wb-corner">
+    {(["top-left", "top-right", "bottom-left", "bottom-right"] as const).map((c) => (
+      <span key={c} className={p.v === c ? "on" : ""} onClick={() => p.set(c)} style={{
+        top: c.includes("top") ? 5 : undefined, bottom: c.includes("bottom") ? 5 : undefined,
+        left: c.includes("left") ? 5 : undefined, right: c.includes("right") ? 5 : undefined,
+      }} />
+    ))}
+  </span>
+)
+
+const PATTERNS: Array<[PatternType, string]> = [["none", "None"], ["dots", "Dots"], ["grid", "Grid"], ["circles", "Circles"], ["crosshairs", "Cross"]]
+const PatternPick = (p: { v: PatternType; set: (t: PatternType) => void }) => (
+  <span style={{ display: "flex", gap: 6 }}>
+    {PATTERNS.map(([type, label]) => (
+      <button key={type} className={"wb-swatch" + (p.v === type ? " on" : "")} onClick={() => p.set(type)} title={label}>
+        {type === "none"
+          ? <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: T.inkFaint }}>—</span>
+          : <PatternLayer type={type} spacing={type === "circles" ? 7 : 9} opacity={0.9} color="#B9B09B" />}
+      </button>
+    ))}
+  </span>
+)
+
+function CopyBtn(p: { label: string; text: () => string }): JSX.Element {
+  const [done, setDone] = React.useState(false)
   return (
-    <select value={props.v} onChange={(e) => props.set(e.target.value)} style={{ ...inputStyle, width: "auto", maxWidth: 210 }}>
-      {props.options.map((o, i) => <option key={o} value={o}>{props.titles?.[i] ?? o}</option>)}
-    </select>
+    <button className="wb-btn" onClick={() => { navigator.clipboard?.writeText(p.text()); setDone(true); setTimeout(() => setDone(false), 1400) }}>
+      {done ? "Copied ✓" : p.label}
+    </button>
   )
 }
 
@@ -88,18 +200,12 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
   const b = wrapRef.current?.getBoundingClientRect()
   const s = b ? b.width / entry.w : 1
   const r = props.rect
-  const handle = (mode: string, left: number, top: number, cursor: string) => (
-    <div key={mode} onMouseDown={start(mode)} style={{
-      position: "absolute", left: left - 5, top: top - 5, width: 10, height: 10,
-      background: "#FFF", border: "1.5px solid #0021CC", borderRadius: 2, cursor, zIndex: 3,
-    }} />
-  )
   const Scene = entry.Scene
   return (
     <div
       ref={wrapRef}
       className="ll-noanim"
-      style={{ position: "relative", cursor: "crosshair", userSelect: "none" }}
+      style={{ position: "relative", cursor: "crosshair", userSelect: "none", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.08)" }}
       onMouseMove={onMove}
       onMouseUp={() => (dragRef.current = null)}
       onMouseLeave={() => (dragRef.current = null)}
@@ -108,11 +214,10 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
       <ScaleBox designWidth={entry.w} designHeight={entry.h}>
         <Scene active runKey={0} hold={props.holdT} />
       </ScaleBox>
-      {/* crop rect + scrim + handles */}
-      <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }}>
+      <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", overflow: "hidden" }}>
         <div style={{
           position: "absolute", left: r.x * s, top: r.y * s, width: r.w * s, height: r.h * s,
-          border: "1.5px solid #0021CC", boxShadow: "0 0 0 9999px rgba(18, 15, 8, 0.35)",
+          border: "1.5px solid #0021CC", boxShadow: "0 0 0 9999px rgba(18, 15, 8, 0.4)",
         }} />
       </div>
       <div style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
@@ -122,11 +227,15 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
           ["e", 1, 0.5, "ew-resize"], ["se", 1, 1, "nwse-resize"], ["s", 0.5, 1, "ns-resize"],
           ["sw", 0, 1, "nesw-resize"], ["w", 0, 0.5, "ew-resize"],
         ].map(([m, fx, fy, cur]) => (
-          <div key={m as string} style={{ position: "absolute", left: (r.x + r.w * (fx as number)) * s, top: (r.y + r.h * (fy as number)) * s, pointerEvents: "auto" }}>
-            {handle(m as string, 0, 0, cur as string)}
-          </div>
+          <div key={m as string} onMouseDown={start(m as string)} style={{
+            position: "absolute",
+            left: (r.x + r.w * (fx as number)) * s - 5, top: (r.y + r.h * (fy as number)) * s - 5,
+            width: 10, height: 10, background: "#FFF", border: "1.5px solid #0021CC", borderRadius: 3,
+            cursor: cur as string, pointerEvents: "auto",
+          }} />
         ))}
       </div>
+      <div className="wb-float">frame the crop · drag to move, handles to resize</div>
     </div>
   )
 }
@@ -152,7 +261,6 @@ export default function Workbench(): JSX.Element {
 
   const set = <K extends keyof Cfg>(k: K) => (v: Cfg[K]) => { setCfg((c) => ({ ...c, [k]: v })); setPresetSel("") }
 
-  // resolved content for gesture math + crop editor seed
   const resolved = cfg.content === "custom"
     ? { entry: byKey(cfg.customScene), framing: cfg.cropW > 0 ? { name: "custom", x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH } : undefined }
     : resolveContent(cfg.content)
@@ -196,7 +304,6 @@ export default function Workbench(): JSX.Element {
     return () => el.removeEventListener("wheel", onWheel)
   }, [cfg.fit, cropEdit])
 
-  // preview width drag handle
   const widthDrag = React.useRef<{ mx: number; w: number } | null>(null)
 
   // --- preset apply / save --------------------------------------------------
@@ -234,7 +341,6 @@ export default function Workbench(): JSX.Element {
   const punch = (k: "segStart" | "segEnd") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })); setPresetSel("") }
 
   const editCropStart = () => {
-    // editing always works on an explicit custom rect for the current scene
     setCfg((c) => ({
       ...c, content: "custom", customScene: resolved.entry.key,
       cropX: rect.x, cropY: rect.y, cropW: rect.w, cropH: rect.h,
@@ -245,53 +351,57 @@ export default function Workbench(): JSX.Element {
   }
 
   const pw = previewW === "full" ? "100%" : previewW
+  const bpValue = previewW === "full" ? "full" : String(previewW)
+
   return (
-    <div style={{ background: T.pageBg, minHeight: "100vh", fontFamily: T.font, color: T.ink, padding: "20px 24px 80px" }}>
-      {/* header: presets + save */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-        <strong style={{ fontWeight: 400, fontSize: 15 }}>Composition workbench</strong>
-        <Sel v={presetSel} set={applyPreset} options={["", ...allPresets.map((p) => p.name)]} titles={["— preset —", ...allPresets.map((p) => p.name)]} />
+    <div className="wb" style={{ background: T.pageBg, minHeight: "100vh" }}>
+      <style>{WB_CSS}</style>
+
+      {/* header */}
+      <div className="wb-header">
+        <span className="wb-title"><Logo /> Scene Workbench</span>
+        <Sel v={presetSel} set={applyPreset}
+          options={["", ...allPresets.map((p) => p.name)]}
+          titles={["Load a preset…", ...allPresets.map((p) => p.name)]} />
         <span style={{ flex: 1 }} />
-        <input placeholder="preset name…" value={saveName} onChange={(e) => setSaveName(e.target.value)} style={{ ...inputStyle, width: 160 }} />
-        <button style={btnStyle} onClick={saveDraft}>Save draft</button>
-        <button style={btnStyle} onClick={() => navigator.clipboard?.writeText(presetBlock())}>Copy preset TS</button>
-        <button style={btnStyle} onClick={() => navigator.clipboard?.writeText(jsxBlock())}>Copy JSX</button>
+        <input className="wb-input" style={{ width: 170 }} placeholder="Preset name…" value={saveName}
+          onChange={(e) => setSaveName(e.target.value)} />
+        <button className="wb-btn primary" onClick={saveDraft}>Save draft</button>
+        <CopyBtn label="Copy preset TS" text={presetBlock} />
+        <CopyBtn label="Copy JSX" text={jsxBlock} />
       </div>
 
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        {/* preview column */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* transport */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, fontSize: 12, color: T.inkSoft }}>
+      <div className="wb-main">
+        {/* stage */}
+        <div className="wb-stage">
+          <div className="wb-toolbar">
             {!scrubOn ? (
-              <button style={btnStyle} onClick={() => { setScrubOn(true); setPlayStart(null) }}>🎚 scrub</button>
+              <button className="wb-btn" onClick={() => { setScrubOn(true); setPlayStart(null) }}>🎚 Scrub</button>
             ) : (
               <>
-                <button style={{ ...btnStyle, background: T.ink, color: "#F9F4EB", borderColor: T.ink, width: 62 }}
+                <button className="wb-btn primary" style={{ width: 44, justifyContent: "center" }}
                   onClick={() => setPlayStart(playing ? null : t)}>
                   {playing ? "⏸" : "▶"}
                 </button>
-                <input type="range" min={0} max={25000} step={100} value={t}
-                  onChange={(e) => { setPlayStart(null); setT(+e.target.value) }} style={{ flex: 1, maxWidth: 360 }} />
-                <span style={{ fontVariantNumeric: "tabular-nums", width: 44 }}>{(t / 1000).toFixed(1)}s</span>
-                <button style={btnStyle} onClick={punch("segStart")}>⤓ seg start</button>
-                <button style={btnStyle} onClick={punch("segEnd")}>⤓ seg end</button>
-                <button style={btnStyle} onClick={() => { setScrubOn(false); setPlayStart(null); setCropEdit(false); setRunNonce((n) => n + 1) }}>✕ live</button>
+                <input type="range" className="wb-slider" style={{ maxWidth: 300 }} min={0} max={25000} step={100}
+                  value={t} onChange={(e) => { setPlayStart(null); setT(+e.target.value) }} />
+                <span className="wb-time">{(t / 1000).toFixed(1)}s</span>
+                <button className="wb-btn" onClick={punch("segStart")}>⇤ In</button>
+                <button className="wb-btn" onClick={punch("segEnd")}>⇥ Out</button>
+                <button className="wb-btn" onClick={() => { setScrubOn(false); setPlayStart(null); setCropEdit(false); setRunNonce((n) => n + 1) }}>Live</button>
               </>
             )}
             <span style={{ flex: 1 }} />
-            {[375, 768, 1024].map((wpx) => (
-              <button key={wpx} style={{ ...btnStyle, background: previewW === wpx ? "#E2DCCF" : "transparent" }} onClick={() => setPreviewW(wpx)}>{wpx}</button>
-            ))}
-            <button style={{ ...btnStyle, background: previewW === "full" ? "#E2DCCF" : "transparent" }} onClick={() => setPreviewW("full")}>full</button>
-            <button style={{ ...btnStyle, background: cropEdit ? "#0021CC" : "transparent", color: cropEdit ? "#F9F4EB" : "inherit", borderColor: cropEdit ? "#0021CC" : "#C6C0B4" }}
+            <Seg v={bpValue} set={(v) => setPreviewW(v === "full" ? "full" : +v)}
+              options={[["375", "375"], ["768", "768"], ["1024", "1024"], ["full", "Full"]]} />
+            <button className={"wb-btn" + (cropEdit ? " accent" : "")}
               onClick={() => (cropEdit ? setCropEdit(false) : editCropStart())}>
-              {cropEdit ? "✓ done cropping" : "▣ edit crop"}
+              {cropEdit ? "✓ Done cropping" : "▣ Edit crop"}
             </button>
           </div>
 
           {/* resizable preview frame */}
-          <div style={{ position: "relative", width: pw, maxWidth: "100%", transition: widthDrag.current ? "none" : "width .2s ease" }}
+          <div style={{ position: "relative", width: pw, maxWidth: "100%", margin: "0 auto", transition: widthDrag.current ? "none" : "width .2s ease" }}
             onMouseMove={(e) => { const d = widthDrag.current; if (d) setPreviewW(Math.max(300, d.w + (e.clientX - d.mx))) }}
             onMouseUp={() => (widthDrag.current = null)}
             onMouseLeave={() => (widthDrag.current = null)}
@@ -301,93 +411,124 @@ export default function Workbench(): JSX.Element {
               onMouseDown={onPinDown}
               onMouseMove={onPinMove}
               onMouseUp={() => (pinDrag.current = null)}
-              style={{ cursor: cfg.fit === "pinned" && !cropEdit ? "grab" : undefined }}
+              style={{ position: "relative", cursor: cfg.fit === "pinned" && !cropEdit ? "grab" : undefined }}
             >
               {cropEdit ? (
                 <CropEditor sceneKey={cfg.customScene} holdT={t}
                   rect={{ x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }}
                   onChange={(r) => { setCfg((c) => ({ ...c, cropX: r.x, cropY: r.y, cropW: r.w, cropH: r.h })); setPresetSel("") }} />
               ) : (
-                <SceneCanvas key={runNonce} variant="callout" {...cfg}
-                  debugHold={scrubOn && !playing ? t : undefined}
-                  debugPlayFrom={scrubOn && playing ? playStart! : undefined}
-                  debugOnTime={scrubOn ? setT : undefined}
-                  debugCanvasRef={canvasRef}
-                />
+                <>
+                  <SceneCanvas key={runNonce} variant="callout" {...cfg}
+                    debugHold={scrubOn && !playing ? t : undefined}
+                    debugPlayFrom={scrubOn && playing ? playStart! : undefined}
+                    debugOnTime={scrubOn ? setT : undefined}
+                    debugCanvasRef={canvasRef}
+                  />
+                  {cfg.fit === "pinned" && (
+                    <div className="wb-float">drag to reposition · scroll to zoom</div>
+                  )}
+                </>
               )}
             </div>
-            {/* width drag handle */}
-            <div
+            <div className="wb-grab"
               onMouseDown={(e) => { widthDrag.current = { mx: e.clientX, w: previewRef.current?.getBoundingClientRect().width ?? 0 }; if (previewW === "full") setPreviewW(previewRef.current?.getBoundingClientRect().width ?? 800) }}
-              style={{ position: "absolute", right: -14, top: "50%", transform: "translateY(-50%)", width: 10, height: 56, borderRadius: 5, background: "#C6C0B4", cursor: "ew-resize" }}
             />
           </div>
-          {cfg.fit === "pinned" && !cropEdit && (
-            <div style={{ marginTop: 8, fontSize: 11.5, color: T.inkFaint }}>drag the canvas to reposition the pinned shot · scroll to zoom</div>
-          )}
+          <div style={{ textAlign: "center", marginTop: 10 }} className="wb-hint">
+            {previewW === "full" ? "full width" : `${Math.round(previewW as number)}px`} · drag the handle to test any width
+          </div>
         </div>
 
-        {/* controls panel */}
-        <div style={{ width: 320, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8, background: "#FFFFFF", border: "1px solid #E2DCCF", borderRadius: 12, padding: 16 }}>
-          <Row label="Content">
+        {/* inspector */}
+        <div className="wb-panel">
+          <Section title="Content" />
+          <Field label="Snippet">
             <Sel v={cfg.content} set={(v) => set("content")(v)} options={[...framingOptions(), "custom"]} />
-          </Row>
+          </Field>
           {cfg.content === "custom" && (
             <>
-              <Row label="Scene"><Sel v={cfg.customScene} set={(v) => set("customScene")(v)} options={REGISTRY.map((e) => e.key)} /></Row>
-              <Row label="Crop x/y">
+              <Field label="Scene">
+                <Sel v={cfg.customScene} set={(v) => set("customScene")(v)}
+                  options={REGISTRY.map((e) => e.key)} titles={REGISTRY.map((e) => e.title)} />
+              </Field>
+              <Field label="Crop x · y">
                 <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
-              </Row>
-              <Row label="Crop w/h">
+              </Field>
+              <Field label="Crop w · h">
                 <Num v={cfg.cropW} set={set("cropW")} /><Num v={cfg.cropH} set={set("cropH")} />
-              </Row>
+              </Field>
             </>
           )}
-          <div style={{ borderTop: "1px solid #EEE8DD", margin: "4px 0" }} />
-          <Row label="Fit">
-            <Sel v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={["responsive", "pinned"]} />
-          </Row>
+
+          <Section title="Layout" />
+          <Field label="Fit">
+            <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Responsive"], ["pinned", "Pinned"]]} />
+          </Field>
           {cfg.fit === "pinned" && (
             <>
-              <Row label="Anchor"><Sel v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} options={["top-left", "top-right", "bottom-left", "bottom-right"]} /></Row>
-              <Row label="Insets x/y"><Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} /></Row>
-              <Row label="Zoom">
-                <input type="range" min={0.4} max={2} step={0.05} value={cfg.zoom} onChange={(e) => set("zoom")(+e.target.value)} style={{ flex: 1 }} />
-                <span style={{ width: 36, fontSize: 12 }}>{cfg.zoom.toFixed(2)}</span>
-              </Row>
-              <Row label="When small"><Sel v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={["fit", "mask"]} /></Row>
-              {cfg.smallBehavior === "fit" && <Row label="Below (px)"><Num v={cfg.fitBelow} set={set("fitBelow")} wide /></Row>}
+              <Field label="Anchor">
+                <CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} />
+              </Field>
+              <Field label="Insets x · y">
+                <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
+              </Field>
+              <Field label="Zoom">
+                <Slider v={cfg.zoom} set={set("zoom")} min={0.4} max={2} step={0.05} fmt={(n) => n.toFixed(2)} />
+              </Field>
+              <Field label="When small">
+                <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Mask"]]} />
+              </Field>
+              {cfg.smallBehavior === "fit" && (
+                <Field label="Below (px)"><Num v={cfg.fitBelow} set={set("fitBelow")} wide /></Field>
+              )}
             </>
           )}
-          <Row label="Canvas h (0=auto)"><Num v={cfg.canvasHeight} set={set("canvasHeight")} wide /></Row>
-          <div style={{ borderTop: "1px solid #EEE8DD", margin: "4px 0" }} />
-          <Row label="Pattern">
-            <Sel v={cfg.pattern} set={(v) => set("pattern")(v as Cfg["pattern"])} options={["none", "dots", "grid", "circles", "crosshairs"]} />
-          </Row>
+          <Field label="Canvas height"><Num v={cfg.canvasHeight} set={set("canvasHeight")} wide /><span className="wb-hint">0 = auto</span></Field>
+
+          <Section title="Canvas" />
+          <Field label="Pattern">
+            <PatternPick v={cfg.pattern} set={(v) => set("pattern")(v)} />
+          </Field>
           {cfg.pattern !== "none" && (
             <>
-              <Row label="Spacing"><Num v={cfg.patternSpacing} set={set("patternSpacing")} min={8} max={120} step={4} /></Row>
-              <Row label="Opacity">
-                <input type="range" min={0.05} max={1} step={0.05} value={cfg.patternOpacity} onChange={(e) => set("patternOpacity")(+e.target.value)} style={{ flex: 1 }} />
-                <span style={{ width: 32, fontSize: 12 }}>{cfg.patternOpacity.toFixed(2)}</span>
-              </Row>
+              <Field label="Spacing">
+                <Slider v={cfg.patternSpacing} set={set("patternSpacing")} min={8} max={120} step={4} />
+              </Field>
+              <Field label="Opacity">
+                <Slider v={cfg.patternOpacity} set={set("patternOpacity")} min={0.05} max={1} step={0.05} fmt={(n) => n.toFixed(2)} />
+              </Field>
             </>
           )}
-          <Row label="Fill">
-            <input type="color" value={/^#/.test(cfg.bgColor) ? cfg.bgColor : "#EEE8DD"} onChange={(e) => set("bgColor")(e.target.value)} style={{ width: 36, height: 24, border: "none", background: "none", padding: 0 }} />
-            <input value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} style={{ ...inputStyle, width: 92 }} />
-          </Row>
-          <Row label="Padding x/y"><Num v={cfg.padX} set={set("padX")} /><Num v={cfg.padY} set={set("padY")} /></Row>
-          <Row label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Row>
-          <div style={{ borderTop: "1px solid #EEE8DD", margin: "4px 0" }} />
-          <Row label="Loop">
-            <input type="checkbox" checked={cfg.loop} onChange={(e) => set("loop")(e.target.checked)} />
-            <span>pause</span><Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} />
-          </Row>
-          <Row label="Segment"><Num v={cfg.segStart} set={set("segStart")} step={100} wide /><Num v={cfg.segEnd} set={set("segEnd")} step={100} wide /></Row>
-          <div style={{ fontSize: 11, color: T.inkFaint, marginTop: 4 }}>
-            Save draft keeps it in this browser and the preset dropdown. Copy
-            preset TS and paste into ListenPresets.tsx to make it permanent.
+          <Field label="Fill">
+            <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(cfg.bgColor) ? cfg.bgColor : "#EEE8DD"}
+              onChange={(e) => set("bgColor")(e.target.value)}
+              style={{ width: 28, height: 28, border: "1px solid #DDD6C8", borderRadius: 8, background: "none", padding: 2, cursor: "pointer" }} />
+            <input className="wb-input wide" value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} />
+          </Field>
+          <Field label="Padding x · y">
+            <Num v={cfg.padX} set={set("padX")} /><Num v={cfg.padY} set={set("padY")} />
+          </Field>
+          <Field label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Field>
+
+          <Section title="Playback" />
+          <Field label="Loop">
+            <Toggle v={cfg.loop} set={set("loop")} />
+            <span className="wb-label">pause</span>
+            <Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} />
+          </Field>
+          <Field label="Segment in · out">
+            <Num v={cfg.segStart} set={set("segStart")} step={100} wide />
+            <Num v={cfg.segEnd} set={set("segEnd")} step={100} wide />
+          </Field>
+          <div className="wb-hint" style={{ marginTop: 6 }}>
+            Scrub to a beat and use ⇤ In / ⇥ Out to set the loop window. 0 · 0 plays the whole session.
+          </div>
+
+          <div className="wb-hint" style={{ marginTop: 20, borderTop: "1px solid #EEE8DD", paddingTop: 12 }}>
+            <strong style={{ fontWeight: 500, color: T.inkSoft }}>Saving:</strong> drafts live in this browser and
+            appear in the preset menu. Copy preset TS into <code>ListenPresets.tsx</code> to make a composition
+            permanent — it then shows up in SceneCanvas's Preset dropdown in Framer.
           </div>
         </div>
       </div>
