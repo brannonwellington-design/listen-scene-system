@@ -8,9 +8,18 @@ import SceneCanvas from "./SceneCanvas"
 import { byKey } from "./ListenRegistry"
 import { T, ScaleBox } from "./ListenKit"
 
+const DEMO_CSS = `
+  .demo-split { display: flex; gap: 48px; align-items: center; flex-wrap: wrap; }
+  .demo-split > div { flex: 1 1 320px; min-width: 280px; }
+  .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 40px 32px; align-items: start; }
+  .demo-label { font-size: 12px; letter-spacing: 0; color: #6B6861; margin-bottom: 10px; }
+  @media (max-width: 640px) { .demo-page { padding: 48px 20px 96px !important; } }
+`
+
 function Demo(): JSX.Element {
   return (
-    <div style={{ background: T.pageBg, minHeight: "100vh", fontFamily: T.font, color: T.ink, padding: "80px 48px 160px" }}>
+    <div className="demo-page" style={{ background: T.pageBg, minHeight: "100vh", fontFamily: T.font, color: T.ink, padding: "80px 48px 160px" }}>
+      <style>{DEMO_CSS}</style>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <h1 style={{ fontSize: 44, fontWeight: 400, maxWidth: 640, lineHeight: 1.15 }}>
           How it works
@@ -21,26 +30,26 @@ function Demo(): JSX.Element {
         <div style={{ height: 160 }} />
 
         {/* minor-section example: copy + a single fragment */}
-        <div style={{ display: "flex", gap: 64, alignItems: "center" }}>
-          <div style={{ flex: 1 }}>
+        <div className="demo-split">
+          <div>
             <h2 style={{ fontSize: 32, fontWeight: 400 }}>Answers, not exports</h2>
             <p style={{ marginTop: 16, fontSize: 16, lineHeight: 1.6, color: T.inkSoft, maxWidth: 400 }}>
               Quantified results roll up automatically, and every number stays
               connected to the interviews behind it.
             </p>
           </div>
-          <div style={{ flex: 1 }}>
+          <div>
             <ProductShot scene="top-answer-card" />
           </div>
         </div>
 
         <div style={{ height: 120 }} />
 
-        <div style={{ display: "flex", gap: 64, alignItems: "center" }}>
-          <div style={{ flex: 1 }}>
+        <div className="demo-split">
+          <div>
             <ProductShot scene="live-interview-card" />
           </div>
-          <div style={{ flex: 1 }}>
+          <div>
             <h2 style={{ fontSize: 32, fontWeight: 400 }}>A real conversation</h2>
             <p style={{ marginTop: 16, fontSize: 16, lineHeight: 1.6, color: T.inkSoft, maxWidth: 400 }}>
               The AI moderator listens, probes, and follows up — in the
@@ -53,26 +62,24 @@ function Demo(): JSX.Element {
 
         {/* SceneCanvas callout showcase: crop-windows, patterns, fit modes */}
         <h2 style={{ fontSize: 32, fontWeight: 400 }}>SceneCanvas callouts</h2>
-        <div style={{ display: "flex", gap: 32, marginTop: 32, alignItems: "flex-start" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <SceneCanvas variant="callout" content="reach-people@Audience criteria" pattern="dots" radius={16} />
-            <p style={{ fontSize: 13, color: T.inkSoft, marginTop: 12 }}>Crop-window · responsive · dot grid</p>
+        <div className="demo-grid" style={{ marginTop: 32 }}>
+          <div>
+            <div className="demo-label">Crop-window · responsive · dot grid</div>
+            <SceneCanvas variant="callout" content="reach-people@Audience criteria" pattern="dots" padX={40} padY={36} radius={16} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div>
+            <div className="demo-label">Crop-window · pinned top-left 40/40, masked · concentric circles</div>
             <SceneCanvas variant="callout" content="design-study@Chat rail" fit="pinned" anchor="top-left"
-              insetX={40} insetY={40} zoom={0.85} canvasHeight={380} pattern="circles" patternSpacing={36} radius={16} />
-            <p style={{ fontSize: 13, color: T.inkSoft, marginTop: 12 }}>Crop-window · pinned top-left 40/40 · concentric circles</p>
+              insetX={40} insetY={40} zoom={0.8} canvasHeight={400} pattern="circles" patternSpacing={36} radius={16} />
           </div>
-        </div>
-        <div style={{ display: "flex", gap: 32, marginTop: 32, alignItems: "flex-start" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div>
+            <div className="demo-label">Crop-window · time-slice loop 2–9s · crosshairs</div>
             <SceneCanvas variant="callout" content="compound@Suggestions grid" pattern="crosshairs" patternSpacing={48}
-              segStart={2000} segEnd={9000} radius={16} />
-            <p style={{ fontSize: 13, color: T.inkSoft, marginTop: 12 }}>Crop-window · time-slice loop (2s–9s) · crosshairs</p>
+              segStart={2000} segEnd={9000} padX={40} padY={36} radius={16} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <SceneCanvas variant="callout" content="top-answer-card" pattern="grid" patternSpacing={28} padX={44} padY={36} radius={16} />
-            <p style={{ fontSize: 13, color: T.inkSoft, marginTop: 12 }}>Fragment · responsive · line grid</p>
+          <div>
+            <div className="demo-label">Fragment · responsive · line grid</div>
+            <SceneCanvas variant="callout" content="top-answer-card" pattern="grid" patternSpacing={28} padX={44} padY={40} radius={16} />
           </div>
         </div>
       </div>

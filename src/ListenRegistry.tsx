@@ -38,9 +38,10 @@ export const REGISTRY: RegistryEntry[] = [
       body: "Listen Labs drafts objectives, questions, and probing context in seconds based on your goal. Or upload your own interview guide.",
     },
     framings: [
-      { name: "Chat rail", x: 8, y: 48, w: 352, h: 584 },
-      { name: "Chip question", x: 12, y: 296, w: 346, h: 296 },
-      { name: "Study goals doc", x: 420, y: 90, w: 600, h: 330 },
+      // rects measured against frozen scenes via the framing helper / DOM probe
+      { name: "Chat rail", x: 9, y: 48, w: 352, h: 584 },
+      { name: "Chip question", x: 12, y: 294, w: 346, h: 276 },
+      { name: "Study goals doc", x: 445, y: 85, w: 580, h: 445 },
     ],
   },
   {
@@ -53,9 +54,9 @@ export const REGISTRY: RegistryEntry[] = [
       body: "Qualified from a global network of 50M+ participants, including hard to reach audiences. Or use your list of contacts.",
     },
     framings: [
-      { name: "Audience criteria", x: 420, y: 80, w: 620, h: 250 },
-      { name: "Source buttons", x: 12, y: 130, w: 346, h: 240 },
-      { name: "Screener block", x: 420, y: 330, w: 620, h: 260 },
+      { name: "Audience criteria", x: 445, y: 78, w: 580, h: 218 },
+      { name: "Source buttons", x: 12, y: 88, w: 346, h: 264 },
+      { name: "Screener block", x: 445, y: 535, w: 580, h: 95 },
     ],
   },
   {
@@ -68,8 +69,8 @@ export const REGISTRY: RegistryEntry[] = [
       body: "The AI moderator holds a real conversation with smart follow-ups to drive deeper answers. Runs globally, 24/7, across 120+ languages.",
     },
     framings: [
-      { name: "Question + answer", x: 280, y: 40, w: 560, h: 330 },
-      { name: "Recording bar", x: 330, y: 530, w: 460, h: 90 },
+      { name: "Question + answer", x: 260, y: 55, w: 600, h: 290 },
+      { name: "Recording bar", x: 330, y: 538, w: 460, h: 76 },
     ],
   },
   {
@@ -82,9 +83,9 @@ export const REGISTRY: RegistryEntry[] = [
       body: "Listen builds your deliverables, from highlight reels to boardroom-ready slides. Every claim traces back to a real interview.",
     },
     framings: [
-      { name: "Report title", x: 300, y: 100, w: 700, h: 230 },
-      { name: "Executive bullets", x: 300, y: 250, w: 700, h: 300 },
-      { name: "Reports sidebar", x: 9, y: 88, w: 260, h: 420 },
+      { name: "Report title", x: 330, y: 120, w: 660, h: 120 },
+      { name: "Executive bullets", x: 330, y: 280, w: 680, h: 250 },
+      { name: "Reports sidebar", x: 9, y: 89, w: 254, h: 420 },
     ],
   },
   {
@@ -97,9 +98,9 @@ export const REGISTRY: RegistryEntry[] = [
       body: "The more you run, the richer your workspace gets. Search and build on past studies, themes, and reports, so your team keeps getting sharper.",
     },
     framings: [
-      { name: "Agent heading", x: 260, y: 92, w: 600, h: 190 },
-      { name: "Suggestions grid", x: 220, y: 320, w: 580, h: 230 },
-      { name: "Answer card", x: 220, y: 150, w: 600, h: 220 },
+      { name: "Agent heading", x: 280, y: 115, w: 560, h: 130 },
+      { name: "Suggestions grid", x: 266, y: 334, w: 588, h: 200 },
+      { name: "Answer card", x: 265, y: 234, w: 590, h: 116 },
     ],
   },
   { key: "top-answer-card", title: "Top Answer card", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
