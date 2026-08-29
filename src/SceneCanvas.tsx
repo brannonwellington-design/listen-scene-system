@@ -332,18 +332,17 @@ function Hero(props: Required<Pick<SceneCanvasProps,
           </ScaleBox>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 32, marginTop: 48, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: 32, marginTop: 28, alignItems: "flex-start" }}>
         {STAGES.map((s, i) => {
           const on = i === index
           return (
             <button key={s.key} onClick={() => onStageClick(i)}
               style={{ flex: 1, textAlign: "left", display: "block", minWidth: 0, background: "none", border: "none", cursor: "pointer", font: "inherit", padding: 0 }}
               aria-pressed={on}>
-              <span style={{ display: "block", height: 2, background: on ? T.brand : "transparent", marginBottom: 14, transition: "background .3s" }} />
-              <span style={{ display: "block", fontSize: 18, color: on ? T.brand : T.brandFaint, transition: "color .3s" }}>
+              <span style={{ display: "block", fontSize: 20, lineHeight: 1.3, color: on ? T.brand : T.brandFaint, transition: "color .3s" }}>
                 {s.stage!.title}
               </span>
-              <span style={{ display: "block", fontSize: 13.5, lineHeight: 1.55, marginTop: 10, color: on ? T.inkSoft : T.brandFaint, transition: "color .3s" }}>
+              <span style={{ display: "block", fontSize: 15, lineHeight: 1.6, marginTop: 12, color: on ? T.brand : T.brandFaint, transition: "color .3s" }}>
                 {s.stage!.body}
               </span>
             </button>
