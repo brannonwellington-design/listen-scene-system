@@ -141,7 +141,7 @@ function Callout(props: Required<Pick<SceneCanvasProps,
 
   const containerStyle: React.CSSProperties = {
     position: "relative", overflow: "hidden", background: bgColor, borderRadius: radius,
-    width: "100%",
+    width: "100%", boxSizing: "border-box",
   }
 
   if (usePinned) {
@@ -149,20 +149,28 @@ function Callout(props: Required<Pick<SceneCanvasProps,
     if (anchor.includes("top")) pos.top = insetY; else pos.bottom = insetY
     if (anchor.includes("left")) pos.left = insetX; else pos.right = insetX
     return (
-      <div ref={rootRef} style={{ ...containerStyle, height: canvasHeight }}>
+      <div ref={rootRef} style={{ ...containerStyle, height: canvasHeight || 420 }}>
         <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
-        <div style={pos}>
+        {/* keyed fade so loop restarts read as intentional, not a flicker */}
+        <div key={runKey} className="ll-scene-fade" style={pos}>
           <ShotUnit entry={entry} framing={rect} scale={zoom} sceneProps={sceneProps} />
         </div>
       </div>
     )
   }
 
-  const scale = availW > 0 ? availW / rect.w : 1
+  // responsive: scale to width; when canvasHeight is set (>0) the container is
+  // fixed-height and the shot is contained + centered, so rows of callouts align
+  const fixedH = canvasHeight > 0
+  const availH = fixedH ? canvasHeight - padY * 2 : Infinity
+  const scale = availW > 0 ? Math.min(availW / rect.w, availH / rect.h) : 1
   return (
-    <div ref={rootRef} style={{ ...containerStyle, padding: `${padY}px ${padX}px` }}>
+    <div ref={rootRef} style={{
+      ...containerStyle, padding: `${padY}px ${padX}px`,
+      ...(fixedH ? { height: canvasHeight, display: "flex", alignItems: "center", justifyContent: "center" } : {}),
+    }}>
       <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
-      <div style={{ position: "relative" }}>
+      <div key={runKey} className="ll-scene-fade" style={{ position: "relative" }}>
         <ShotUnit entry={entry} framing={rect} scale={scale} sceneProps={sceneProps} />
       </div>
     </div>
@@ -311,7 +319,7 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
     cropX = 0, cropY = 0, cropW = 0, cropH = 0,
     loop = true, loopPause = 3, segStart = 0, segEnd = 0,
     fit = "responsive", anchor = "top-left", insetX = 40, insetY = 40,
-    zoom = 1, smallBehavior = "fit", fitBelow = 480, canvasHeight = 420,
+    zoom = 1, smallBehavior = "fit", fitBelow = 480, canvasHeight = 0,
     pattern = "none", patternSpacing = 24, patternOpacity = 0.5,
     bgColor = T.pageContainer, padX = 56, padY = 44, radius = 0,
   } = props
@@ -357,7 +365,7 @@ addPropertyControls(SceneCanvas, {
   insetX: { type: ControlType.Number, title: "Inset X", defaultValue: 40, min: 0, max: 200, hidden: (p) => isHero(p) || p.fit !== "pinned" },
   insetY: { type: ControlType.Number, title: "Inset Y", defaultValue: 40, min: 0, max: 200, hidden: (p) => isHero(p) || p.fit !== "pinned" },
   zoom: { type: ControlType.Number, title: "Shot zoom", defaultValue: 1, min: 0.5, max: 2, step: 0.05, hidden: (p) => isHero(p) || p.fit !== "pinned" },
-  canvasHeight: { type: ControlType.Number, title: "Canvas height", defaultValue: 420, min: 120, max: 1200, hidden: (p) => isHero(p) || p.fit !== "pinned" },
+  canvasHeight: { type: ControlType.Number, title: "Canvas height (0=auto)", defaultValue: 0, min: 0, max: 1200, hidden: isHero },
   smallBehavior: { type: ControlType.Enum, title: "When small", options: ["fit", "mask"], optionTitles: ["Fall back to fit", "Keep masking"], defaultValue: "fit", hidden: (p) => isHero(p) || p.fit !== "pinned" },
   fitBelow: { type: ControlType.Number, title: "Fall back below (px)", defaultValue: 480, min: 240, max: 900, hidden: (p) => isHero(p) || p.fit !== "pinned" || p.smallBehavior !== "fit" },
   // canvas

@@ -65,21 +65,24 @@ function Demo(): JSX.Element {
         <div className="demo-grid" style={{ marginTop: 32 }}>
           <div>
             <div className="demo-label">Crop-window · responsive · dot grid</div>
-            <SceneCanvas variant="callout" content="reach-people@Audience criteria" pattern="dots" padX={40} padY={36} radius={16} />
+            <SceneCanvas variant="callout" content="reach-people@Audience criteria" pattern="dots"
+              canvasHeight={300} padX={40} padY={32} radius={16} loopPause={2} />
           </div>
           <div>
             <div className="demo-label">Crop-window · pinned top-left 40/40, masked · concentric circles</div>
             <SceneCanvas variant="callout" content="design-study@Chat rail" fit="pinned" anchor="top-left"
-              insetX={40} insetY={40} zoom={0.8} canvasHeight={400} pattern="circles" patternSpacing={36} radius={16} />
+              insetX={40} insetY={40} zoom={0.75} canvasHeight={300} pattern="circles" patternSpacing={36} radius={16}
+              segStart={8500} segEnd={16000} loopPause={4} />
           </div>
           <div>
             <div className="demo-label">Crop-window · time-slice loop 2–9s · crosshairs</div>
             <SceneCanvas variant="callout" content="compound@Suggestions grid" pattern="crosshairs" patternSpacing={48}
-              segStart={2000} segEnd={9000} padX={40} padY={36} radius={16} />
+              segStart={2000} segEnd={9000} canvasHeight={300} padX={40} padY={32} radius={16} loopPause={3} />
           </div>
           <div>
             <div className="demo-label">Fragment · responsive · line grid</div>
-            <SceneCanvas variant="callout" content="top-answer-card" pattern="grid" patternSpacing={28} padX={44} padY={40} radius={16} />
+            <SceneCanvas variant="callout" content="top-answer-card" pattern="grid" patternSpacing={28}
+              canvasHeight={300} padX={44} padY={36} radius={16} loopPause={5} />
           </div>
         </div>
       </div>
