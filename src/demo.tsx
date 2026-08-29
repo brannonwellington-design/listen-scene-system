@@ -3,7 +3,9 @@
 import * as React from "react"
 import { createRoot } from "react-dom/client"
 import HowItWorks from "./HowItWorks"
-import ProductShot, { REGISTRY } from "./ProductShot"
+import ProductShot from "./ProductShot"
+import SceneCanvas from "./SceneCanvas"
+import { byKey } from "./ListenRegistry"
 import { T, ScaleBox } from "./ListenKit"
 
 function Demo(): JSX.Element {
@@ -44,6 +46,33 @@ function Demo(): JSX.Element {
               The AI moderator listens, probes, and follows up — in the
               participant's own words and language.
             </p>
+          </div>
+        </div>
+
+        <div style={{ height: 140 }} />
+
+        {/* SceneCanvas callout showcase: crop-windows, patterns, fit modes */}
+        <h2 style={{ fontSize: 32, fontWeight: 400 }}>SceneCanvas callouts</h2>
+        <div style={{ display: "flex", gap: 32, marginTop: 32, alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SceneCanvas variant="callout" content="reach-people@Audience criteria" pattern="dots" radius={16} />
+            <p style={{ fontSize: 13, color: T.inkSoft, marginTop: 12 }}>Crop-window · responsive · dot grid</p>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SceneCanvas variant="callout" content="design-study@Chat rail" fit="pinned" anchor="top-left"
+              insetX={40} insetY={40} zoom={0.85} canvasHeight={380} pattern="circles" patternSpacing={36} radius={16} />
+            <p style={{ fontSize: 13, color: T.inkSoft, marginTop: 12 }}>Crop-window · pinned top-left 40/40 · concentric circles</p>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 32, marginTop: 32, alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SceneCanvas variant="callout" content="compound@Suggestions grid" pattern="crosshairs" patternSpacing={48}
+              segStart={2000} segEnd={9000} radius={16} />
+            <p style={{ fontSize: 13, color: T.inkSoft, marginTop: 12 }}>Crop-window · time-slice loop (2s–9s) · crosshairs</p>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SceneCanvas variant="callout" content="top-answer-card" pattern="grid" patternSpacing={28} padX={44} padY={36} radius={16} />
+            <p style={{ fontSize: 13, color: T.inkSoft, marginTop: 12 }}>Fragment · responsive · line grid</p>
           </div>
         </div>
       </div>
@@ -104,7 +133,7 @@ function Compare(props: { scene: string; refImg: string }): JSX.Element {
 // Solo scene view with a toggleable timeline scrubber: dragging re-runs the
 // scene's script on the virtual clock, frozen at the chosen millisecond.
 function Solo(props: { scene: string }): JSX.Element {
-  const entry = REGISTRY[props.scene] ?? REGISTRY["deliver-results"]
+  const entry = byKey(props.scene)
   const [scrub, setScrub] = React.useState((window as any).__llHold != null)
   const [t, setT] = React.useState<number>((window as any).__llHold ?? 0)
   // playing: single run, fast-forwarded to playStart then real time
@@ -129,6 +158,21 @@ function Solo(props: { scene: string }): JSX.Element {
 
   const btn: React.CSSProperties = { border: "1px solid #C6C0B4", borderRadius: 6, padding: "3px 10px", background: "transparent", cursor: "pointer", font: "inherit" }
   const { Scene, w, h } = entry
+
+  // framing helper (?frame=1): drag a rect over the frozen scene to get
+  // design-space crop coordinates for the registry
+  const frameMode = new URLSearchParams(location.search).get("frame") === "1"
+  const boxRef = React.useRef<HTMLDivElement>(null)
+  const [drag, setDrag] = React.useState<{ sx: number; sy: number; ex: number; ey: number; live: boolean } | null>(null)
+  const toDesign = (e: React.MouseEvent) => {
+    const b = boxRef.current!.getBoundingClientRect()
+    const s = b.width / w
+    return { x: Math.max(0, Math.min(w, (e.clientX - b.left) / s)), y: Math.max(0, Math.min(h, (e.clientY - b.top) / s)) }
+  }
+  const rect = drag && {
+    x: Math.round(Math.min(drag.sx, drag.ex)), y: Math.round(Math.min(drag.sy, drag.ey)),
+    w: Math.round(Math.abs(drag.ex - drag.sx)), h: Math.round(Math.abs(drag.ey - drag.sy)),
+  }
   return (
     <div style={{ background: T.pageBg, minHeight: "100vh", padding: "24px 48px 48px", fontFamily: T.font, fontSize: 13 }}>
       <div style={{ maxWidth: 1120, margin: "0 auto" }}>
@@ -155,14 +199,41 @@ function Solo(props: { scene: string }): JSX.Element {
             </>
           )}
         </div>
+        {frameMode && (
+          <div style={{ marginBottom: 10, fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
+            {rect
+              ? <>framing: <code style={{ background: "#EEE8DD", padding: "2px 8px", borderRadius: 4 }}>{`{ x: ${rect.x}, y: ${rect.y}, w: ${rect.w}, h: ${rect.h} }`}</code></>
+              : "framing helper: scrub to a beat, then drag a box over the scene"}
+          </div>
+        )}
         {scrub ? (
-          <div className={playing ? undefined : "ll-noanim"}>
+          <div ref={boxRef} className={playing ? undefined : "ll-noanim"} style={{ position: "relative" }}>
             <ScaleBox designWidth={w} designHeight={h}>
               <Scene active runKey={runKey}
                 hold={playing ? undefined : t}
                 playFrom={playing ? playStart! : undefined}
                 onTime={setT} />
             </ScaleBox>
+            {frameMode && (
+              <div
+                style={{ position: "absolute", inset: 0, cursor: "crosshair", zIndex: 50 }}
+                onMouseDown={(e) => { const p = toDesign(e); setDrag({ sx: p.x, sy: p.y, ex: p.x, ey: p.y, live: true }) }}
+                onMouseMove={(e) => { if (drag?.live) { const p = toDesign(e); setDrag({ ...drag, ex: p.x, ey: p.y }) } }}
+                onMouseUp={() => drag && setDrag({ ...drag, live: false })}
+              >
+                {rect && rect.w > 2 && (() => {
+                  const b = boxRef.current?.getBoundingClientRect()
+                  const s = b ? b.width / w : 1
+                  return (
+                    <div style={{
+                      position: "absolute", left: rect.x * s, top: rect.y * s,
+                      width: rect.w * s, height: rect.h * s,
+                      border: "1.5px solid #0021CC", background: "rgba(0, 33, 204, 0.06)",
+                    }} />
+                  )
+                })()}
+              </div>
+            )}
           </div>
         ) : (
           <ProductShot key={runKey} scene={props.scene} />

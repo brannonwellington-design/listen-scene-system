@@ -9,26 +9,28 @@ ready to paste into **Framer**.
 
 | File | Role |
 |---|---|
-| `src/ListenKit.tsx` | Shared foundation: product tokens (harvested from the live app's computed styles, 2026-08-28), product chrome (builder / analysis / bare variants), primitives (chips, donut, chat, cursor), the `useScene` script engine, and `ScaleBox` (fixed 1120×640 design space scaled to any container — keeps scripted cursor coordinates exact at every width). |
+| `src/ListenKit.tsx` | Shared foundation: product tokens (harvested from the live app's computed styles, 2026-08-28), product chrome (builder / analysis / bare variants), primitives (chips, donut, chat, cursor), `PatternLayer` (dot grid / line grid / concentric circles / crosshairs), the `useScene` script engine (freeze-frame + fast-forward playback), and `ScaleBox` (fixed 1120×640 design space scaled to any container — keeps scripted cursor coordinates exact at every width). |
 | `src/ListenIcons.tsx` | The product's exact icon set (Lucide, 16px from 24-viewBox, stroke 2) with path data harvested from the live app's DOM. `<I name="sparkles" />`. |
-| `src/ListenScenes.tsx` | The scene library. Five full scenes (one per How-It-Works stage) plus small **fragments** (`FragmentTopAnswer`, `FragmentLiveInterview`, `FragmentEmotionQuote`) for minor page sections. Each scene is a scripted "session": it plays a simulated moment (typing, streaming, a cursor clicking a control), then reports done. Scenes 1–2 mirror the real study-creation flow frame-by-frame from a product screen recording (`video/`): the Create Study entry, chip questions in chat, "Thinking…" beats, and status-marker streams, with pacing constants (`USER_CPS`, `AI_CPS`, `MARKER_MS`) measured from the recording. |
-| `src/HowItWorks.tsx` | Framer code component: centered product frame + five stage headings beneath. Auto-cycles scene → scene; clicking a stage jumps to it and the cycle resumes after an idle delay. Property controls: auto-cycle on/off, resume delay, max width. |
-| `src/ProductShot.tsx` | Framer code component: drop **any single scene or fragment** anywhere on the site. Property controls: scene picker, loop, loop pause. Plays when scrolled into view. |
-| `demo.html` + `src/demo.tsx` | Local demo page rendering everything outside Framer. |
+| `src/ListenScenes.tsx` | The scene library. Five full scenes (one per How-It-Works stage) plus small **fragments** for minor page sections. Each scene is a scripted "session": it plays a simulated moment (typing, streaming, a cursor clicking a control), then reports done. Scenes 1–2 mirror the real study-creation flow frame-by-frame from a product screen recording (`video/`), with pacing constants (`USER_CPS`, `AI_CPS`, `MARKER_MS`) measured from it. |
+| `src/ListenRegistry.tsx` | **The canonical catalog**: scenes, fragments, hero-stage copy, and named **framings** (crop-window rects). Register content once here; the hero, callouts, and demo tooling all read from it. |
+| `src/SceneCanvas.tsx` | **The universal Framer component.** `variant="hero"` = the multi-stage How-It-Works (auto-cycle, stage rail, dev scrubber). `variant="callout"` = a single scene, fragment, or **crop-window snippet**. Every instance gets the canvas system: surface-secondary container, optional background pattern, and the fit engine — `responsive` (scales with container) or `pinned` (native pixels anchored to a corner with X/Y insets while the container flexes and masks; optional fall-back-to-fit below a breakpoint). Callouts can also **loop a time-slice** of a session (`segStart`/`segEnd`). |
+| `src/HowItWorks.tsx`, `src/ProductShot.tsx` | Thin back-compat presets over SceneCanvas. |
+| `demo.html` + `src/demo.tsx` | Local demo page rendering everything outside Framer, including a SceneCanvas showcase. |
 
 ## Install in Framer
 
 1. In Framer: **Assets → Code → Create Code File**, named exactly:
-   - `ListenKit.tsx` — paste `src/ListenKit.tsx`
-   - `ListenIcons.tsx` — paste `src/ListenIcons.tsx`
-   - `ListenScenes.tsx` — paste `src/ListenScenes.tsx`
-2. **Create Code Component** twice:
-   - `HowItWorks.tsx` — paste `src/HowItWorks.tsx`
-   - `ProductShot.tsx` — paste `src/ProductShot.tsx`
-3. Drag **HowItWorks** onto the page for the How-It-Works section, or
-   **ProductShot** for any smaller placement, and configure via the
-   properties panel. (The relative `./ListenKit` imports resolve as long as
-   the file names match.)
+   - `ListenKit.tsx`, `ListenIcons.tsx`, `ListenScenes.tsx`, `ListenRegistry.tsx` — paste from `src/`
+2. **Create Code Component**: `SceneCanvas.tsx` — paste from `src/`
+   (optionally also `HowItWorks.tsx` / `ProductShot.tsx` presets).
+3. Drag **SceneCanvas** anywhere. The properties panel drives everything:
+   - **Variant**: Hero (5 stages) ⇄ Callout (snippet) — one dropdown
+   - **Content** (callout): every scene, fragment, and named framing
+     (e.g. `design-study@Chat rail`), or `custom` with your own crop rect
+   - **Fit**: responsive, or pinned to a corner with insets (e.g. 40/40
+     top-left) while the container masks; per-instance small-screen behavior
+   - **Canvas**: fill color, pattern (dots / grid / circles / crosshairs),
+     spacing, opacity, padding, radius
 
 The `import { addPropertyControls, ControlType } from "framer"` lines resolve
 natively inside Framer. Locally they're aliased to `src/framer-stub.ts`.
@@ -66,6 +68,9 @@ node scripts/dev-server.mjs   # → http://localhost:4173
   script runs on a virtual clock and freezes at that exact virtual
   millisecond — deterministic, immune to background-tab throttling.
   Use it to pin a scene to a beat and compare against a video frame.
+- `/?scene=design-study&hold=9700&frame=1` adds the **framing helper**:
+  drag a box over the frozen scene to read off a crop rect in design
+  coordinates, ready to paste into `ListenRegistry`'s `framings`.
 
 ## Motion & state vocabulary (harvested from the live app)
 

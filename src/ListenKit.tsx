@@ -347,6 +347,54 @@ export function useCursor() {
   }
 }
 
+// --------------------------------------------------------- pattern layer ----
+export type PatternType = "none" | "dots" | "grid" | "circles" | "crosshairs"
+
+/** Optional canvas texture drawn over the secondary fill, under the shot.
+ *  Tokenized (surface-tertiary tones) and static, per the brand's stillness. */
+export function PatternLayer(props: {
+  type: PatternType
+  spacing?: number
+  opacity?: number
+  color?: string
+}): JSX.Element | null {
+  const { type, spacing = 24, opacity = 0.5, color = "#E2DCCF" } = props
+  if (type === "none") return null
+  const common: React.CSSProperties = { position: "absolute", inset: 0, pointerEvents: "none", opacity }
+
+  if (type === "circles") {
+    // concentric rings from the container center, spaced by `spacing`
+    return (
+      <svg style={common} width="100%" height="100%">
+        {Array.from({ length: 80 }, (_, i) => (
+          <circle key={i} cx="50%" cy="50%" r={(i + 1) * spacing} fill="none" stroke={color} strokeWidth={1} />
+        ))}
+      </svg>
+    )
+  }
+
+  const pid = `ll-pat-${type}-${spacing}`
+  return (
+    <svg style={common} width="100%" height="100%">
+      <defs>
+        <pattern id={pid} width={spacing} height={spacing} patternUnits="userSpaceOnUse">
+          {type === "dots" && <circle cx={spacing / 2} cy={spacing / 2} r={1.2} fill={color} />}
+          {type === "grid" && (
+            <path d={`M ${spacing} 0 L 0 0 0 ${spacing}`} fill="none" stroke={color} strokeWidth={1} />
+          )}
+          {type === "crosshairs" && (
+            <g stroke={color} strokeWidth={1}>
+              <line x1={spacing / 2 - 4} y1={spacing / 2} x2={spacing / 2 + 4} y2={spacing / 2} />
+              <line x1={spacing / 2} y1={spacing / 2 - 4} x2={spacing / 2} y2={spacing / 2 + 4} />
+            </g>
+          )}
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill={`url(#${pid})`} />
+    </svg>
+  )
+}
+
 // ------------------------------------------------------------------ logo ----
 export function Logo(): JSX.Element {
   // simplified Listen Labs asterisk glyph
