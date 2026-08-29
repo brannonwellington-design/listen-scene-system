@@ -282,19 +282,41 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
 }
 
 // -------------------------------------------------------------- workbench ---
-// snippet-scoped picker: framings + fragments, never bare full scenes
-const SNIPPETS: Array<[string, string]> = REGISTRY.flatMap((e) =>
-  e.kind === "fragment"
-    ? ([[e.key, e.title]] as Array<[string, string]>)
-    : (e.framings ?? []).map((f) => [`${e.key}@${f.name}`, `${e.title} · ${f.name}`] as [string, string]),
+// content picker groups: what plays is a scene, a snippet crop, or a fragment
+const SCENES_OPTS: Array<[string, string]> = REGISTRY.filter((e) => e.kind === "scene").map((e) => [e.key, e.title])
+const SNIPPET_OPTS: Array<[string, string]> = REGISTRY.flatMap((e) =>
+  e.kind === "scene" ? (e.framings ?? []).map((f) => [`${e.key}@${f.name}`, `${e.title} · ${f.name}`] as [string, string]) : [],
 )
-const DEFAULT_SNIPPET = "design-study@Chat rail"
+const FRAGMENT_OPTS: Array<[string, string]> = REGISTRY.filter((e) => e.kind === "fragment").map((e) => [e.key, e.title])
+
+const isSceneContent = (content: string, customScene: string) =>
+  content !== "custom" && !content.includes("@") && byKey(content).kind === "scene"
+
+/** grouped content select */
+function ContentSel(p: { v: string; set: (s: string) => void }): JSX.Element {
+  return (
+    <select className="wb-select" value={p.v} onChange={(e) => p.set(e.target.value)}>
+      <optgroup label="Full scenes">
+        {SCENES_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+      </optgroup>
+      <optgroup label="Snippets">
+        {SNIPPET_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+      </optgroup>
+      <optgroup label="Fragments">
+        {FRAGMENT_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+      </optgroup>
+      <optgroup label="Custom">
+        <option value="custom">Custom crop…</option>
+      </optgroup>
+    </select>
+  )
+}
 
 const HERO_KEYS: Array<keyof Cfg> = ["autoCycle", "resumeDelay", "pattern", "patternSpacing", "patternOpacity", "bgColor", "padX", "padY", "radius"]
-const SNIPPET_EXCLUDE: Array<keyof Cfg> = ["autoCycle", "resumeDelay", "scrubber", "maxWidth"]
+const CALLOUT_EXCLUDE: Array<keyof Cfg> = ["autoCycle", "resumeDelay", "scrubber", "maxWidth"]
 
 export default function Workbench(): JSX.Element {
-  const [mode, setMode] = React.useState<"scene" | "snippet">("scene")
+  const [display, setDisplay] = React.useState<"hero" | "callout">("hero")
   const [cfg, setCfg] = React.useState<Cfg>({ ...CANVAS_DEFAULTS })
   const [presetSel, setPresetSel] = React.useState("")
   const [drafts, setDrafts] = React.useState<Preset[]>(loadDrafts)
@@ -378,20 +400,23 @@ export default function Workbench(): JSX.Element {
   }
 
   // --- preset apply / save --------------------------------------------------
+  const sceneContent = isSceneContent(cfg.content, cfg.customScene)
+  const isHero = display === "hero" && sceneContent
+
   const allPresets = [...PRESETS, ...drafts]
   const applyPreset = (name: string) => {
     setPresetSel(name)
     const p = allPresets.find((x) => x.name === name)
     if (!p) return
-    setMode((p.props as any).variant === "hero" ? "scene" : "snippet")
+    setDisplay((p.props as any).variant === "hero" ? "hero" : "callout")
     setCfg({ ...CANVAS_DEFAULTS, ...(p.props as Partial<Cfg>) })
     setCropEdit(false)
   }
   const changedProps = (): Partial<Cfg> => {
     const out: Partial<Cfg> = {}
     for (const k of Object.keys(CANVAS_DEFAULTS) as Array<keyof Cfg>) {
-      if (mode === "scene" && !HERO_KEYS.includes(k)) continue
-      if (mode === "snippet" && SNIPPET_EXCLUDE.includes(k)) continue
+      if (isHero && !HERO_KEYS.includes(k)) continue
+      if (!isHero && CALLOUT_EXCLUDE.includes(k)) continue
       if (cfg[k] !== CANVAS_DEFAULTS[k]) (out as any)[k] = cfg[k]
     }
     return out
@@ -399,30 +424,29 @@ export default function Workbench(): JSX.Element {
   const serialize = (props: Record<string, unknown>) =>
     Object.entries(props).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")
   const presetBlock = () => {
-    const props: Record<string, unknown> = mode === "scene" ? { variant: "hero", ...changedProps() } : changedProps()
+    const props: Record<string, unknown> = isHero ? { variant: "hero", ...changedProps() } : changedProps()
     return `  {\n    name: ${JSON.stringify(saveName || "untitled")},\n    props: { ${serialize(props)} },\n  },`
   }
   const jsxBlock = () => {
     const props = changedProps()
     const body = Object.entries(props).map(([k, v]) => typeof v === "string" ? `${k}=${JSON.stringify(v)}` : `${k}={${JSON.stringify(v)}}`).join(" ")
-    return `<SceneCanvas variant=${JSON.stringify(mode === "scene" ? "hero" : "callout")} ${body} />`
+    return `<SceneCanvas variant=${JSON.stringify(isHero ? "hero" : "callout")} ${body} />`
   }
   const saveDraft = () => {
     if (!saveName) return
-    const props = (mode === "scene" ? { variant: "hero" as const, ...changedProps() } : changedProps()) as Partial<SceneCanvasProps>
+    const props = (isHero ? { variant: "hero" as const, ...changedProps() } : changedProps()) as Partial<SceneCanvasProps>
     const next = [...drafts.filter((d) => d.name !== saveName), { name: saveName, props }]
     setDrafts(next)
     localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
     setPresetSel(saveName)
   }
 
-  const switchMode = (m: "scene" | "snippet") => {
-    setMode(m)
+  const setContent = (v: string) => {
     setCropEdit(false)
     setPresetSel("")
-    if (m === "snippet" && !cfg.content.includes("@") && byKey(cfg.content).kind !== "fragment") {
-      setCfg((c) => ({ ...c, content: DEFAULT_SNIPPET }))
-    }
+    setCfg((c) => ({ ...c, content: v }))
+    // hero display only applies to full scenes; anything else is a callout
+    if (!isSceneContent(v, cfg.customScene)) setDisplay("callout")
   }
 
   const punch = (k: "segStart" | "segEnd") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })); setPresetSel("") }
@@ -439,7 +463,7 @@ export default function Workbench(): JSX.Element {
 
   const pw = previewW === "full" ? "100%" : previewW
   const bpValue = previewW === "full" ? "full" : String(previewW)
-  const sizeLabel = `${previewW === "full" ? "full width" : Math.round(previewW as number) + "px"} × ${mode === "snippet" && cfg.canvasHeight ? cfg.canvasHeight + "px" : "auto"}`
+  const sizeLabel = `${previewW === "full" ? "full width" : Math.round(previewW as number) + "px"} × ${!isHero && cfg.canvasHeight ? cfg.canvasHeight + "px" : "auto"}`
 
   return (
     <div className="wb" style={{ background: T.pageBg, minHeight: "100vh" }}>
@@ -463,7 +487,7 @@ export default function Workbench(): JSX.Element {
         {/* stage */}
         <div className="wb-stage">
           <div className="wb-toolbar">
-            {mode === "snippet" && (
+            {!isHero && (
               <span className="wb-tools">
                 {!scrubOn ? (
                   <button className="wb-btn" onClick={() => { setScrubOn(true); setPlayStart(null) }}>
@@ -492,7 +516,7 @@ export default function Workbench(): JSX.Element {
             <span style={{ flex: 1 }} />
             <Seg v={bpValue} set={(v) => setPreviewW(v === "full" ? "full" : +v)}
               options={[["375", "375"], ["768", "768"], ["1024", "1024"], ["full", "Full"]]} />
-            {mode === "snippet" && (
+            {!isHero && (
               <button className={"wb-btn" + (cropEdit ? " accent" : "")}
                 onClick={() => (cropEdit ? setCropEdit(false) : editCropStart())}>
                 <I name="crop" size={13} /> {cropEdit ? "Done" : "Edit crop"}
@@ -504,11 +528,11 @@ export default function Workbench(): JSX.Element {
           <div style={{ position: "relative", width: pw, maxWidth: "100%", margin: "0 auto", transition: dragging ? "none" : "width .2s ease" }}>
             {dragging && <span className="wb-chip">{sizeLabel}</span>}
             <div ref={previewRef}
-              className={mode === "snippet" && scrubOn && !playing ? "ll-noanim" : undefined}
-              onMouseDown={mode === "snippet" ? onPinDown : undefined}
-              style={{ position: "relative", cursor: mode === "snippet" && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
+              className={!isHero && scrubOn && !playing ? "ll-noanim" : undefined}
+              onMouseDown={!isHero ? onPinDown : undefined}
+              style={{ position: "relative", cursor: !isHero && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
             >
-              {mode === "scene" ? (
+              {isHero ? (
                 <SceneCanvas key={runNonce} variant="hero" scrubber maxWidth={4000}
                   autoCycle={cfg.autoCycle} resumeDelay={cfg.resumeDelay}
                   pattern={cfg.pattern} patternSpacing={cfg.patternSpacing} patternOpacity={cfg.patternOpacity}
@@ -533,7 +557,7 @@ export default function Workbench(): JSX.Element {
               )}
             </div>
             <div className={"wb-grab-w" + (dragging === "w" ? " on" : "")} onMouseDown={onWidthDown} />
-            {mode === "snippet" && !cropEdit && <div className={"wb-grab-h" + (dragging === "h" ? " on" : "")} onMouseDown={onHeightDown} />}
+            {!isHero && !cropEdit && <div className={"wb-grab-h" + (dragging === "h" ? " on" : "")} onMouseDown={onHeightDown} />}
           </div>
           <div style={{ textAlign: "center", marginTop: 26 }} className="wb-hint">
             {sizeLabel} · drag the handles to test any size
@@ -542,11 +566,18 @@ export default function Workbench(): JSX.Element {
 
         {/* inspector */}
         <div className="wb-panel">
-          <Section title="Mode" />
-          <Seg v={mode} set={(v) => switchMode(v as "scene" | "snippet")}
-            options={[["scene", "Scene (hero)"], ["snippet", "Snippet"]]} />
+          <Section title="Content" />
+          <Field label="What plays">
+            <ContentSel v={cfg.content} set={setContent} />
+          </Field>
+          {sceneContent && (
+            <Field label="Display as">
+              <Seg v={display} set={(v) => { setDisplay(v as "hero" | "callout"); setCropEdit(false); setPresetSel("") }}
+                options={[["hero", "Hero (rail)"], ["callout", "Callout"]]} />
+            </Field>
+          )}
 
-          {mode === "scene" ? (
+          {isHero ? (
             <>
               <div className="wb-hint" style={{ margin: "8px 0 2px" }}>
                 The hero cycles all five stages; the rail below the canvas is
@@ -563,12 +594,6 @@ export default function Workbench(): JSX.Element {
             </>
           ) : (
             <>
-              <Section title="Content" />
-              <Field label="Snippet">
-                <Sel v={cfg.content} set={(v) => set("content")(v)}
-                  options={[...SNIPPETS.map(([v]) => v), "custom"]}
-                  titles={[...SNIPPETS.map(([, t]) => t), "Custom crop…"]} />
-              </Field>
               {cfg.content === "custom" && (
                 <>
                   <Field label="Scene">
@@ -639,7 +664,7 @@ export default function Workbench(): JSX.Element {
           </Field>
           <Field label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Field>
 
-          {mode === "snippet" && (
+          {!isHero && (
             <>
               <Section title="Playback" />
               <Field label="Loop">
