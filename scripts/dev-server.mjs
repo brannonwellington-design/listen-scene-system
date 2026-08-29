@@ -1,10 +1,12 @@
-// Tiny static server for the local demo.
+// Tiny static server for the local demo. Lives in scripts/ so Vercel's
+// Node entrypoint detection never picks it up — the deployed site is the
+// static `site/` output (see vercel.json).
 import { createServer } from "node:http"
 import { readFile } from "node:fs/promises"
 import { extname, join, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 
-const root = dirname(fileURLToPath(import.meta.url))
+const root = join(dirname(fileURLToPath(import.meta.url)), "..")
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" }
 
 createServer(async (req, res) => {

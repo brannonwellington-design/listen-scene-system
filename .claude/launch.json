@@ -4,7 +4,7 @@
     {
       "name": "demo",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server.mjs"],
+      "runtimeArgs": ["scripts/dev-server.mjs"],
       "port": 4173
     }
   ]

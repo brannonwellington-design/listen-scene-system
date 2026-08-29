@@ -53,7 +53,7 @@ component plus `_W`/`_H` constants and register them.
 ```bash
 npm install
 sh build.sh       # bundles src/demo.tsx → dist/demo.js
-node server.mjs   # → http://localhost:4173
+node scripts/dev-server.mjs   # → http://localhost:4173
 ```
 
 - `/?scene=deliver-results` renders one scene solo (any key from
