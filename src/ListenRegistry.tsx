@@ -7,6 +7,9 @@ import {
   FragmentTopAnswer, TOP_ANSWER_W, TOP_ANSWER_H,
   FragmentLiveInterview, LIVE_INTERVIEW_W, LIVE_INTERVIEW_H,
   FragmentEmotionQuote, EMOTION_QUOTE_W, EMOTION_QUOTE_H,
+  FragmentEIVisual, EI_VISUAL_W, EI_VISUAL_H,
+  FragmentEIResponse, EI_RESPONSE_W, EI_RESPONSE_H,
+  FragmentEIComparison, EI_COMPARISON_W, EI_COMPARISON_H,
   SceneProps,
 } from "./ListenScenes"
 import { FRAME_W, FRAME_H } from "./ListenKit"
@@ -106,6 +109,10 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "top-answer-card", title: "Top Answer card", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
   { key: "live-interview-card", title: "Live interview card", Scene: FragmentLiveInterview, w: LIVE_INTERVIEW_W, h: LIVE_INTERVIEW_H, kind: "fragment" },
   { key: "emotion-quote-card", title: "Emotion quote card", Scene: FragmentEmotionQuote, w: EMOTION_QUOTE_W, h: EMOTION_QUOTE_H, kind: "fragment" },
+  // EI feature cards — live rebuilds of /features/emotional-intelligence images
+  { key: "ei-visual-card", title: "EI · Visual analysis", Scene: FragmentEIVisual, w: EI_VISUAL_W, h: EI_VISUAL_H, kind: "fragment" },
+  { key: "ei-response-card", title: "EI · Emotional Response", Scene: FragmentEIResponse, w: EI_RESPONSE_W, h: EI_RESPONSE_H, kind: "fragment" },
+  { key: "ei-comparison-card", title: "EI · Concept Comparison", Scene: FragmentEIComparison, w: EI_COMPARISON_W, h: EI_COMPARISON_H, kind: "fragment" },
 ]
 
 export const byKey = (key: string): RegistryEntry =>
