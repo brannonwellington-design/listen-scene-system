@@ -61,28 +61,28 @@ function Demo(): JSX.Element {
 
         <div style={{ height: 140 }} />
 
-        {/* SceneCanvas callout showcase: crop-windows, patterns, fit modes */}
+        {/* SceneCanvas callout showcase: fragments, patterns, fit modes */}
         <h2 style={{ fontSize: 32, fontWeight: 400 }}>SceneCanvas callouts</h2>
         <div className="demo-grid" style={{ marginTop: 32 }}>
           <div>
-            <div className="demo-label">Crop-window · responsive · dot grid</div>
-            <SceneCanvas variant="callout" content="reach-people@Audience criteria" pattern="dots"
-              canvasHeight={300} padX={40} padY={32} radius={16} loopPause={2} />
+            <div className="demo-label">EI Emotional Response · responsive · dot grid</div>
+            <SceneCanvas variant="callout" content="ei-response-card" pattern="dots"
+              canvasHeight={300} padX={40} padY={32} radius={16} loopPause={4} />
           </div>
           <div>
-            <div className="demo-label">Crop-window · pinned top-left 40/40, masked · concentric circles</div>
-            <SceneCanvas variant="callout" content="design-study@Chat rail" fit="pinned" anchor="top-left"
-              insetX={40} insetY={40} zoom={0.75} canvasHeight={300} pattern="circles" patternSpacing={36} radius={16}
+            <div className="demo-label">Full scene · pinned top-left 40/40, masked · concentric circles</div>
+            <SceneCanvas variant="callout" content="design-study" fit="pinned" anchor="top-left"
+              insetX={40} insetY={40} zoom={0.55} canvasHeight={300} pattern="circles" patternSpacing={36} radius={16}
               segStart={8500} segEnd={16000} loopPause={4} />
           </div>
           <div>
-            <div className="demo-label">Crop-window · time-slice loop 2–9s · crosshairs</div>
-            <SceneCanvas variant="callout" content="compound@Suggestions grid" pattern="crosshairs" patternSpacing={48}
-              segStart={2000} segEnd={9000} canvasHeight={300} padX={40} padY={32} radius={16} loopPause={3} />
+            <div className="demo-label">EI Concept Comparison · crosshairs</div>
+            <SceneCanvas variant="callout" content="ei-comparison-card" pattern="crosshairs" patternSpacing={48}
+              canvasHeight={300} padX={40} padY={32} radius={16} loopPause={3} />
           </div>
           <div>
-            <div className="demo-label">Fragment · responsive · line grid</div>
-            <SceneCanvas variant="callout" content="top-answer-card" pattern="grid" patternSpacing={28}
+            <div className="demo-label">EI Visual analysis · line grid</div>
+            <SceneCanvas variant="callout" content="ei-visual-card" pattern="grid" patternSpacing={28}
               canvasHeight={300} padX={44} padY={36} radius={16} loopPause={5} />
           </div>
         </div>
@@ -170,8 +170,8 @@ function Solo(props: { scene: string }): JSX.Element {
   const btn: React.CSSProperties = { border: "1px solid #C6C0B4", borderRadius: 6, padding: "3px 10px", background: "transparent", cursor: "pointer", font: "inherit" }
   const { Scene, w, h } = entry
 
-  // framing helper (?frame=1): drag a rect over the frozen scene to get
-  // design-space crop coordinates for the registry
+  // crop helper (?frame=1): drag a rect over the frozen scene to get
+  // design-space coordinates for SceneCanvas's custom crop
   const frameMode = new URLSearchParams(location.search).get("frame") === "1"
   const boxRef = React.useRef<HTMLDivElement>(null)
   const [drag, setDrag] = React.useState<{ sx: number; sy: number; ex: number; ey: number; live: boolean } | null>(null)
@@ -213,8 +213,8 @@ function Solo(props: { scene: string }): JSX.Element {
         {frameMode && (
           <div style={{ marginBottom: 10, fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
             {rect
-              ? <>framing: <code style={{ background: "#EEE8DD", padding: "2px 8px", borderRadius: 4 }}>{`{ x: ${rect.x}, y: ${rect.y}, w: ${rect.w}, h: ${rect.h} }`}</code></>
-              : "framing helper: scrub to a beat, then drag a box over the scene"}
+              ? <>crop: <code style={{ background: "#EEE8DD", padding: "2px 8px", borderRadius: 4 }}>{`{ x: ${rect.x}, y: ${rect.y}, w: ${rect.w}, h: ${rect.h} }`}</code></>
+              : "crop helper: scrub to a beat, then drag a box over the scene"}
           </div>
         )}
         {scrub ? (

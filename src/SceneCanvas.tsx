@@ -1,7 +1,7 @@
 // SceneCanvas — the universal live product-shot component.
 // One Framer component, two personalities:
 //   variant="hero"    → multi-stage How-It-Works (auto-cycle, stage rail, scrubber)
-//   variant="callout" → a single scene, fragment, or crop-window snippet
+//   variant="callout" → a single scene, fragment, or custom crop of a scene
 // Every instance gets the canvas system: surface-secondary container, optional
 // background pattern, and a fit engine (responsive scaling vs corner-pinned
 // native pixels with masking + optional small-screen fallback).
@@ -10,9 +10,7 @@ import { addPropertyControls, ControlType } from "framer"
 import {
   T, ScaleBox, PatternLayer, PatternType, ensureCss, FRAME_W, FRAME_H,
 } from "./ListenKit"
-import {
-  REGISTRY, STAGES, framingOptions, resolveContent, Framing, RegistryEntry,
-} from "./ListenRegistry"
+import { REGISTRY, STAGES, byKey, RegistryEntry } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
 import { PRESETS, getPreset, presetNames } from "./ListenPresets"
 import { I } from "./ListenIcons"
@@ -26,7 +24,8 @@ export type SceneCanvasProps = {
   autoCycle?: boolean
   resumeDelay?: number
   scrubber?: boolean
-  // callout content: registry id, optionally "key@Framing name", or "custom"
+  // callout content: any registry key (scene or fragment), or "custom" to
+  // crop a rect out of a scene
   content?: string
   customScene?: string
   cropX?: number
@@ -88,15 +87,18 @@ function mergePreset(props: SceneCanvasProps): typeof CANVAS_DEFAULTS {
 }
 
 // ------------------------------------------------------------- shot unit ----
-/** Renders a scene (optionally cropped to a framing rect) at a given scale. */
+/** a crop-window into a scene, in that scene's design space */
+export type CropRect = { x: number; y: number; w: number; h: number }
+
+/** Renders a registry entry (optionally cropped to a rect) at a given scale. */
 function ShotUnit(props: {
   entry: RegistryEntry
-  framing?: Framing
+  crop?: CropRect
   scale: number
   sceneProps: SceneProps
 }): JSX.Element {
-  const { entry, framing, scale, sceneProps } = props
-  const r = framing ?? { name: "full", x: 0, y: 0, w: entry.w, h: entry.h }
+  const { entry, crop, scale, sceneProps } = props
+  const r = crop ?? { x: 0, y: 0, w: entry.w, h: entry.h }
   const Scene = entry.Scene
   return (
     <div className="ll" style={{ width: r.w * scale, height: r.h * scale, overflow: "hidden", position: "relative", flexShrink: 0 }}>
@@ -122,10 +124,10 @@ function Callout(props: typeof CANVAS_DEFAULTS & {
     debugHold, debugPlayFrom, debugOnTime, debugCanvasRef,
   } = props
 
-  const { entry, framing } = content === "custom"
-    ? { entry: resolveContent(customScene).entry, framing: cropW > 0 ? { name: "custom", x: cropX, y: cropY, w: cropW, h: cropH } : undefined }
-    : resolveContent(content)
-  const rect = framing ?? { name: "full", x: 0, y: 0, w: entry.w, h: entry.h }
+  const entry = byKey(content === "custom" ? customScene : content)
+  const crop: CropRect | undefined =
+    content === "custom" && cropW > 0 ? { x: cropX, y: cropY, w: cropW, h: cropH } : undefined
+  const rect = crop ?? { x: 0, y: 0, w: entry.w, h: entry.h }
 
   // visibility + loop/segment playback
   const rootRef = React.useRef<HTMLDivElement>(null)
@@ -202,7 +204,7 @@ function Callout(props: typeof CANVAS_DEFAULTS & {
         <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
         {/* keyed fade so loop restarts read as intentional, not a flicker */}
         <div key={runKey} className="ll-scene-fade" style={pos}>
-          <ShotUnit entry={entry} framing={rect} scale={zoom} sceneProps={sceneProps} />
+          <ShotUnit entry={entry} crop={crop} scale={zoom} sceneProps={sceneProps} />
         </div>
       </div>
     )
@@ -220,7 +222,7 @@ function Callout(props: typeof CANVAS_DEFAULTS & {
     }}>
       <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
       <div key={runKey} className="ll-scene-fade" style={{ position: "relative" }}>
-        <ShotUnit entry={entry} framing={rect} scale={scale} sceneProps={sceneProps} />
+        <ShotUnit entry={entry} crop={crop} scale={scale} sceneProps={sceneProps} />
       </div>
     </div>
   )
@@ -381,16 +383,16 @@ const isCallout = (p: SceneCanvasProps) => (p.variant ?? "callout") !== "hero"
 const isHero = (p: SceneCanvasProps) => (p.variant ?? "callout") === "hero"
 
 addPropertyControls(SceneCanvas, {
-  variant: { type: ControlType.Enum, title: "Variant", options: ["hero", "callout"], optionTitles: ["Hero (stages)", "Callout (snippet)"], defaultValue: "callout" },
+  variant: { type: ControlType.Enum, title: "Variant", options: ["hero", "callout"], optionTitles: ["Hero (stages)", "Callout (single)"], defaultValue: "callout" },
   preset: { type: ControlType.Enum, title: "Preset", options: ["custom", ...presetNames()], defaultValue: "custom", hidden: isHero },
   // hero
   autoCycle: { type: ControlType.Boolean, title: "Auto-cycle", defaultValue: true, hidden: isCallout },
   resumeDelay: { type: ControlType.Number, title: "Resume after (s)", defaultValue: 14, min: 4, max: 60, step: 1, hidden: isCallout },
   scrubber: { type: ControlType.Boolean, title: "Scrubber (dev)", defaultValue: false, hidden: isCallout },
   maxWidth: { type: ControlType.Number, title: "Max width", defaultValue: 1200, min: 640, max: 1600, step: 10, hidden: isCallout },
-  // callout content
-  content: { type: ControlType.Enum, title: "Content", options: [...framingOptions(), "custom"], defaultValue: "design-study", hidden: isHero },
-  customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), hidden: (p) => isHero(p) || p.content !== "custom" },
+  // callout content — one unified list (scenes + fragments) plus custom crop
+  content: { type: ControlType.Enum, title: "Content", options: [...REGISTRY.map((e) => e.key), "custom"], optionTitles: [...REGISTRY.map((e) => e.title), "Custom crop…"], defaultValue: "design-study", hidden: isHero },
+  customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), optionTitles: REGISTRY.map((e) => e.title), hidden: (p) => isHero(p) || p.content !== "custom" },
   cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isHero(p) || p.content !== "custom" },
   cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: 640, hidden: (p) => isHero(p) || p.content !== "custom" },
   cropW: { type: ControlType.Number, title: "Crop W (0=full)", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isHero(p) || p.content !== "custom" },

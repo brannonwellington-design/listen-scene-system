@@ -1,12 +1,12 @@
-// Workbench — the composition studio (/?compose=1). Local-only; not pasted
-// into Framer. Tune every SceneCanvas setting live, manipulate the shot
-// directly (drag to pin, wheel to zoom, drag-resize the crop and the
-// preview frame), scrub to the beat, then save as a named preset.
+// Workbench — the composition studio (the landing page). Local-only; not
+// pasted into Framer. Tune every SceneCanvas setting live, manipulate the
+// shot directly (drag to pin, wheel to zoom, drag-resize the preview frame),
+// scrub to the beat, then save as a named preset.
 // UI: a shadcn-style inspector kit hand-rolled on the Listen Labs tokens.
 import * as React from "react"
 import SceneCanvas, { CANVAS_DEFAULTS, SceneCanvasProps } from "./SceneCanvas"
 import { PRESETS, Preset } from "./ListenPresets"
-import { framingOptions, resolveContent, byKey, REGISTRY } from "./ListenRegistry"
+import { byKey, REGISTRY } from "./ListenRegistry"
 import { T, Logo, ScaleBox, PatternLayer, PatternType } from "./ListenKit"
 import { I } from "./ListenIcons"
 
@@ -282,32 +282,18 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
 }
 
 // -------------------------------------------------------------- workbench ---
-// content picker groups: what plays is a scene, a snippet crop, or a fragment
-const SCENES_OPTS: Array<[string, string]> = REGISTRY.filter((e) => e.kind === "scene").map((e) => [e.key, e.title])
-const SNIPPET_OPTS: Array<[string, string]> = REGISTRY.flatMap((e) =>
-  e.kind === "scene" ? (e.framings ?? []).map((f) => [`${e.key}@${f.name}`, `${e.title} · ${f.name}`] as [string, string]) : [],
-)
-const FRAGMENT_OPTS: Array<[string, string]> = REGISTRY.filter((e) => e.kind === "fragment").map((e) => [e.key, e.title])
+// content is one unified list — full scenes + fragments straight from the
+// registry — plus "Custom crop…" for framing a rect out of any scene
+const CONTENT_OPTS: Array<[string, string]> = REGISTRY.map((e) => [e.key, e.title])
 
-const isSceneContent = (content: string, customScene: string) =>
-  content !== "custom" && !content.includes("@") && byKey(content).kind === "scene"
+const isSceneContent = (content: string) => content !== "custom" && byKey(content).kind === "scene"
 
-/** grouped content select */
+/** unified content select */
 function ContentSel(p: { v: string; set: (s: string) => void }): JSX.Element {
   return (
     <select className="wb-select" value={p.v} onChange={(e) => p.set(e.target.value)}>
-      <optgroup label="Full scenes">
-        {SCENES_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-      </optgroup>
-      <optgroup label="Snippets">
-        {SNIPPET_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-      </optgroup>
-      <optgroup label="Fragments">
-        {FRAGMENT_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-      </optgroup>
-      <optgroup label="Custom">
-        <option value="custom">Custom crop…</option>
-      </optgroup>
+      {CONTENT_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+      <option value="custom">Custom crop…</option>
     </select>
   )
 }
@@ -337,10 +323,10 @@ export default function Workbench(): JSX.Element {
 
   const set = <K extends keyof Cfg>(k: K) => (v: Cfg[K]) => { setCfg((c) => ({ ...c, [k]: v })); setPresetSel("") }
 
-  const resolved = cfg.content === "custom"
-    ? { entry: byKey(cfg.customScene), framing: cfg.cropW > 0 ? { name: "custom", x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH } : undefined }
-    : resolveContent(cfg.content)
-  const rect: Rect = resolved.framing ?? { x: 0, y: 0, w: resolved.entry.w, h: resolved.entry.h }
+  const entry = cfg.content === "custom" ? byKey(cfg.customScene) : byKey(cfg.content)
+  const rect: Rect = cfg.content === "custom" && cfg.cropW > 0
+    ? { x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }
+    : { x: 0, y: 0, w: entry.w, h: entry.h }
 
   // --- pin drag + wheel zoom over the live canvas ---------------------------
   const onPinDown = (e: React.MouseEvent) => {
@@ -400,7 +386,7 @@ export default function Workbench(): JSX.Element {
   }
 
   // --- preset apply / save --------------------------------------------------
-  const sceneContent = isSceneContent(cfg.content, cfg.customScene)
+  const sceneContent = isSceneContent(cfg.content)
   const isHero = display === "hero" && sceneContent
 
   const allPresets = [...PRESETS, ...drafts]
@@ -446,14 +432,14 @@ export default function Workbench(): JSX.Element {
     setPresetSel("")
     setCfg((c) => ({ ...c, content: v }))
     // hero display only applies to full scenes; anything else is a callout
-    if (!isSceneContent(v, cfg.customScene)) setDisplay("callout")
+    if (!isSceneContent(v)) setDisplay("callout")
   }
 
   const punch = (k: "segStart" | "segEnd") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })); setPresetSel("") }
 
   const editCropStart = () => {
     setCfg((c) => ({
-      ...c, content: "custom", customScene: resolved.entry.key,
+      ...c, content: "custom", customScene: entry.key,
       cropX: rect.x, cropY: rect.y, cropW: rect.w, cropH: rect.h,
     }))
     if (!scrubOn) { setScrubOn(true); setPlayStart(null) }
