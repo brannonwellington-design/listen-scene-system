@@ -946,15 +946,18 @@ export const TOP_ANSWER_H = 220
 export function FragmentTopAnswer({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [donut, setDonut] = React.useState(0)
+  const [label, setLabel] = React.useState(0)
   useScene(active, async (p) => {
-    setDonut(0)
+    setDonut(0); setLabel(0)
     await p.sleep(500)
+    // ring eases via its own CSS transition; the label ticks in step with it
     setDonut(50)
+    await eiTimeline(p, 1000, (t) => setLabel(Math.round(50 * eiEase(t / 1000))))
     await p.sleep(2500)
   }, onDone, runKey, hold, playFrom, onTime)
   return (
     <div className="ll-card" style={{ width: TOP_ANSWER_W, height: TOP_ANSWER_H, padding: 32, display: "flex", gap: 28, alignItems: "center", borderRadius: 12 }}>
-      <Donut pct={donut} size={140} stroke={14} label={`${donut}%`} />
+      <Donut pct={donut} size={140} stroke={14} label={`${label}%`} />
       <div>
         <div style={{ fontSize: 13, color: T.inkSoft }}>TOP ANSWER</div>
         <div className="ll-500" style={{ fontSize: 30, marginTop: 6 }}>Midnight Blue</div>
@@ -1067,8 +1070,19 @@ function EIOutlineTag({ emotion }: { emotion: keyof typeof EMOTIONS }): JSX.Elem
   )
 }
 
+/** shared easing for the EI cards' scripted motion (matches the Donut's curve) */
+const eiEase = (x: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3)
+
+/** advance a ~60fps virtual-clock timeline; scrub/freeze stays frame-exact */
+async function eiTimeline(p: { sleep: (ms: number) => Promise<void> }, total: number, set: (t: number) => void): Promise<void> {
+  for (let e = 16; e < total; e += 16) { set(e); await p.sleep(16) }
+  set(total)
+}
+
+// heights are DOM-measured at the settled beat (height:auto probe) so the
+// cards carry no dead space and nothing clips
 export const EI_VISUAL_W = 620
-export const EI_VISUAL_H = 404
+export const EI_VISUAL_H = 422
 
 const EIV_QUOTE = "I used it to negotiate my first salary offer — I basically read its script on the call and it worked."
 const EIV_OBS_1 = "The participant's eyes light up and she leans forward as she describes the script 'actually working'. Her vocal tone lifts and speeds up through this segment."
@@ -1080,9 +1094,14 @@ export function FragmentEIVisual({ active, onDone, runKey = 0, hold, playFrom, o
   const [obs1, setObs1] = React.useState("")
   const [obs2, setObs2] = React.useState("")
   const [tags, setTags] = React.useState(0)
+  const [analyzing, setAnalyzing] = React.useState(false)
   useScene(active, async (p) => {
-    setObs1(""); setObs2(""); setTags(0)
-    await p.sleep(700)
+    setObs1(""); setObs2(""); setTags(0); setAnalyzing(false)
+    await p.sleep(500)
+    // the app's vocabulary: a shimmer beat, then the AI streams
+    setAnalyzing(true)
+    await p.sleep(1100)
+    setAnalyzing(false)
     await p.type(setObs1, EIV_OBS_1, AI_CPS)
     await p.sleep(250)
     setTags(1)
@@ -1105,7 +1124,11 @@ export function FragmentEIVisual({ active, onDone, runKey = 0, hold, playFrom, o
         <span style={{ fontSize: 17 }}>Visual</span>
       </div>
       <div style={{ marginLeft: 31, marginTop: 12, color: T.inkSoft }}>
-        <div style={{ minHeight: 67 }}>{obs1}{obs1.length > 0 && obs1.length < EIV_OBS_1.length && <Caret />}</div>
+        <div style={{ minHeight: 67 }}>
+          {analyzing
+            ? <span className="ll-shimmer">Analyzing visual signals…</span>
+            : <>{obs1}{obs1.length > 0 && obs1.length < EIV_OBS_1.length && <Caret />}</>}
+        </div>
         <div style={{ marginTop: 12, minHeight: 27 }}>
           {tags >= 1 && <span className="ll-enter" style={{ display: "inline-flex" }}><EIOutlineTag emotion="happiness" /></span>}
         </div>
@@ -1119,7 +1142,7 @@ export function FragmentEIVisual({ active, onDone, runKey = 0, hold, playFrom, o
 }
 
 export const EI_RESPONSE_W = 640
-export const EI_RESPONSE_H = 442
+export const EI_RESPONSE_H = 406
 
 const EIR_ROWS: Array<{ emotion: keyof typeof EMOTIONS; n: number }> = [
   { emotion: "anger", n: 3 },
@@ -1129,35 +1152,40 @@ const EIR_ROWS: Array<{ emotion: keyof typeof EMOTIONS; n: number }> = [
   { emotion: "sadness", n: 11 },
 ]
 
+// bar choreography: each row starts EIR_STAG after the previous and eases
+// over EIR_GROW — the count ticks up in lockstep with its own bar
+const EIR_GROW = 950
+const EIR_STAG = 110
+
 /** EI feature 2 — per-question Emotional Response bars with participant counts */
 export function FragmentEIResponse({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
-  const [t, setT] = React.useState(0) // 0..1 bar-growth progress
+  const [gt, setGt] = React.useState(0) // ms into the growth timeline
   const max = Math.max(...EIR_ROWS.map((r) => r.n))
   useScene(active, async (p) => {
-    setT(0)
+    setGt(0)
     await p.sleep(600)
-    for (let i = 1; i <= 16; i++) { setT(i / 16); await p.sleep(70) }
+    await eiTimeline(p, EIR_STAG * (EIR_ROWS.length - 1) + EIR_GROW, setGt)
     await p.sleep(2800)
   }, onDone, runKey, hold, playFrom, onTime)
-  const ease = 1 - Math.pow(1 - t, 3)
   return (
     <div className="ll-card" style={{ width: EI_RESPONSE_W, height: EI_RESPONSE_H, borderRadius: 12 }}>
       <EICardHeader title="Emotional Response" />
       <div style={{ padding: "22px 24px" }}>
         {EIR_ROWS.map((r, i) => {
-          const n = Math.round(r.n * ease)
+          const e = eiEase((gt - i * EIR_STAG) / EIR_GROW)
+          const n = Math.round(r.n * e)
           return (
             <div key={r.emotion} style={{ marginTop: i === 0 ? 0 : 24 }}>
               <div style={{ display: "flex", alignItems: "center", fontSize: 16, color: T.ink }}>
                 <span>{r.emotion[0].toUpperCase() + r.emotion.slice(1)}</span>
                 <span style={{ flex: 1 }} />
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.body }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.body, fontVariantNumeric: "tabular-nums" }}>
                   {n < 10 ? `0${n}` : n} <I name="circle-user-round" size={16} />
                 </span>
               </div>
               <div style={{ marginTop: 9, height: 10, borderRadius: 5, background: "#F1F1F1", overflow: "hidden" }}>
-                <div style={{ width: `${Math.max((r.n / max) * 72 * ease, ease * 2.4)}%`, height: "100%", borderRadius: 5, background: EMOTIONS[r.emotion].fg }} />
+                <div style={{ width: `${Math.max((r.n / max) * 72, 2.6) * e}%`, height: "100%", borderRadius: 5, background: EMOTIONS[r.emotion].fg }} />
               </div>
             </div>
           )
@@ -1168,54 +1196,62 @@ export function FragmentEIResponse({ active, onDone, runKey = 0, hold, playFrom,
 }
 
 export const EI_COMPARISON_W = 660
-export const EI_COMPARISON_H = 470
+export const EI_COMPARISON_H = 431
 
 type EISeg = { emotion: keyof typeof EMOTIONS; f: number }
-const EIC_ROWS: Array<{ title: string; pct: number; n: number; segs: EISeg[] }> = [
-  { title: "Study Buddy", pct: 64, n: 41, segs: [{ emotion: "anger", f: 0.05 }, { emotion: "happiness", f: 0.42 }, { emotion: "disgust", f: 0.07 }, { emotion: "surprise", f: 0.44 }] },
-  { title: "Late-Night Answers", pct: 58, n: 38, segs: [{ emotion: "happiness", f: 0.24 }, { emotion: "disgust", f: 0.2 }, { emotion: "surprise", f: 0.42 }] },
-  { title: "First-Job Copilot", pct: 53, n: 34, segs: [{ emotion: "happiness", f: 0.36 }, { emotion: "disgust", f: 0.06 }, { emotion: "surprise", f: 0.16 }, { emotion: "sadness", f: 0.33 }] },
-  { title: "Group Project Hero", pct: 49, n: 31, segs: [{ emotion: "anger", f: 0.1 }, { emotion: "happiness", f: 0.3 }, { emotion: "surprise", f: 0.34 }] },
+// per row: fill = how much of the track the stacked bar occupies at rest;
+// segs are fractions of that fill and sum to 1
+const EIC_ROWS: Array<{ title: string; pct: number; n: number; fill: number; segs: EISeg[] }> = [
+  { title: "Study Buddy", pct: 64, n: 41, fill: 0.98, segs: [{ emotion: "anger", f: 0.05 }, { emotion: "happiness", f: 0.43 }, { emotion: "disgust", f: 0.07 }, { emotion: "surprise", f: 0.45 }] },
+  { title: "Late-Night Answers", pct: 58, n: 38, fill: 0.85, segs: [{ emotion: "happiness", f: 0.28 }, { emotion: "disgust", f: 0.23 }, { emotion: "surprise", f: 0.49 }] },
+  { title: "First-Job Copilot", pct: 53, n: 34, fill: 0.9, segs: [{ emotion: "happiness", f: 0.4 }, { emotion: "disgust", f: 0.07 }, { emotion: "surprise", f: 0.18 }, { emotion: "sadness", f: 0.35 }] },
+  { title: "Group Project Hero", pct: 49, n: 31, fill: 0.72, segs: [{ emotion: "anger", f: 0.11 }, { emotion: "happiness", f: 0.33 }, { emotion: "surprise", f: 0.56 }] },
 ]
+
+// timeline: row i fades in at i·EIC_ROW_AT, its bar grows from i·EIC_ROW_AT +
+// EIC_BAR_LAG over EIC_GROW — rows land while earlier bars are still easing
+const EIC_ROW_AT = 160
+const EIC_BAR_LAG = 220
+const EIC_GROW = 900
 
 /** EI feature 3 — Emotional Concept Comparison with stacked per-emotion bars */
 export function FragmentEIComparison({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
-  const [rows, setRows] = React.useState(0)
-  const [t, setT] = React.useState(0)
+  const [gt, setGt] = React.useState(0)
   useScene(active, async (p) => {
-    setRows(0); setT(0)
+    setGt(0)
     await p.sleep(500)
-    for (let i = 1; i <= EIC_ROWS.length; i++) { setRows(i); await p.sleep(180) }
-    await p.sleep(200)
-    for (let i = 1; i <= 16; i++) { setT(i / 16); await p.sleep(70) }
+    await eiTimeline(p, (EIC_ROWS.length - 1) * EIC_ROW_AT + EIC_BAR_LAG + EIC_GROW, setGt)
     await p.sleep(2800)
   }, onDone, runKey, hold, playFrom, onTime)
-  const ease = 1 - Math.pow(1 - t, 3)
   return (
     <div className="ll-card" style={{ width: EI_COMPARISON_W, height: EI_COMPARISON_H, borderRadius: 12 }}>
       <EICardHeader title="Emotional Concept Comparison" />
       <div style={{ padding: "22px 24px" }}>
-        {EIC_ROWS.map((r, i) => (
-          <div key={r.title} className={rows > i ? "ll-enter" : undefined} style={{ display: "flex", gap: 16, alignItems: "center", marginTop: i === 0 ? 0 : 22, opacity: rows > i ? 1 : 0 }}>
-            <span style={{ width: 62, height: 62, borderRadius: 14, background: "#F1F1F1", flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "baseline", fontSize: 16, color: T.ink }}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</span>
-                <span style={{ flex: 1 }} />
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: T.body, flexShrink: 0 }}>
-                  {Math.round(r.pct * ease)}% (T1)
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: T.inkSoft }}>{r.n} <I name="circle-user-round" size={15} /></span>
-                </span>
-              </div>
-              <div style={{ marginTop: 9, height: 12, borderRadius: 6, background: "#F1F1F1", overflow: "hidden", display: "flex", gap: 2 }}>
-                {r.segs.map((s, j) => (
-                  <span key={j} style={{ width: `${s.f * (r.pct / 64) * 100 * ease}%`, height: "100%", borderRadius: 6, background: EMOTIONS[s.emotion].fg, flexShrink: 0 }} />
-                ))}
+        {EIC_ROWS.map((r, i) => {
+          const on = gt > i * EIC_ROW_AT
+          const e = eiEase((gt - (i * EIC_ROW_AT + EIC_BAR_LAG)) / EIC_GROW)
+          return (
+            <div key={r.title} className={on ? "ll-enter" : undefined} style={{ display: "flex", gap: 16, alignItems: "center", marginTop: i === 0 ? 0 : 22, opacity: on ? 1 : 0 }}>
+              <span style={{ width: 62, height: 62, borderRadius: 14, background: "#F1F1F1", flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "baseline", fontSize: 16, color: T.ink }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.title}</span>
+                  <span style={{ flex: 1 }} />
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 15, color: T.body, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+                    {Math.round(r.pct * e)}% (T1)
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: T.inkSoft }}>{r.n} <I name="circle-user-round" size={15} /></span>
+                  </span>
+                </div>
+                <div style={{ marginTop: 9, height: 12, borderRadius: 6, background: "#F1F1F1", overflow: "hidden", display: "flex", gap: 2 }}>
+                  {r.segs.map((s, j) => (
+                    <span key={j} style={{ width: `${s.f * r.fill * 100 * e}%`, height: "100%", borderRadius: 6, background: EMOTIONS[s.emotion].fg, flexShrink: 0 }} />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

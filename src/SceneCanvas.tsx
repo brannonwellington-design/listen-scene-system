@@ -234,6 +234,7 @@ function Hero(props: Required<Pick<SceneCanvasProps,
   "pattern" | "patternSpacing" | "patternOpacity" | "bgColor" | "padX" | "padY" | "radius">>): JSX.Element {
   const { autoCycle, resumeDelay, scrubber, maxWidth, pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius } = props
   const [index, setIndex] = React.useState(0)
+  const [hovered, setHovered] = React.useState(-1)
   const [runKey, setRunKey] = React.useState(0)
   const [inView, setInView] = React.useState(false)
   const [scrubOn, setScrubOn] = React.useState(false)
@@ -336,11 +337,12 @@ function Hero(props: Required<Pick<SceneCanvasProps,
       </div>
       <div style={{ display: "flex", gap: 32, marginTop: 28, alignItems: "flex-start" }}>
         {STAGES.map((s, i) => {
-          const on = i === index
+          const on = i === index || i === hovered
           return (
             <button key={s.key} onClick={() => onStageClick(i)}
+              onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(-1)}
               style={{ flex: 1, textAlign: "left", display: "block", minWidth: 0, background: "none", border: "none", cursor: "pointer", font: "inherit", padding: 0 }}
-              aria-pressed={on}>
+              aria-pressed={i === index}>
               <span style={{ display: "block", fontSize: 20, lineHeight: 1.3, color: on ? T.brand : T.brandFaint, transition: "color .3s" }}>
                 {s.stage!.title}
               </span>
