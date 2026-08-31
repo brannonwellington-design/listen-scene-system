@@ -481,6 +481,107 @@ export function ProductFrame(props: {
   )
 }
 
+// -------------------------------------------------------- device shells -----
+// Real-device chrome for composed marketing shots (the AI-moderator hero
+// style): a Safari-like desktop window and an iPhone shell. Both are plain
+// set dressing — the scene supplies the screen content.
+
+/** Safari-style desktop window. `progress` (0..1) fills the interview bar. */
+export function BrowserWindow(props: { progress?: number; children: React.ReactNode; style?: React.CSSProperties }): JSX.Element {
+  const icon = { color: "#9A9A9A" }
+  return (
+    <div style={{ background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 12, boxShadow: "0 12px 40px rgba(0,0,0,.10)", overflow: "hidden", display: "flex", flexDirection: "column", ...props.style }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, height: 40, padding: "0 14px", flexShrink: 0 }}>
+        {["#FF5F57", "#FEBC2E", "#28C840"].map((c) => (
+          <span key={c} style={{ width: 9, height: 9, borderRadius: "50%", background: c, marginRight: -4 }} />
+        ))}
+        <I name="panel-left" size={14} style={{ ...icon, marginLeft: 10 }} />
+        <I name="chevron-down" size={11} style={icon} />
+        <I name="chevron-left" size={14} style={{ ...icon, marginLeft: 6 }} />
+        <I name="chevron-right" size={14} style={{ color: "#C9C9C9" }} />
+        <span style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          <span style={{ width: 220, height: 24, borderRadius: 7, background: "#F0F0F0", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <I name="monitor" size={12} style={icon} />
+            <I name="rotate-cw" size={11} style={icon} />
+          </span>
+        </span>
+        <I name="download" size={14} style={icon} />
+        <I name="share" size={14} style={icon} />
+        <I name="plus" size={14} style={icon} />
+        <I name="copy" size={14} style={icon} />
+      </div>
+      {props.progress != null && (
+        <div style={{ height: 3, background: "#EDEDED", flexShrink: 0 }}>
+          <div style={{ width: `${props.progress * 100}%`, height: "100%", background: T.ink }} />
+        </div>
+      )}
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>{props.children}</div>
+    </div>
+  )
+}
+
+/** iPhone shell with status bar, interview progress, and Safari bottom bar. */
+export function PhoneShell(props: {
+  width: number
+  height: number
+  progress?: number
+  time?: string
+  /** show signal/wifi/battery (hidden when another phone overlaps that side) */
+  statusIcons?: boolean
+  /** show the ⋯ button in the Safari bar */
+  moreButton?: boolean
+  children: React.ReactNode
+  style?: React.CSSProperties
+}): JSX.Element {
+  const { width, height, progress, time = "12:16", statusIcons, moreButton, children, style } = props
+  return (
+    <div style={{ width, height, background: "#FFF", border: "1px solid #E3E3E3", borderRadius: 28, boxShadow: "0 16px 48px rgba(0,0,0,.14)", overflow: "hidden", display: "flex", flexDirection: "column", ...style }}>
+      <div style={{ height: 34, position: "relative", display: "flex", alignItems: "center", padding: "0 16px", flexShrink: 0 }}>
+        <span className="ll-500" style={{ fontSize: 11 }}>{time}</span>
+        <span style={{ position: "absolute", left: "50%", top: 8, transform: "translateX(-50%)", width: 56, height: 17, borderRadius: 9, background: "#0A0A0A" }} />
+        {statusIcons && (
+          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>
+            {/* signal · wifi · battery, drawn tiny */}
+            <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 1 }}>
+              {[3, 5, 7, 9].map((h) => <span key={h} style={{ width: 2, height: h, borderRadius: 1, background: T.ink }} />)}
+            </span>
+            <svg width="12" height="9" viewBox="0 0 14 10"><path d="M7 9.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8ZM2.1 5.2a7 7 0 0 1 9.8 0l-1.5 1.5a4.9 4.9 0 0 0-6.8 0Zm-2-2a9.8 9.8 0 0 1 13.8 0l-1.4 1.4a7.8 7.8 0 0 0-11 0Z" fill={T.ink} /></svg>
+            <span style={{ width: 18, height: 9, border: `1px solid ${T.ink}`, borderRadius: 2.5, padding: 1, display: "inline-flex" }}>
+              <span style={{ width: "75%", background: T.ink, borderRadius: 1 }} />
+            </span>
+          </span>
+        )}
+      </div>
+      {progress != null && (
+        <div style={{ height: 4, background: T.brandFaint, flexShrink: 0 }}>
+          <div style={{ width: `${progress * 100}%`, height: "100%", background: T.brand }} />
+        </div>
+      )}
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>{children}</div>
+      <div style={{ height: 46, borderTop: "1px solid #EEE", display: "flex", alignItems: "center", gap: 10, padding: "0 14px", flexShrink: 0 }}>
+        <I name="chevron-left" size={16} style={{ color: "#B9B9B9" }} />
+        <span style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12 }}>
+          <I name="video" size={14} style={{ color: "#22C55E" }} />
+          <span className="ll-500">listenlabs.ai</span>
+        </span>
+        {moreButton ? (
+          <>
+            <I name="rotate-cw" size={13} style={{ color: T.inkSoft }} />
+            <span style={{ width: 24, height: 24, borderRadius: 12, border: "1px solid #E3E3E3", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <I name="ellipsis" size={12} style={{ color: T.inkSoft }} />
+            </span>
+          </>
+        ) : (
+          <I name="rotate-cw" size={13} style={{ color: T.inkSoft }} />
+        )}
+      </div>
+      {/* home-indicator zone — lets the phone bleed past a frame edge while
+          the Safari bar stays fully visible */}
+      <div style={{ height: 26, flexShrink: 0 }} />
+    </div>
+  )
+}
+
 // ------------------------------------------------------------ primitives ----
 export function Chip(props: { kind?: "live" | "brand" | "blue"; children: React.ReactNode }): JSX.Element {
   return (

@@ -8,6 +8,7 @@ import * as React from "react"
 import {
   T, ProductFrame, Chip, Caret, Donut, Waveform, DotSpinner, EmotionTag,
   EMOTIONS, Logo, Cursor, useScene, useCursor, ensureCss,
+  BrowserWindow, PhoneShell, FRAME_W, FRAME_H,
 } from "./ListenKit"
 import { I } from "./ListenIcons"
 
@@ -1454,5 +1455,139 @@ export function SceneEIReport({ active, onDone, runKey = 0, hold, playFrom, onTi
         </div>
       </div>
     </ProductFrame>
+  )
+}
+
+// ------------------------------------------- AI moderator scene (3 devices) --
+// Live rebuild of the /features/ai-moderator page hero: a desktop Safari
+// window on the participant question view, overlapped by two iPhones running
+// the same interview. Session: questions stream on every surface, the
+// recording timer ticks, the cursor advances the desktop question, and the
+// second phone starts recording.
+
+const AIM_Q1 = "Tell me about the first time you used ChatGPT. What prompted you to try it and what was that experience like?"
+const AIM_Q2 = "When do you reach for ChatGPT first instead of Google? Walk me through the last time that happened."
+const AIM_P1 = "Which AI tool did you use for that assignment and how did it work out? Were you able to get the answer you needed?"
+const AIM_P2 = "That's interesting that you were surprised by how well it worked. What specifically impressed you about the result?"
+
+const AIM_NEXTQ = { x: 388, y: 586 }
+const AIM_TIMER_BASE = 9 // the recording chip starts at 0:09 and ticks live
+
+const fmtRec = (s: number) => `0:${String(s).padStart(2, "0")}`
+
+export function SceneAIModerator({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor()
+  const [vt, setVt] = React.useState(0) // master clock (ms) — drives both timers
+  const [q, setQ] = React.useState("")
+  const [qKey, setQKey] = React.useState(0)
+  const [p1, setP1] = React.useState("")
+  const [p2, setP2] = React.useState("")
+  const [nextHover, setNextHover] = React.useState(false)
+  const [recStart, setRecStart] = React.useState<number | null>(null)
+  const [pressed, setPressed] = React.useState(false)
+
+  useScene(active, async (p) => {
+    setVt(0); setQ(""); setQKey(0); setP1(""); setP2(""); setNextHover(false); setRecStart(null); setPressed(false); cur.hide()
+    let t = 0
+    // sleeps advance the master clock so the recording chip ticks through
+    // the whole session; typing advances it by its known duration after
+    const slp = async (ms: number) => {
+      const end = t + ms
+      while (t < end) { const step = Math.min(250, end - t); await p.sleep(step); t += step; setVt(t) }
+    }
+    const stream = async (set: (s: string) => void, text: string) => {
+      await p.type(set, text, AI_CPS)
+      t += (text.length * 1000) / AI_CPS
+      setVt(t)
+    }
+    await slp(400)
+    await stream(setQ, AIM_Q1)
+    await slp(400)
+    await stream(setP1, AIM_P1)
+    await slp(400)
+    await stream(setP2, AIM_P2)
+    await slp(700)
+    // advance the desktop question
+    cur.show(AIM_NEXTQ.x, AIM_NEXTQ.y - 160); await slp(300)
+    cur.move(AIM_NEXTQ.x, AIM_NEXTQ.y); await slp(550)
+    setNextHover(true); await slp(200)
+    cur.click(1); await slp(180)
+    setNextHover(false); setQ(""); setQKey(1)
+    await slp(350)
+    await stream(setQ, AIM_Q2)
+    await slp(500)
+    cur.hide()
+    // the second phone starts recording
+    setPressed(true); await slp(180)
+    setPressed(false); setRecStart(t)
+    await slp(2800)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  const sec = AIM_TIMER_BASE + Math.floor(vt / 1000)
+  const recSec = recStart != null ? Math.floor((vt - recStart) / 1000) : null
+
+  const phoneQ = (text: string, full: string) => (
+    <div style={{ padding: "0 14px", marginTop: 84, fontSize: 12.5, lineHeight: 1.55, color: T.ink }}>
+      {text}{text.length > 0 && text.length < full.length && <Caret />}
+    </div>
+  )
+  const readAloudPill = (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: T.body }}>
+      <span style={{ width: 12, height: 12, border: `1.5px solid ${T.appBorder}`, borderRadius: 3 }} />
+      Read aloud <I name="audio-lines" size={11} style={{ color: T.inkSoft }} />
+    </span>
+  )
+
+  return (
+    <div className="ll" style={{ position: "relative", width: FRAME_W, height: FRAME_H, background: T.pageBg, overflow: "hidden", fontFamily: T.font }}>
+      {/* desktop participant view */}
+      <BrowserWindow progress={0.28} style={{ position: "absolute", left: 8, top: 14, width: 780, height: 660 }}>
+        <div style={{ position: "absolute", inset: 0, padding: "14px 18px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 30, padding: "0 12px", border: `1px solid ${T.appBorder}`, borderRadius: 8, fontSize: 12.5 }}>
+              English <I name="chevron-down" size={12} style={{ color: T.inkSoft }} />
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", height: 30, padding: "0 12px", border: `1px solid ${T.appBorder}`, borderRadius: 8 }}>
+              {readAloudPill}
+            </span>
+            <span style={{ flex: 1 }} />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontVariantNumeric: "tabular-nums", marginRight: 96 }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#E5484D" }} className="ll-dim-pulse" />
+              {fmtRec(sec)}
+            </span>
+          </div>
+          <div key={qKey} className="ll-scene-fade" style={{ margin: "96px auto 0", width: 560, fontSize: 23, lineHeight: 1.45, color: T.ink }}>
+            {q}{q.length > 0 && q.length < (qKey === 0 ? AIM_Q1 : AIM_Q2).length && <Caret />}
+          </div>
+          <div style={{ position: "absolute", left: 110, right: 110, bottom: 26 }}>
+            <div style={{ textAlign: "center", fontSize: 14, color: T.inkSoft, marginBottom: 16 }}>Skip question</div>
+            <div style={{ height: 44, borderRadius: 6, background: nextHover ? "#000" : T.ink, color: "#FAFAFA", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, transition: "background .2s" }}>
+              Next question
+            </div>
+          </div>
+        </div>
+      </BrowserWindow>
+
+      {/* two phones running the same interview */}
+      <PhoneShell width={200} height={600} progress={0.24} style={{ position: "absolute", left: 745, top: 64 }}>
+        <div style={{ padding: "10px 14px 0" }}>{readAloudPill}</div>
+        {phoneQ(p1, AIM_P1)}
+        <div style={{ position: "absolute", left: 10, right: 10, bottom: 10, height: 38, borderRadius: 8, background: T.ink, color: "#FAFAFA", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5 }}>
+          Start recording
+        </div>
+      </PhoneShell>
+      <PhoneShell width={200} height={600} progress={0.3} statusIcons moreButton style={{ position: "absolute", left: 890, top: 64 }}>
+        <div style={{ padding: "10px 14px 0" }}>{readAloudPill}</div>
+        {phoneQ(p2, AIM_P2)}
+        <div style={{ position: "absolute", left: 10, right: 10, bottom: 10, height: 38, borderRadius: 8, background: recSec != null ? "#FFF" : T.ink, border: recSec != null ? "1.5px solid #E5484D" : "1.5px solid transparent", color: recSec != null ? "#E5484D" : "#FAFAFA", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: 12.5, transform: pressed ? "scale(.96)" : "none", transition: "transform .15s, background .25s, color .25s, border .25s", fontVariantNumeric: "tabular-nums" }}>
+          {recSec != null ? (
+            <><span className="ll-dim-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "#E5484D" }} />Recording {fmtRec(recSec)}</>
+          ) : "Start recording"}
+        </div>
+      </PhoneShell>
+
+      <Cursor {...cur.state} />
+    </div>
   )
 }
