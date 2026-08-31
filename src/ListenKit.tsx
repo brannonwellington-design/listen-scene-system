@@ -490,7 +490,7 @@ export function ProductFrame(props: {
 export function BrowserWindow(props: { progress?: number; children: React.ReactNode; style?: React.CSSProperties }): JSX.Element {
   const icon = { color: "#9A9A9A" }
   return (
-    <div style={{ background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 12, boxShadow: "0 12px 40px rgba(0,0,0,.10)", overflow: "hidden", display: "flex", flexDirection: "column", ...props.style }}>
+    <div style={{ background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column", ...props.style }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, height: 40, padding: "0 14px", flexShrink: 0 }}>
         {["#FF5F57", "#FEBC2E", "#28C840"].map((c) => (
           <span key={c} style={{ width: 9, height: 9, borderRadius: "50%", background: c, marginRight: -4 }} />
@@ -538,7 +538,7 @@ export function PhoneShell(props: {
   const { width, progress, time = "12:16", statusIcons, moreButton, children, style } = props
   const height = props.height ?? Math.round((width * 852) / 393)
   return (
-    <div style={{ width, height, background: "#FFF", border: "1px solid #E3E3E3", borderRadius: 28, boxShadow: "0 16px 48px rgba(0,0,0,.14)", overflow: "hidden", display: "flex", flexDirection: "column", ...style }}>
+    <div style={{ width, height, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 28, overflow: "hidden", display: "flex", flexDirection: "column", ...style }}>
       <div style={{ height: 34, position: "relative", display: "flex", alignItems: "center", padding: "0 16px", flexShrink: 0 }}>
         <span className="ll-500" style={{ fontSize: 11 }}>{time}</span>
         <span style={{ position: "absolute", left: "50%", top: 8, transform: "translateX(-50%)", width: 56, height: 17, borderRadius: 9, background: "#0A0A0A" }} />

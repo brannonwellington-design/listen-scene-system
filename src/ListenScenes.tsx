@@ -1536,7 +1536,9 @@ export function SceneAIModerator({ active, onDone, runKey = 0, hold, playFrom, o
   )
 
   return (
-    <div className="ll" style={{ position: "relative", width: FRAME_W, height: FRAME_H, background: T.pageBg, overflow: "hidden", fontFamily: T.font }}>
+    // transparent root — the devices float directly on the canvas fill,
+    // flat with borders (no legacy image shadows/background)
+    <div className="ll" style={{ position: "relative", width: FRAME_W, height: FRAME_H, overflow: "hidden", fontFamily: T.font }}>
       {/* desktop participant view */}
       <BrowserWindow progress={0.28} style={{ position: "absolute", left: 8, top: 14, width: 780, height: 660 }}>
         <div style={{ position: "absolute", inset: 0, padding: "14px 18px" }}>
