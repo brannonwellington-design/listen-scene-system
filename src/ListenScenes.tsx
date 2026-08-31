@@ -1602,12 +1602,21 @@ function UCBubble({ text, full }: { text: string; full: string }): JSX.Element {
 }
 
 /** stylized ad-concept tile (flat color + campaign headline) */
-function UCAdTile({ bg, headline, caption, w, h }: { bg: string; headline: string; caption: string; w: number; h: number }): JSX.Element {
+function UCAdTile({ bg, headline, caption, w, h }: { bg: string; headline: string; caption: string; w: number | string; h: number }): JSX.Element {
   return (
     <div style={{ width: w, height: h, borderRadius: 10, background: bg, color: "#FAF7F0", padding: 14, display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
       <div className="ll-500" style={{ fontSize: 16, lineHeight: 1.3, flex: 1 }}>{headline}</div>
-      <div style={{ fontSize: 9.5, opacity: 0.75 }}>{caption}</div>
+      <div style={{ fontSize: 10.5, opacity: 0.8 }}>{caption}</div>
     </div>
+  )
+}
+
+/** floating emotion annotation — white backing so the tag reads over any media */
+function UCChip({ emotion }: { emotion: keyof typeof EMOTIONS }): JSX.Element {
+  return (
+    <span className="ll-enter" style={{ display: "inline-flex", background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 16, padding: 3 }}>
+      <EmotionTag emotion={emotion} />
+    </span>
   )
 }
 
@@ -1641,15 +1650,15 @@ export function FragmentUCAdTesting({ active, onDone, runKey = 0, hold, playFrom
     await p.sleep(2600)
   }, onDone, runKey, hold, playFrom, onTime)
   return (
-    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font }}>
+    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font, paddingTop: 20, boxSizing: "border-box" }}>
       <UCBubble text={q} full={UC_AD_Q} />
       {stage >= 1 && (
-        <div className="ll-enter" style={{ position: "absolute", left: 58, top: 74 }}>
+        <div className="ll-enter" style={{ position: "absolute", left: 72, top: 96 }}>
           <UCAdTile bg={T.brand} headline="Your 2am study buddy." caption="Concept A · Study Buddy" w={196} h={172} />
         </div>
       )}
-      <div style={{ position: "absolute", left: 30, top: 226, minHeight: 22 }}>
-        {stage >= 2 && <span className="ll-enter" style={{ display: "inline-flex" }}><EmotionTag emotion="happiness" /></span>}
+      <div style={{ position: "absolute", left: 48, top: 252, minHeight: 28 }}>
+        {stage >= 2 && <UCChip emotion="happiness" />}
       </div>
     </div>
   )
@@ -1673,19 +1682,19 @@ export function FragmentUCComparison({ active, onDone, runKey = 0, hold, playFro
     await eiTimeline(p, 900, setGt)
     await p.sleep(2600)
   }, onDone, runKey, hold, playFrom, onTime)
-  const e = eiEase(gt / 900)
   return (
-    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font }}>
+    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font, paddingTop: 16, boxSizing: "border-box" }}>
       <UCBubble text={q} full={UC_CMP_Q} />
       {tiles && (
-        <div className="ll-enter" style={{ position: "absolute", left: 0, right: 0, top: 78, display: "flex", gap: 12 }}>
+        <div style={{ position: "absolute", left: 0, right: 0, top: 92, display: "flex", gap: 12 }}>
           {[
             { bg: T.brand, headline: "Your 2am study buddy.", caption: "Study Buddy", f: 0.38 },
             { bg: T.ink, headline: "Answers at 2:47am.", caption: "Late-Night Answers", f: 0.76 },
-          ].map((t) => (
-            <div key={t.caption} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-              <UCAdTile bg={t.bg} headline={t.headline} caption={t.caption} w={164} h={128} />
-              <UCBar label="Surprise" emotion="surprise" f={t.f} e={e} />
+          ].map((t, i) => (
+            // columns land staggered; each bar grows on its own offset ease
+            <div key={t.caption} className="ll-enter" style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, animationDelay: `${i * 130}ms` }}>
+              <UCAdTile bg={t.bg} headline={t.headline} caption={t.caption} w="100%" h={128} />
+              <UCBar label="Surprise" emotion="surprise" f={t.f} e={eiEase((gt - i * 200) / 900)} />
             </div>
           ))}
         </div>
@@ -1714,15 +1723,16 @@ export function FragmentUCBrand({ active, onDone, runKey = 0, hold, playFrom, on
   ]
   return (
     <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font }}>
-      {/* the brand stimulus, as a stylized product tile */}
-      <div style={{ position: "absolute", left: 34, top: 10, width: 220, height: 220, borderRadius: 12, background: "#F5F5F5", border: `1px solid ${T.appBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+      {/* the brand stimulus, as a stylized product tile — panel overlaps its
+          corner only, never the label */}
+      <div style={{ position: "absolute", left: 24, top: 30, width: 220, height: 220, borderRadius: 12, background: "#F5F5F5", border: `1px solid ${T.appBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
         <span style={{ width: 64, height: 64, borderRadius: 16, background: T.brand, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <I name="sparkles" size={30} />
         </span>
         <span className="ll-500" style={{ fontSize: 13 }}>Assistant A</span>
       </div>
       {panel && (
-        <div className="ll-enter" style={{ position: "absolute", right: 6, top: 128, width: 148, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 10, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 9 }}>
+        <div className="ll-enter" style={{ position: "absolute", right: 2, top: 156, width: 148, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 10, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 9 }}>
           {rows.map((r, i) => {
             const e = eiEase((gt - i * 140) / 800)
             return (
@@ -1760,8 +1770,11 @@ export function FragmentUCUX({ active, onDone, runKey = 0, hold, playFrom, onTim
       <PhoneShell width={172} time="2:47" statusIcons style={{ position: "absolute", left: 84, top: 12 }}>
         <div style={{ padding: "18px 14px 0" }}>
           <div className="ll-500" style={{ fontSize: 14, lineHeight: 1.35 }}>What do you want to get done?</div>
-          <div style={{ marginTop: 12, border: `1px solid ${T.appBorder}`, borderRadius: 10, padding: "8px 10px", fontSize: 11, lineHeight: 1.45, minHeight: 46, color: typed ? T.ink : T.inkFaint, boxSizing: "border-box" }}>
+          <div style={{ marginTop: 12, position: "relative", border: `1px solid ${T.appBorder}`, borderRadius: 10, padding: "8px 26px 8px 10px", fontSize: 11, lineHeight: 1.45, minHeight: 46, color: typed ? T.ink : T.inkFaint, boxSizing: "border-box" }}>
             {typed || "Ask anything…"}{typed.length > 0 && typed.length < PROMPT.length && <Caret />}
+            <span style={{ position: "absolute", right: 6, bottom: 6, width: 18, height: 18, borderRadius: 9, background: typed ? T.brand : T.fill, color: typed ? "#FFF" : T.inkSoft, display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "background .3s" }}>
+              <I name="arrow-up" size={11} />
+            </span>
           </div>
           <div style={{ display: "flex", gap: 5, marginTop: 8, flexWrap: "wrap" }}>
             {["Budget", "Study plan", "Email draft"].map((c) => (
@@ -1770,8 +1783,8 @@ export function FragmentUCUX({ active, onDone, runKey = 0, hold, playFrom, onTim
           </div>
         </div>
       </PhoneShell>
-      <div style={{ position: "absolute", left: 16, top: 210, minHeight: 22 }}>
-        {tag && <span className="ll-enter" style={{ display: "inline-flex" }}><EmotionTag emotion="surprise" /></span>}
+      <div style={{ position: "absolute", left: 16, top: 210, minHeight: 28 }}>
+        {tag && <UCChip emotion="surprise" />}
       </div>
     </div>
   )

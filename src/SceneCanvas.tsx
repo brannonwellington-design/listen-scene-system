@@ -16,6 +16,27 @@ import { PRESETS, getPreset, presetNames } from "./ListenPresets"
 import { I } from "./ListenIcons"
 
 // ----------------------------------------------------------------- types ----
+/** 9-position pin grid: corners, edge midpoints, and dead center */
+export type Anchor =
+  | "top-left" | "top-center" | "top-right"
+  | "left-center" | "center" | "right-center"
+  | "bottom-left" | "bottom-center" | "bottom-right"
+
+export const ANCHORS: Anchor[] = [
+  "top-left", "top-center", "top-right",
+  "left-center", "center", "right-center",
+  "bottom-left", "bottom-center", "bottom-right",
+]
+
+/** split an anchor token into its vertical / horizontal axes */
+export const anchorAxes = (a: Anchor): { v: "top" | "center" | "bottom"; h: "left" | "center" | "right" } => {
+  if (a === "center") return { v: "center", h: "center" }
+  if (a === "left-center") return { v: "center", h: "left" }
+  if (a === "right-center") return { v: "center", h: "right" }
+  const [v, h] = a.split("-") as ["top" | "bottom", "left" | "center" | "right"]
+  return { v, h }
+}
+
 export type SceneCanvasProps = {
   variant?: "hero" | "callout"
   /** apply a named composition from ListenPresets; touched controls override */
@@ -40,7 +61,7 @@ export type SceneCanvasProps = {
   segEnd?: number
   // fit engine
   fit?: "responsive" | "pinned"
-  anchor?: "top-left" | "top-right" | "bottom-left" | "bottom-right"
+  anchor?: Anchor
   insetX?: number
   insetY?: number
   zoom?: number
@@ -69,7 +90,7 @@ export const CANVAS_DEFAULTS = {
   content: "design-study", customScene: "design-study",
   cropX: 0, cropY: 0, cropW: 0, cropH: 0,
   loop: true, loopPause: 3, segStart: 0, segEnd: 0,
-  fit: "responsive" as const, anchor: "top-left" as const, insetX: 40, insetY: 40,
+  fit: "responsive" as const, anchor: "top-left" as Anchor, insetX: 40, insetY: 40,
   zoom: 1, smallBehavior: "fit" as const, fitBelow: 480, canvasHeight: 0,
   pattern: "none" as PatternType, patternSpacing: 16, patternOpacity: 1,
   bgColor: T.pageContainer, padX: 56, padY: 44, radius: 0,
@@ -196,9 +217,18 @@ function Callout(props: typeof CANVAS_DEFAULTS & {
   }
 
   if (usePinned) {
+    // centered axes self-center (insets apply only to edge-pinned axes)
+    const ax = anchorAxes(anchor)
     const pos: React.CSSProperties = { position: "absolute" }
-    if (anchor.includes("top")) pos.top = insetY; else pos.bottom = insetY
-    if (anchor.includes("left")) pos.left = insetX; else pos.right = insetX
+    if (ax.v === "top") pos.top = insetY
+    else if (ax.v === "bottom") pos.bottom = insetY
+    else pos.top = "50%"
+    if (ax.h === "left") pos.left = insetX
+    else if (ax.h === "right") pos.right = insetX
+    else pos.left = "50%"
+    if (ax.v === "center" || ax.h === "center") {
+      pos.transform = `translate(${ax.h === "center" ? "-50%" : "0"}, ${ax.v === "center" ? "-50%" : "0"})`
+    }
     return (
       <div ref={setRefs} style={{ ...containerStyle, height: canvasHeight || 420 }}>
         <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
@@ -406,7 +436,7 @@ addPropertyControls(SceneCanvas, {
   segEnd: { type: ControlType.Number, title: "Segment end (ms)", defaultValue: 0, min: 0, max: 25000, step: 100, hidden: isHero },
   // fit
   fit: { type: ControlType.Enum, title: "Fit", options: ["responsive", "pinned"], optionTitles: ["Responsive scale", "Pinned (mask)"], defaultValue: "responsive", hidden: isHero },
-  anchor: { type: ControlType.Enum, title: "Anchor", options: ["top-left", "top-right", "bottom-left", "bottom-right"], defaultValue: "top-left", hidden: (p) => isHero(p) || p.fit !== "pinned" },
+  anchor: { type: ControlType.Enum, title: "Anchor", options: ANCHORS, optionTitles: ["Top left", "Top center", "Top right", "Left center", "Center", "Right center", "Bottom left", "Bottom center", "Bottom right"], defaultValue: "top-left", hidden: (p) => isHero(p) || p.fit !== "pinned" },
   insetX: { type: ControlType.Number, title: "Inset X", defaultValue: 40, min: 0, max: 200, hidden: (p) => isHero(p) || p.fit !== "pinned" },
   insetY: { type: ControlType.Number, title: "Inset Y", defaultValue: 40, min: 0, max: 200, hidden: (p) => isHero(p) || p.fit !== "pinned" },
   zoom: { type: ControlType.Number, title: "Shot zoom", defaultValue: 1, min: 0.5, max: 2, step: 0.05, hidden: (p) => isHero(p) || p.fit !== "pinned" },

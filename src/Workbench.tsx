@@ -4,7 +4,7 @@
 // scrub to the beat, then save as a named preset.
 // UI: a shadcn-style inspector kit hand-rolled on the Listen Labs tokens.
 import * as React from "react"
-import SceneCanvas, { CANVAS_DEFAULTS, SceneCanvasProps } from "./SceneCanvas"
+import SceneCanvas, { CANVAS_DEFAULTS, SceneCanvasProps, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
 import { PRESETS, Preset } from "./ListenPresets"
 import { byKey, REGISTRY } from "./ListenRegistry"
 import { T, Logo, ScaleBox, PatternLayer, PatternType } from "./ListenKit"
@@ -107,10 +107,10 @@ const WB_CSS = `
   .wb-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
     border-radius: 50%; background: #FFF; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .15s ease; }
   .wb-switch.on::after { left: 16px; }
-  .wb-corner { width: 46px; height: 38px; border: 1px solid #DDD6C8; border-radius: 8px;
-    position: relative; background: #FCFBF8; flex-shrink: 0; }
-  .wb-corner span { position: absolute; width: 10px; height: 10px; border-radius: 3px;
-    border: 1.5px solid #C6BEAC; background: #FFF; cursor: pointer; transition: background .1s, border-color .1s; }
+  .wb-corner { display: grid; grid-template-columns: repeat(3, 10px); grid-auto-rows: 10px; gap: 5px;
+    padding: 6px; border: 1px solid #DDD6C8; border-radius: 8px; background: #FCFBF8; flex-shrink: 0; }
+  .wb-corner span { width: 10px; height: 10px; border-radius: 3px;
+    border: 1.5px solid #C6BEAC; background: #FFF; cursor: pointer; transition: background .1s, border-color .1s; box-sizing: border-box; }
   .wb-corner span:hover { border-color: ${T.brand}; }
   .wb-corner span.on { background: ${T.brand}; border-color: ${T.brand}; }
   .wb-swatch { width: 38px; height: 28px; border: 1px solid #DDD6C8; border-radius: 7px;
@@ -173,13 +173,11 @@ const Slider = (p: { v: number; set: (n: number) => void; min: number; max: numb
   </>
 )
 
+/** 3×3 anchor grid — corners, edge midpoints, center (ANCHORS is row-major) */
 const CornerPick = (p: { v: string; set: (s: string) => void }) => (
   <span className="wb-corner">
-    {(["top-left", "top-right", "bottom-left", "bottom-right"] as const).map((c) => (
-      <span key={c} tabIndex={0} className={p.v === c ? "on" : ""} onClick={() => p.set(c)} style={{
-        top: c.includes("top") ? 5 : undefined, bottom: c.includes("bottom") ? 5 : undefined,
-        left: c.includes("left") ? 5 : undefined, right: c.includes("right") ? 5 : undefined,
-      }} />
+    {ANCHORS.map((c) => (
+      <span key={c} tabIndex={0} title={c} className={p.v === c ? "on" : ""} onClick={() => p.set(c)} />
     ))}
   </span>
 )
@@ -334,18 +332,24 @@ export default function Workbench(): JSX.Element {
     if (cfg.fit !== "pinned" || !canvasRef.current || cropEdit) return
     const cb = canvasRef.current.getBoundingClientRect()
     const shotW = rect.w * cfg.zoom, shotH = rect.h * cfg.zoom
-    const left0 = cfg.anchor.includes("left") ? cfg.insetX : cb.width - cfg.insetX - shotW
-    const top0 = cfg.anchor.includes("top") ? cfg.insetY : cb.height - cfg.insetY - shotH
+    const ax0 = anchorAxes(cfg.anchor)
+    const left0 = ax0.h === "left" ? cfg.insetX : ax0.h === "right" ? cb.width - cfg.insetX - shotW : (cb.width - shotW) / 2
+    const top0 = ax0.v === "top" ? cfg.insetY : ax0.v === "bottom" ? cb.height - cfg.insetY - shotH : (cb.height - shotH) / 2
     setDragging("pin")
     startDrag(e, {
       cursor: "grabbing",
       onMove: (dx, dy, ev) => {
         const left = left0 + dx, top = top0 + dy
-        // anchor follows the pointer: drag toward a corner to pin there
+        // anchor follows the pointer through a 3×3 grid: corners, edge
+        // midpoints, center — centered axes snap centered and ignore insets
         const px = ev.clientX - cb.left, py = ev.clientY - cb.top
-        const anchor = `${py < cb.height / 2 ? "top" : "bottom"}-${px < cb.width / 2 ? "left" : "right"}` as Cfg["anchor"]
-        const insetX = Math.round(Math.max(0, anchor.includes("left") ? left : cb.width - left - shotW))
-        const insetY = Math.round(Math.max(0, anchor.includes("top") ? top : cb.height - top - shotH))
+        const h = px < cb.width / 3 ? "left" : px > (cb.width * 2) / 3 ? "right" : "center"
+        const v = py < cb.height / 3 ? "top" : py > (cb.height * 2) / 3 ? "bottom" : "center"
+        const anchor: Anchor = v === "center"
+          ? (h === "center" ? "center" : (`${h}-center` as Anchor))
+          : (`${v}-${h}` as Anchor)
+        const insetX = h === "center" ? 0 : Math.round(Math.max(0, h === "left" ? left : cb.width - left - shotW))
+        const insetY = v === "center" ? 0 : Math.round(Math.max(0, v === "top" ? top : cb.height - top - shotH))
         setCfg((c) => ({ ...c, anchor, insetX, insetY }))
         setPresetSel("")
       },
