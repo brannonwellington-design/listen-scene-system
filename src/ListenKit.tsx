@@ -520,10 +520,12 @@ export function BrowserWindow(props: { progress?: number; children: React.ReactN
   )
 }
 
-/** iPhone shell with status bar, interview progress, and Safari bottom bar. */
+/** iPhone shell with status bar, interview progress, and Safari bottom bar.
+ *  Height derives from width at the real device ratio (393×852 pt) unless
+ *  overridden — so phone mocks always keep true iPhone proportions. */
 export function PhoneShell(props: {
   width: number
-  height: number
+  height?: number
   progress?: number
   time?: string
   /** show signal/wifi/battery (hidden when another phone overlaps that side) */
@@ -533,7 +535,8 @@ export function PhoneShell(props: {
   children: React.ReactNode
   style?: React.CSSProperties
 }): JSX.Element {
-  const { width, height, progress, time = "12:16", statusIcons, moreButton, children, style } = props
+  const { width, progress, time = "12:16", statusIcons, moreButton, children, style } = props
+  const height = props.height ?? Math.round((width * 852) / 393)
   return (
     <div style={{ width, height, background: "#FFF", border: "1px solid #E3E3E3", borderRadius: 28, boxShadow: "0 16px 48px rgba(0,0,0,.14)", overflow: "hidden", display: "flex", flexDirection: "column", ...style }}>
       <div style={{ height: 34, position: "relative", display: "flex", alignItems: "center", padding: "0 16px", flexShrink: 0 }}>
@@ -575,9 +578,11 @@ export function PhoneShell(props: {
           <I name="rotate-cw" size={13} style={{ color: T.inkSoft }} />
         )}
       </div>
-      {/* home-indicator zone — lets the phone bleed past a frame edge while
-          the Safari bar stays fully visible */}
-      <div style={{ height: 26, flexShrink: 0 }} />
+      {/* home-indicator zone (also lets the phone bleed past a frame edge
+          while the Safari bar stays fully visible) */}
+      <div style={{ height: 26, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ width: width * 0.36, height: 4, borderRadius: 2, background: "#0A0A0A", opacity: 0.9 }} />
+      </div>
     </div>
   )
 }
