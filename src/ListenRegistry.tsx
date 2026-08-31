@@ -12,6 +12,8 @@ import {
   FragmentEIVisual, EI_VISUAL_W, EI_VISUAL_H,
   FragmentEIResponse, EI_RESPONSE_W, EI_RESPONSE_H,
   FragmentEIComparison, EI_COMPARISON_W, EI_COMPARISON_H,
+  FragmentUCAdTesting, FragmentUCComparison, FragmentUCBrand, FragmentUCUX,
+  EI_UC_W, EI_UC_H,
   SceneProps,
 } from "./ListenScenes"
 import { FRAME_W, FRAME_H } from "./ListenKit"
@@ -89,6 +91,11 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "ei-visual-card", title: "EI · Visual analysis", Scene: FragmentEIVisual, w: EI_VISUAL_W, h: EI_VISUAL_H, kind: "fragment" },
   { key: "ei-response-card", title: "EI · Emotional Response", Scene: FragmentEIResponse, w: EI_RESPONSE_W, h: EI_RESPONSE_H, kind: "fragment" },
   { key: "ei-comparison-card", title: "EI · Concept Comparison", Scene: FragmentEIComparison, w: EI_COMPARISON_W, h: EI_COMPARISON_H, kind: "fragment" },
+  // EI use-case callouts — the four cards at the bottom of the EI page
+  { key: "uc-ad-testing", title: "Use case · Ad testing", Scene: FragmentUCAdTesting, w: EI_UC_W, h: EI_UC_H, kind: "fragment" },
+  { key: "uc-comparison", title: "Use case · Concept comparison", Scene: FragmentUCComparison, w: EI_UC_W, h: EI_UC_H, kind: "fragment" },
+  { key: "uc-brand", title: "Use case · Brand research", Scene: FragmentUCBrand, w: EI_UC_W, h: EI_UC_H, kind: "fragment" },
+  { key: "uc-ux", title: "Use case · UX research", Scene: FragmentUCUX, w: EI_UC_W, h: EI_UC_H, kind: "fragment" },
 ]
 
 export const byKey = (key: string): RegistryEntry =>

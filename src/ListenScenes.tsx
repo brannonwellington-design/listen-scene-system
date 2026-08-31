@@ -1583,3 +1583,196 @@ export function SceneAIModerator({ active, onDone, runKey = 0, hold, playFrom, o
     </div>
   )
 }
+
+// --------------------------------------------- EI use-case callout cards ----
+// The four "Use cases" cards at the bottom of /features/emotional-intelligence,
+// rebuilt as live fragments. Same language and concepts as the site; content
+// re-grounded in the Gen Z ChatGPT study. Media is stylized DOM (no photos).
+
+export const EI_UC_W = 340
+export const EI_UC_H = 300
+
+/** moderator question bubble that types in */
+function UCBubble({ text, full }: { text: string; full: string }): JSX.Element {
+  return (
+    <div style={{ display: "inline-block", maxWidth: 250, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 14, borderBottomLeftRadius: 4, padding: "9px 13px", fontSize: 12.5, lineHeight: 1.5, minHeight: 56, boxSizing: "border-box" }}>
+      {text}{text.length > 0 && text.length < full.length && <Caret />}
+    </div>
+  )
+}
+
+/** stylized ad-concept tile (flat color + campaign headline) */
+function UCAdTile({ bg, headline, caption, w, h }: { bg: string; headline: string; caption: string; w: number; h: number }): JSX.Element {
+  return (
+    <div style={{ width: w, height: h, borderRadius: 10, background: bg, color: "#FAF7F0", padding: 14, display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
+      <div className="ll-500" style={{ fontSize: 16, lineHeight: 1.3, flex: 1 }}>{headline}</div>
+      <div style={{ fontSize: 9.5, opacity: 0.75 }}>{caption}</div>
+    </div>
+  )
+}
+
+/** small labeled emotion bar (the "Surprise ▬▬" mini card motif) */
+function UCBar({ label, emotion, f, e }: { label: string; emotion: keyof typeof EMOTIONS; f: number; e: number }): JSX.Element {
+  return (
+    <div style={{ background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 8, padding: "7px 10px" }}>
+      <div style={{ fontSize: 10.5, color: T.inkSoft }}>{label}</div>
+      <div style={{ marginTop: 5, height: 6, borderRadius: 3, background: "#F1F1F1", overflow: "hidden" }}>
+        <div style={{ width: `${f * 100 * e}%`, height: "100%", borderRadius: 3, background: EMOTIONS[emotion].fg }} />
+      </div>
+    </div>
+  )
+}
+
+const UC_AD_Q = "What comes to mind when you see this ad?"
+
+/** Use case 1 — Creative/Ad Testing */
+export function FragmentUCAdTesting({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const [q, setQ] = React.useState("")
+  const [stage, setStage] = React.useState(0)
+  useScene(active, async (p) => {
+    setQ(""); setStage(0)
+    await p.sleep(500)
+    await p.type(setQ, UC_AD_Q, AI_CPS)
+    await p.sleep(350)
+    setStage(1)
+    await p.sleep(800)
+    setStage(2)
+    await p.sleep(2600)
+  }, onDone, runKey, hold, playFrom, onTime)
+  return (
+    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font }}>
+      <UCBubble text={q} full={UC_AD_Q} />
+      {stage >= 1 && (
+        <div className="ll-enter" style={{ position: "absolute", left: 58, top: 74 }}>
+          <UCAdTile bg={T.brand} headline="Your 2am study buddy." caption="Concept A · Study Buddy" w={196} h={172} />
+        </div>
+      )}
+      <div style={{ position: "absolute", left: 30, top: 226, minHeight: 22 }}>
+        {stage >= 2 && <span className="ll-enter" style={{ display: "inline-flex" }}><EmotionTag emotion="happiness" /></span>}
+      </div>
+    </div>
+  )
+}
+
+const UC_CMP_Q = "Which of these ads was a bigger surprise for you?"
+
+/** Use case 2 — Concept Comparison */
+export function FragmentUCComparison({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const [q, setQ] = React.useState("")
+  const [tiles, setTiles] = React.useState(false)
+  const [gt, setGt] = React.useState(0)
+  useScene(active, async (p) => {
+    setQ(""); setTiles(false); setGt(0)
+    await p.sleep(500)
+    await p.type(setQ, UC_CMP_Q, AI_CPS)
+    await p.sleep(300)
+    setTiles(true)
+    await p.sleep(500)
+    await eiTimeline(p, 900, setGt)
+    await p.sleep(2600)
+  }, onDone, runKey, hold, playFrom, onTime)
+  const e = eiEase(gt / 900)
+  return (
+    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font }}>
+      <UCBubble text={q} full={UC_CMP_Q} />
+      {tiles && (
+        <div className="ll-enter" style={{ position: "absolute", left: 0, right: 0, top: 78, display: "flex", gap: 12 }}>
+          {[
+            { bg: T.brand, headline: "Your 2am study buddy.", caption: "Study Buddy", f: 0.38 },
+            { bg: T.ink, headline: "Answers at 2:47am.", caption: "Late-Night Answers", f: 0.76 },
+          ].map((t) => (
+            <div key={t.caption} style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+              <UCAdTile bg={t.bg} headline={t.headline} caption={t.caption} w={164} h={128} />
+              <UCBar label="Surprise" emotion="surprise" f={t.f} e={e} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Use case 3 — Brand Research */
+export function FragmentUCBrand({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const [panel, setPanel] = React.useState(false)
+  const [gt, setGt] = React.useState(0)
+  useScene(active, async (p) => {
+    setPanel(false); setGt(0)
+    await p.sleep(700)
+    setPanel(true)
+    await p.sleep(300)
+    await eiTimeline(p, 1200, setGt)
+    await p.sleep(2800)
+  }, onDone, runKey, hold, playFrom, onTime)
+  const rows: Array<{ label: string; emotion: keyof typeof EMOTIONS; f: number }> = [
+    { label: "Happiness", emotion: "happiness", f: 0.72 },
+    { label: "Surprise", emotion: "surprise", f: 0.44 },
+    { label: "Fear", emotion: "fear", f: 0.16 },
+  ]
+  return (
+    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font }}>
+      {/* the brand stimulus, as a stylized product tile */}
+      <div style={{ position: "absolute", left: 34, top: 10, width: 220, height: 220, borderRadius: 12, background: "#F5F5F5", border: `1px solid ${T.appBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+        <span style={{ width: 64, height: 64, borderRadius: 16, background: T.brand, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <I name="sparkles" size={30} />
+        </span>
+        <span className="ll-500" style={{ fontSize: 13 }}>Assistant A</span>
+      </div>
+      {panel && (
+        <div className="ll-enter" style={{ position: "absolute", right: 6, top: 128, width: 148, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 10, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 9 }}>
+          {rows.map((r, i) => {
+            const e = eiEase((gt - i * 140) / 800)
+            return (
+              <div key={r.label}>
+                <div style={{ fontSize: 10.5, color: T.inkSoft }}>{r.label}</div>
+                <div style={{ marginTop: 4, height: 6, borderRadius: 3, background: "#F1F1F1", overflow: "hidden" }}>
+                  <div style={{ width: `${r.f * 100 * e}%`, height: "100%", borderRadius: 3, background: EMOTIONS[r.emotion].fg }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Use case 4 — UX Research (task-based, on mobile) */
+export function FragmentUCUX({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const [typed, setTyped] = React.useState("")
+  const [tag, setTag] = React.useState(false)
+  const PROMPT = "help me plan a budget for my first apartment"
+  useScene(active, async (p) => {
+    setTyped(""); setTag(false)
+    await p.sleep(700)
+    await p.type(setTyped, PROMPT, USER_CPS)
+    await p.sleep(400)
+    setTag(true)
+    await p.sleep(2600)
+  }, onDone, runKey, hold, playFrom, onTime)
+  return (
+    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", overflow: "hidden", fontFamily: T.font }}>
+      {/* the task, mid-flight on a phone that bleeds off the card */}
+      <PhoneShell width={172} time="2:47" statusIcons style={{ position: "absolute", left: 84, top: 12 }}>
+        <div style={{ padding: "18px 14px 0" }}>
+          <div className="ll-500" style={{ fontSize: 14, lineHeight: 1.35 }}>What do you want to get done?</div>
+          <div style={{ marginTop: 12, border: `1px solid ${T.appBorder}`, borderRadius: 10, padding: "8px 10px", fontSize: 11, lineHeight: 1.45, minHeight: 46, color: typed ? T.ink : T.inkFaint, boxSizing: "border-box" }}>
+            {typed || "Ask anything…"}{typed.length > 0 && typed.length < PROMPT.length && <Caret />}
+          </div>
+          <div style={{ display: "flex", gap: 5, marginTop: 8, flexWrap: "wrap" }}>
+            {["Budget", "Study plan", "Email draft"].map((c) => (
+              <span key={c} style={{ fontSize: 9.5, border: `1px solid ${T.appBorder}`, borderRadius: 10, padding: "3px 8px", color: T.inkSoft }}>{c}</span>
+            ))}
+          </div>
+        </div>
+      </PhoneShell>
+      <div style={{ position: "absolute", left: 16, top: 210, minHeight: 22 }}>
+        {tag && <span className="ll-enter" style={{ display: "inline-flex" }}><EmotionTag emotion="surprise" /></span>}
+      </div>
+    </div>
+  )
+}
