@@ -34,6 +34,10 @@ export const PRESETS: Preset[] = [
     name: "Research agent · crosshairs",
     props: { content: "compound", canvasHeight: 360, pattern: "crosshairs", patternSpacing: 48, radius: 16, segStart: 1200, segEnd: 9000, loopPause: 4 },
   },
+  {
+    name: "EI report · dots",
+    props: { content: "ei-report", canvasHeight: 400, pattern: "dots", radius: 16, loopPause: 4 },
+  },
   // --- fragments --------------------------------------------------------------
   {
     name: "Top answer · grid",

@@ -1256,3 +1256,203 @@ export function FragmentEIComparison({ active, onDone, runKey = 0, hold, playFro
     </div>
   )
 }
+
+// ---------------------------------------------- EI report scene (full app) ---
+// Live rebuild of the /features/emotional-intelligence page hero: the study's
+// Details view with the per-question Emotional Intelligence Analysis chart and
+// the Presentations rail. Session: chart builds staggered, the cursor flips
+// "Show Emotions on responses" off and back on, then generates a deck.
+
+type EIRCol = { q: string; segs: Array<[keyof typeof EMOTIONS, number]> }
+const EIREP_COLS: EIRCol[] = [
+  { q: "Q1", segs: [["anger", 0.13], ["happiness", 0.18], ["surprise", 0.12], ["sadness", 0.14], ["fear", 0.05]] },
+  { q: "Q2", segs: [["anger", 0.05], ["happiness", 0.09], ["surprise", 0.07], ["sadness", 0.06]] },
+  { q: "Q3", segs: [["happiness", 0.28], ["surprise", 0.05], ["sadness", 0.05]] },
+  { q: "Q4", segs: [] },
+  { q: "Q5", segs: [["anger", 0.03], ["happiness", 0.42], ["disgust", 0.04], ["sadness", 0.02]] },
+  { q: "Q6", segs: [["happiness", 0.13], ["surprise", 0.1], ["sadness", 0.12], ["fear", 0.12]] },
+  { q: "Q7", segs: [["happiness", 0.22], ["disgust", 0.13], ["surprise", 0.09], ["sadness", 0.05]] },
+  { q: "Q8", segs: [["happiness", 0.22], ["surprise", 0.08], ["fear", 0.14]] },
+  { q: "Q9", segs: [["happiness", 0.24], ["disgust", 0.12], ["surprise", 0.09], ["sadness", 0.03]] },
+  { q: "Q10", segs: [] },
+  { q: "Q11", segs: [] },
+  { q: "Q12", segs: [["happiness", 0.03], ["sadness", 0.03]] },
+  { q: "Q13", segs: [["happiness", 0.12], ["surprise", 0.08], ["sadness", 0.08]] },
+  { q: "Q14", segs: [] },
+  { q: "Q15", segs: [["happiness", 0.04], ["surprise", 0.02], ["sadness", 0.02]] },
+  { q: "Q16", segs: [["happiness", 0.28], ["surprise", 0.16], ["sadness", 0.03]] },
+  { q: "Q17", segs: [["happiness", 0.14], ["surprise", 0.07], ["fear", 0.1]] },
+  { q: "Q18", segs: [["anger", 0.1], ["happiness", 0.22], ["surprise", 0.05], ["sadness", 0.09]] },
+  { q: "Q19", segs: [["happiness", 0.18], ["disgust", 0.1], ["surprise", 0.07], ["fear", 0.08]] },
+  { q: "Q20", segs: [["happiness", 0.3], ["surprise", 0.06], ["sadness", 0.04]] },
+]
+const EIREP_LEGEND: Array<keyof typeof EMOTIONS | "neutral"> =
+  ["anger", "happiness", "disgust", "surprise", "sadness", "fear", "neutral"]
+
+const CHART_H = 140
+const COL_STAG = 45
+const COL_GROW = 500
+
+// cursor targets (design-space px, verified against the rendered frame)
+const EIREP_TOGGLE = { x: 904, y: 239 }
+const EIREP_GEN = { x: 862, y: 492 }
+
+function EIToggle({ on }: { on: boolean }): JSX.Element {
+  return (
+    <span style={{ width: 30, height: 17, borderRadius: 9, background: on ? T.brand : "#D4D4D4", display: "inline-flex", alignItems: "center", padding: 2, boxSizing: "border-box", transition: "background .3s" }}>
+      <span style={{ width: 13, height: 13, borderRadius: "50%", background: "#FFF", transform: on ? "translateX(13px)" : "none", transition: "transform .3s cubic-bezier(.22,1,.36,1)" }} />
+    </span>
+  )
+}
+
+function EIRepDeckCard({ title, flash }: { title: string; flash?: boolean }): JSX.Element {
+  return (
+    <div className={flash ? "ll-enter ll-highlight-fade" : undefined} style={{ flex: 1, border: `1px solid ${T.appBorder}`, borderRadius: 8, padding: 12, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.inkSoft }}>
+        <span style={{ background: T.fill, borderRadius: 4, padding: "2px 6px" }}>.PPT</span>
+        <span style={{ background: T.fill, borderRadius: 4, padding: "2px 6px" }}>Auto-generated</span>
+        <span style={{ flex: 1 }} />
+        <I name="ellipsis" size={13} />
+      </div>
+      <div className="ll-500" style={{ fontSize: 13, marginTop: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+      <div style={{ fontSize: 11.5, color: T.inkSoft, marginTop: 3 }}>Based on <span className="ll-500" style={{ color: T.body }}>380</span> completed responses</div>
+      <div style={{ marginTop: 10, height: 26, borderRadius: 6, background: T.fill, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>Download</div>
+    </div>
+  )
+}
+
+export function SceneEIReport({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor()
+  const [gt, setGt] = React.useState(0)
+  const [emotions, setEmotions] = React.useState(true)
+  const [genHover, setGenHover] = React.useState(false)
+  const [genBusy, setGenBusy] = React.useState(false)
+  const [card3, setCard3] = React.useState(false)
+
+  useScene(active, async (p) => {
+    setGt(0); setEmotions(true); setGenHover(false); setGenBusy(false); setCard3(false); cur.hide()
+    await p.sleep(600)
+    await eiTimeline(p, (EIREP_COLS.length - 1) * COL_STAG + COL_GROW, setGt)
+    await p.sleep(500)
+    // the traceability beat: emotions off, beat, back on
+    cur.show(EIREP_TOGGLE.x, EIREP_TOGGLE.y + 150); await p.sleep(300)
+    cur.move(EIREP_TOGGLE.x, EIREP_TOGGLE.y); await p.sleep(550)
+    cur.click(1); await p.sleep(150)
+    setEmotions(false)
+    await p.sleep(1000)
+    cur.click(2); await p.sleep(150)
+    setEmotions(true)
+    await p.sleep(500)
+    // generate a deck
+    cur.move(EIREP_GEN.x, EIREP_GEN.y); await p.sleep(600)
+    setGenHover(true); await p.sleep(250)
+    cur.click(3); await p.sleep(150)
+    setGenHover(false); setGenBusy(true)
+    await p.sleep(1100)
+    setGenBusy(false); setCard3(true)
+    await p.sleep(400)
+    cur.hide()
+    await p.sleep(2400)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  return (
+    <ProductFrame title="Gen Z ChatGPT Usage Study" variant="analysis" activeTab="Details" cursor={cur.state}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        {/* overview bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", fontSize: 12.5, borderBottom: `1px solid ${T.appBorder}` }}>
+          <I name="list" size={14} style={{ color: T.inkSoft }} />
+          <span className="ll-500">Overview</span>
+          <I name="chevron-down" size={13} style={{ color: T.inkSoft }} />
+          <span style={{ flex: 1 }} />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.inkSoft }}><I name="sliders-horizontal" size={13} /> View &amp; Filter</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.inkSoft, marginLeft: 14 }}><I name="layers" size={13} /> Segments</span>
+        </div>
+        {/* report body */}
+        <div style={{ flex: 1, overflow: "hidden", padding: "18px 0" }}>
+          <div style={{ width: 704, margin: "0 auto" }}>
+            <span style={{ display: "inline-block", fontSize: 10.5, padding: "2px 7px", borderRadius: 5, background: "#DCFCE7", color: "#16A34A" }}>Up to date</span>
+            <div className="ll-500" style={{ fontSize: 24, lineHeight: "32px", marginTop: 6 }}>Study Report Details</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginTop: 4 }}>
+              <span className="ll-500">380 complete</span>
+              <span style={{ color: T.inkFaint }}>|</span>
+              <span style={{ color: T.inkSoft }}>1 partial</span>
+              <span style={{ color: T.inkFaint }}>|</span>
+              <span style={{ color: T.inkSoft }}>0 hidden</span>
+            </div>
+
+            {/* EI analysis section */}
+            <div style={{ display: "flex", alignItems: "center", marginTop: 16 }}>
+              <I name="chevron-down" size={13} style={{ color: T.inkSoft, transform: "rotate(180deg)", marginRight: 8 }} />
+              <span className="ll-500" style={{ fontSize: 15 }}>Emotional Intelligence Analysis</span>
+              <span style={{ flex: 1 }} />
+              <span style={{ fontSize: 11.5, color: T.inkSoft, marginRight: 8 }}>Show Emotions on responses</span>
+              <EIToggle on={emotions} />
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 8, marginTop: 12, height: CHART_H }}>
+              {EIREP_COLS.map((c, i) => {
+                const e = eiEase((gt - i * COL_STAG) / COL_GROW)
+                return (
+                  <React.Fragment key={c.q}>
+                    {i === 7 && (
+                      <span style={{ width: 14, alignSelf: "stretch", position: "relative", flexShrink: 0 }}>
+                        <span style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%) rotate(-90deg)", fontSize: 9.5, color: T.inkSoft, whiteSpace: "nowrap" }}>4 Concepts ›</span>
+                      </span>
+                    )}
+                    <span style={{ flex: 1, height: CHART_H, background: "#EFEFEF", borderRadius: 3, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 1.5, overflow: "hidden" }}>
+                      {/* segs are authored bottom-up; render reversed so anger sits at the base */}
+                      {[...c.segs].reverse().map(([emo, f], j) => (
+                        <span key={j} style={{ height: f * CHART_H * e, borderRadius: 1.5, background: emotions ? EMOTIONS[emo].fg : "#E0E0E0", transition: "background .4s" }} />
+                      ))}
+                    </span>
+                  </React.Fragment>
+                )
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 5, fontSize: 10, color: T.inkSoft }}>
+              {EIREP_COLS.map((c, i) => (
+                <React.Fragment key={c.q}>
+                  {i === 7 && <span style={{ width: 14, flexShrink: 0 }} />}
+                  <span style={{ flex: 1, textAlign: "center" }}>{c.q}</span>
+                </React.Fragment>
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, fontSize: 11, color: T.inkSoft }}>
+              {EIREP_LEGEND.map((emo) => (
+                <span key={emo} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2.5, background: emo === "neutral" ? "#E0E0E0" : EMOTIONS[emo].fg }} />
+                  {emo[0].toUpperCase() + emo.slice(1)}
+                </span>
+              ))}
+              <span style={{ flex: 1 }} />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>Emotion logic <I name="info" size={12} /></span>
+            </div>
+
+            <div style={{ borderTop: `1px solid ${T.appBorder}`, marginTop: 16 }} />
+
+            {/* presentations */}
+            <div style={{ display: "flex", alignItems: "center", marginTop: 14 }}>
+              <div style={{ flex: 1 }}>
+                <div className="ll-500" style={{ fontSize: 15 }}>Presentations</div>
+                <div style={{ fontSize: 11.5, color: T.inkSoft, marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                  <I name="chevron-down" size={12} style={{ transform: "rotate(180deg)" }} />
+                  Create and download AI-generated slide decks based on your research data
+                </div>
+              </div>
+              <button className="ll-btn ghost" style={{ height: 28, fontSize: 12, borderColor: genHover ? "rgba(26,26,26,.3)" : undefined }}>
+                {genBusy ? <span className="ll-shimmer">Generating…</span> : <>Generate <I name="sparkles" size={13} /></>}
+              </button>
+            </div>
+            <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+              <EIRepDeckCard title="Gen.Z Perception of ChatGPT" />
+              <EIRepDeckCard title="Gen Z AI Usage Study [Case Study]" />
+              {card3
+                ? <EIRepDeckCard title="All Charts" flash />
+                : <span style={{ flex: 1, border: `1px dashed ${T.appBorder}`, borderRadius: 8, minHeight: 96, opacity: genBusy ? 1 : 0.5, display: "flex", alignItems: "center", justifyContent: "center" }}>{genBusy && <DotSpinner />}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </ProductFrame>
+  )
+}

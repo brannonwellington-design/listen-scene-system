@@ -5,7 +5,7 @@
 // at their own design size).
 import {
   SceneDesignStudy, SceneReachPeople, SceneInterviewScale,
-  SceneDeliverResults, SceneCompound,
+  SceneDeliverResults, SceneCompound, SceneEIReport,
   FragmentTopAnswer, TOP_ANSWER_W, TOP_ANSWER_H,
   FragmentLiveInterview, LIVE_INTERVIEW_W, LIVE_INTERVIEW_H,
   FragmentEmotionQuote, EMOTION_QUOTE_W, EMOTION_QUOTE_H,
@@ -78,6 +78,8 @@ export const REGISTRY: RegistryEntry[] = [
       body: "The more you run, the richer your workspace gets. Search and build on past studies, themes, and reports, so your team keeps getting sharper.",
     },
   },
+  // EI page hero — the study Details view with the per-question emotion chart
+  { key: "ei-report", title: "EI · Study report", Scene: SceneEIReport, w: FRAME_W, h: FRAME_H, kind: "scene" },
   { key: "top-answer-card", title: "Top Answer card", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
   { key: "live-interview-card", title: "Live interview card", Scene: FragmentLiveInterview, w: LIVE_INTERVIEW_W, h: LIVE_INTERVIEW_H, kind: "fragment" },
   { key: "emotion-quote-card", title: "Emotion quote card", Scene: FragmentEmotionQuote, w: EMOTION_QUOTE_W, h: EMOTION_QUOTE_H, kind: "fragment" },

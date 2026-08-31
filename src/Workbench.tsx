@@ -286,7 +286,8 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
 // registry — plus "Custom crop…" for framing a rect out of any scene
 const CONTENT_OPTS: Array<[string, string]> = REGISTRY.map((e) => [e.key, e.title])
 
-const isSceneContent = (content: string) => content !== "custom" && byKey(content).kind === "scene"
+// hero display only applies to the five How-It-Works stage scenes
+const isSceneContent = (content: string) => content !== "custom" && !!byKey(content).stage
 
 /** unified content select */
 function ContentSel(p: { v: string; set: (s: string) => void }): JSX.Element {
