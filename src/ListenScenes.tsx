@@ -722,19 +722,122 @@ const IV_FOLLOWUP = "How confident are you in that understanding? Is there anyth
 const IV_WORDS = IV_FOLLOWUP.split(" ")
 const IV_WORD_MS = 95
 const IV_REC_SECS = 6
+const IV_TICK = 30                   // ms per grid column (scrollMs), and the script's tick
+
+// --- Speech dot grid — port of brannonwellington-design/audio-visualizer
+// (DotGridVisualizer, "chronological" view, binary dots) at its defaults:
+// 140 columns × 17 rows, 75% dot size, 30ms/column, 5% edge tapers.
+// The scene has no microphone, so a deterministic synthetic speech envelope
+// (syllable bursts, fast attack / slow release, gated phrase gaps) stands in
+// for the analyzer's level. Everything is a pure function of the recording
+// clock, so freeze-frame and scrubbing land on the exact same dots.
+const DG_COLS = 140
+const DG_ROWS = 17
+const DG_DOT = 0.75
+const DG_ACTIVE = "#CF2617"
+const DG_INACTIVE = "#E3E3E3"
+const DG_TAPER = 0.05
+
+type Syllable = { at: number; dur: number; amp: number }
+function buildSyllables(seed: number, totalMs: number): Syllable[] {
+  // mulberry32
+  let a = seed >>> 0
+  const rnd = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
+  const out: Syllable[] = []
+  let t = 380 // a breath before the first word
+  while (t < totalMs) {
+    const n = 3 + Math.floor(rnd() * 7)           // syllables per phrase
+    for (let i = 0; i < n && t < totalMs; i++) {
+      const dur = 90 + rnd() * 130
+      out.push({ at: t, dur, amp: 0.45 + rnd() * 0.55 })
+      t += dur + 20 + rnd() * 45
+    }
+    t += 300 + rnd() * 350                          // phrase gap
+  }
+  return out
+}
+const DG_SYLLABLES = buildSyllables(7, 12000)
+const DG_ATTACK = 12, DG_RELEASE = 110
+function speechLevel(t: number): number {
+  let v = 0
+  for (const s of DG_SYLLABLES) {
+    if (t < s.at) break
+    const dt = t - s.at
+    const e = dt <= s.dur
+      ? 1 - Math.exp(-dt / DG_ATTACK)
+      : Math.exp(-(dt - s.dur) / DG_RELEASE)
+    v = Math.max(v, s.amp * e)
+  }
+  return v < 0.03 ? 0 : v
+}
+const smoothstep = (p: number) => p * p * (3 - 2 * p)
+
+/** Column values at recording time t: newest at the right, one column per tick. */
+function gridValues(t: number): number[] {
+  const vals = new Array(DG_COLS).fill(0)
+  for (let c = 0; c < DG_COLS; c++) {
+    const end = t - (DG_COLS - 1 - c) * IV_TICK
+    if (end <= 0) continue
+    let m = 0
+    for (let k = 0; k < 4; k++) m = Math.max(m, speechLevel(end - (k * IV_TICK) / 4))
+    vals[c] = m
+  }
+  const taperCols = Math.max(1, Math.round(DG_COLS * DG_TAPER))
+  for (let c = 0; c < taperCols; c++) {
+    const f = smoothstep(c / taperCols)
+    vals[c] *= f; vals[DG_COLS - 1 - c] *= f
+  }
+  return vals
+}
+
+function DotStrip({ t, w, h }: { t: number; w: number; h: number }): JSX.Element {
+  const ref = React.useRef<HTMLCanvasElement>(null)
+  React.useEffect(() => {
+    const cv = ref.current; if (!cv) return
+    const S = 3 // backing scale: dots are ~1px in design space and get scaled up by ScaleBox
+    cv.width = w * S; cv.height = h * S
+    const ctx = cv.getContext("2d"); if (!ctx) return
+    ctx.clearRect(0, 0, cv.width, cv.height)
+    const cellW = (w * S) / DG_COLS, cellH = (h * S) / DG_ROWS
+    const radius = (Math.min(cellW, cellH) / 2) * DG_DOT
+    const centerRow = (DG_ROWS - 1) / 2
+    const maxRowDist = Math.max(1, centerRow - (DG_ROWS % 2 === 0 ? 0.5 : 0))
+    const vals = gridValues(t)
+    for (const active of [false, true]) {
+      ctx.fillStyle = active ? DG_ACTIVE : DG_INACTIVE
+      ctx.beginPath()
+      for (let c = 0; c < DG_COLS; c++) {
+        const v = vals[c], x = (c + 0.5) * cellW
+        for (let r = 0; r < DG_ROWS; r++) {
+          let dist = Math.abs(r - centerRow)
+          if (DG_ROWS % 2 === 0) dist = Math.max(0, dist - 0.5)
+          const th = dist / maxRowDist
+          const on = v >= th && (th === 0 || v > 0)
+          if (on !== active) continue
+          ctx.moveTo(x + radius, (r + 0.5) * cellH)
+          ctx.arc(x, (r + 0.5) * cellH, radius, 0, Math.PI * 2)
+        }
+      }
+      ctx.fill()
+    }
+  }, [t, w, h])
+  return <canvas ref={ref} style={{ width: w, height: h, display: "block" }} />
+}
 
 export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [phase, setPhase] = React.useState<"idle" | "recording" | "loading" | "reply">("idle")
-  const [timer, setTimer] = React.useState(0)
+  const [recT, setRecT] = React.useState(0)        // ms since Start Recording
   const [words, setWords] = React.useState(0)
   const [enabled, setEnabled] = React.useState(false)
   const cur = useCursor()
   const START = { x: FRAME_W / 2, y: IV_BTN_Y }
-  const SUBMIT = { x: IV_COL_X + IV_COL_W - 6 - 36, y: IV_BTN_Y }
+  const CARD_PAD = 6, STRIP_H = 44, ROW_H = 24
+  const CARD_H = CARD_PAD * 2 + STRIP_H + 5 + ROW_H
+  const SUBMIT = { x: IV_COL_X + IV_COL_W - CARD_PAD - 36, y: FRAME_H - 20 - CARD_PAD - ROW_H / 2 }
 
   useScene(active, async (p) => {
-    setPhase("idle"); setTimer(0); setWords(0); setEnabled(false); cur.hide()
+    setPhase("idle"); setRecT(0); setWords(0); setEnabled(false); cur.hide()
     await p.sleep(700)
     cur.show(START.x - 180, START.y - 110)
     await p.sleep(350)
@@ -742,7 +845,7 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
     await p.sleep(750)
     cur.click(1); await p.sleep(250)
     setPhase("recording"); cur.hide()
-    for (let i = 1; i <= IV_REC_SECS; i++) { await p.sleep(1000); setTimer(i) }
+    for (let i = 1; i <= (IV_REC_SECS * 1000) / IV_TICK; i++) { await p.sleep(IV_TICK); setRecT(i * IV_TICK) }
     cur.show(SUBMIT.x - 120, SUBMIT.y - 90)
     await p.sleep(300)
     cur.move(SUBMIT.x, SUBMIT.y)
@@ -757,7 +860,7 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
     await p.sleep(2200)
   }, onDone, runKey, hold, playFrom, onTime)
 
-  const mm = (s: number) => `00:${String(s).padStart(2, "0")}`
+  const mm = (ms: number) => `00:${String(Math.floor(ms / 1000)).padStart(2, "0")}`
   const recording = phase === "recording"
   const barBtn: React.CSSProperties = { height: 24, padding: "0 9px", borderRadius: 6, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }
 
@@ -792,12 +895,15 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
         </div>
 
         {/* bottom control: Start Recording ⇄ Pause · timer · Submit */}
-        <div style={{ position: "absolute", left: IV_COL_X, width: IV_COL_W, top: IV_BTN_Y - IV_BTN_H / 2, height: IV_BTN_H }}>
+        <div style={{ position: "absolute", left: IV_COL_X, width: IV_COL_W, bottom: 20 }}>
           {recording ? (
-            <div className="ll-enter" style={{ height: IV_BTN_H, borderRadius: 10, background: "#EEEEEE", display: "flex", alignItems: "center", padding: "0 5px", gap: 8 }}>
-              <span style={{ ...barBtn, border: `1px solid ${IV_RED}`, color: IV_RED, background: T.appBg }}>Pause <I name="circle-pause" size={12} /></span>
-              <span style={{ flex: 1, textAlign: "center", color: IV_RED, fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{mm(timer)}</span>
-              <span style={{ ...barBtn, background: T.brand, color: "#FAFAFA" }}>Submit <I name="circle-stop" size={12} /></span>
+            <div className="ll-enter" style={{ height: CARD_H, borderRadius: 12, background: "#EEEEEE", padding: CARD_PAD, display: "flex", flexDirection: "column", gap: 5 }}>
+              <DotStrip t={recT} w={IV_COL_W - CARD_PAD * 2} h={STRIP_H} />
+              <div style={{ height: ROW_H, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ ...barBtn, border: `1px solid ${IV_RED}`, color: IV_RED, background: T.appBg }}>Pause <I name="circle-pause" size={12} /></span>
+                <span style={{ flex: 1, textAlign: "center", color: IV_RED, fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{mm(recT)}</span>
+                <span style={{ ...barBtn, background: T.brand, color: "#FAFAFA" }}>Submit <I name="circle-stop" size={12} /></span>
+              </div>
             </div>
           ) : (
             <button className="ll-btn primary" style={{
