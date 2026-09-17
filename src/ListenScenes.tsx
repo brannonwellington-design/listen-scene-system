@@ -937,23 +937,42 @@ const BULLETS: Array<Array<string | { stat: string }>> = [
   [{ stat: "6 of 11" }, " were curious enough to look up Listen Labs, and ", { stat: "4" }, " showed clear enthusiasm. Add one fast product cue such as “AI customer research.”"],
 ]
 
+// curiosity after seeing the billboard (Q6), from the analysis scalars:
+// 6 of 11 high-or-moderate, of which 4 high; the remaining 5 low or none
+const CURIOSITY: Array<[string, number]> = [["High", 4], ["Moderate", 2], ["Low or none", 5]]
+const REPORT_STATS: Array<[string, string]> = [["11", "interviews analysed"], ["6 of 11", "curious to learn more"], ["4", "clearly enthusiastic"]]
+// verbatim, general-population Billboard Ad Test respondent 8, Q6
+const REPORT_QUOTE = "I would say that this ad makes me very curious to learn more, and I think if I saw this, I would definitely Google just to find out more about it"
+const REPORT_SCROLL = 336 // px the report document scrolls to reveal the visuals
+
 export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [title, setTitle] = React.useState("")
   const [showH2, setShowH2] = React.useState(false)
   const [bullets, setBullets] = React.useState(0)
+  const [scrolled, setScrolled] = React.useState(false)
+  const [chart, setChart] = React.useState(false)
+  const [quoteTag, setQuoteTag] = React.useState(false)
   const TITLE = "Keep the creative, sharpen what Listen Labs actually does"
 
   useScene(active, async (p) => {
-    setTitle(""); setShowH2(false); setBullets(0)
+    setTitle(""); setShowH2(false); setBullets(0); setScrolled(false); setChart(false); setQuoteTag(false)
     await p.sleep(700)
     await p.type(setTitle, TITLE, 40)
     await p.sleep(400)
     setShowH2(true)
     await p.sleep(600)
     for (let i = 1; i <= BULLETS.length; i++) { setBullets(i); await p.sleep(750) }
+    await p.sleep(1400)
+    // scroll the document to the visuals below the summary
+    setScrolled(true)
+    await p.sleep(900)
+    setChart(true)
+    await p.sleep(700)
+    setQuoteTag(true)
     await p.sleep(2600)
   }, onDone, runKey, hold, playFrom, onTime)
+  const maxCount = Math.max(...CURIOSITY.map((c) => c[1]))
 
   return (
     <ProductFrame title="Listen Labs Billboard Ad Test" variant="analysis" activeTab="Report">
@@ -988,20 +1007,63 @@ export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom
           <Chip kind="blue">New</Chip>
           <I name="download" size={14} /><I name="ellipsis" size={14} />
         </div>
-        <div style={{ flex: 1, padding: "16px 88px 0", overflow: "hidden" }}>
-          <h1 className="ll-h1" style={{ maxWidth: 620, minHeight: 80 }}>
-            {title}{title && title.length < TITLE.length && <Caret />}
-          </h1>
-          {showH2 && <div className="ll-h2 ll-enter" style={{ marginTop: 28 }}>Executive summary</div>}
-          <ul style={{ marginTop: 16, paddingLeft: 22, display: "flex", flexDirection: "column", gap: 12, fontSize: 15, lineHeight: "26px", color: T.ink, maxWidth: 660 }}>
-            {BULLETS.slice(0, bullets).map((b, i) => (
-              <li key={i} className="ll-enter ll-highlight-fade">
-                {b.map((part, j) =>
-                  typeof part === "string" ? part : <span key={j} className="ll-stat">{part.stat}</span>,
-                )}
-              </li>
-            ))}
-          </ul>
+        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+          <div style={{ padding: "16px 88px 0", transform: `translateY(${scrolled ? -REPORT_SCROLL : 0}px)`, transition: "transform 1s cubic-bezier(.22,1,.36,1)" }}>
+            <h1 className="ll-h1" style={{ maxWidth: 620, minHeight: 80 }}>
+              {title}{title && title.length < TITLE.length && <Caret />}
+            </h1>
+            {showH2 && <div className="ll-h2 ll-enter" style={{ marginTop: 28 }}>Executive summary</div>}
+            <ul style={{ marginTop: 16, paddingLeft: 22, display: "flex", flexDirection: "column", gap: 12, fontSize: 15, lineHeight: "26px", color: T.ink, maxWidth: 660 }}>
+              {BULLETS.slice(0, bullets).map((b, i) => (
+                <li key={i} className="ll-enter ll-highlight-fade">
+                  {b.map((part, j) =>
+                    typeof part === "string" ? part : <span key={j} className="ll-stat">{part.stat}</span>,
+                  )}
+                </li>
+              ))}
+            </ul>
+            {bullets >= BULLETS.length && (
+              <div style={{ maxWidth: 660 }}>
+                {/* stat tiles */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 28 }}>
+                  {REPORT_STATS.map(([n, label]) => (
+                    <div key={label} className="ll-card" style={{ padding: "14px 16px" }}>
+                      <div className="ll-500" style={{ fontSize: 26, lineHeight: "30px" }}>{n}</div>
+                      <div style={{ fontSize: 12.5, color: T.inkSoft, marginTop: 4 }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* curiosity chart */}
+                <div className="ll-h2" style={{ marginTop: 28, fontSize: 20, lineHeight: "28px" }}>The billboard sparks meaningful curiosity</div>
+                <div style={{ fontSize: 13, color: T.inkSoft, marginTop: 4 }}>Stated curiosity to learn more or visit the website, after seeing the billboard</div>
+                <div className="ll-card" style={{ marginTop: 14, padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+                  {CURIOSITY.map(([label, n]) => (
+                    <div key={label} style={{ display: "grid", gridTemplateColumns: "110px 1fr 28px", alignItems: "center", gap: 12, fontSize: 13 }}>
+                      <span style={{ color: T.body }}>{label}</span>
+                      <span style={{ height: 18, background: T.fill, borderRadius: 4, overflow: "hidden" }}>
+                        <span style={{ display: "block", height: "100%", width: `${chart ? (n / maxCount) * 100 : 0}%`, background: T.brand, borderRadius: 4, transition: "width .9s cubic-bezier(.22,1,.36,1)" }} />
+                      </span>
+                      <span className="ll-500" style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{n}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* sourced quote */}
+                <div className="ll-card" style={{ marginTop: 16, padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="ll-avatar" style={{ width: 24, height: 24, fontSize: 11 }}>P</span>
+                    <div>
+                      <div style={{ fontSize: 13 }}>Participant 8</div>
+                      <div style={{ fontSize: 11, color: T.inkSoft }}>Q6 · Curiosity to learn more</div>
+                    </div>
+                    <span style={{ flex: 1 }} />
+                    {quoteTag && <span className="ll-enter"><Chip kind="brand">High curiosity</Chip></span>}
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.6, color: T.body }}>"{REPORT_QUOTE}"</div>
+                </div>
+                <div style={{ height: 40 }} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </ProductFrame>
