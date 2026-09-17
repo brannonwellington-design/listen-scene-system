@@ -494,7 +494,15 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
 }
 
 // ================================================ 2. Reach the right people =
-const SETUP_TEXT = "Setting up US recruitment (ages 18–27) and a screener that narrows to early-career professionals who actually use ChatGPT."
+const COUNTRIES_PICK = "United States, France, Japan and Brazil"
+const SETUP_TEXT = "Adding four country panels and a screener for chief officers at 1,000+ employee enterprises."
+const WELCOME_TEXT = "Hi, and thanks for joining! We'll show you something briefly and ask for your honest, first impressions. There are no right or wrong answers — we just want to hear what you genuinely think. Let's get started!"
+const PANELS: Array<[string, string, string]> = [
+  ["C-Suite Executives (US)", "🇺🇸", "United States"],
+  ["C-Suite Executives (France)", "🇫🇷", "France"],
+  ["C-Suite Executives (Japan)", "🇯🇵", "Japan"],
+  ["C-Suite Executives (Brazil)", "🇧🇷", "Brazil"],
+]
 
 export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
@@ -513,9 +521,11 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
   const [adjust, setAdjust] = React.useState("")
   const [suggestions, setSuggestions] = React.useState(false)
   const cur = useCursor()
-  const SRC_BTN = { x: 184, y: 262 }
-  const COPT = (i: number) => ({ x: 184, y: 357 + i * 31 })
-  const ADJUST = "Happy with this, or want to adjust anything (e.g. include part-time workers, different sample size)?"
+  // click targets measured from the rendered DOM (design px): the first
+  // source button's centre, and the two-line four-country chip option
+  const SRC_BTN = { x: 184, y: 192 }
+  const COUNTRY_OPT = { x: 184, y: 375 }
+  const ADJUST = "Happy with this, or want to adjust anything (e.g. include SVPs, different sample size)?"
 
   const MSG = "Great! Now let's determine how you'll find participants for your research. Which option do you want to go for?"
 
@@ -536,9 +546,9 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
     setMarkers([["history", "Updated participant source"]])
     await p.sleep(600)
     setStep(3); setMarkers([]); setCountry(1)
-    cur.move(COPT(0).x, COPT(0).y); await p.sleep(550)
-    setCHover(0); await p.sleep(250)
-    cur.click(2); await p.sleep(200); setCHover(-1); setCPicked(0)
+    cur.move(COUNTRY_OPT.x, COUNTRY_OPT.y); await p.sleep(550)
+    setCHover(1); await p.sleep(250)
+    cur.click(2); await p.sleep(200); setCHover(-1); setCPicked(1)
     await p.sleep(450)
     cur.hide(); setCountry(2)
     await p.type(setSetupText, SETUP_TEXT, AI_CPS)
@@ -546,7 +556,7 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
     await p.sleep(900)
     setMarkers([["users", "Added audience"]]); setAudStage(2)
     await p.sleep(MARKER_MS)
-    setMarkers((m) => [...m, ["user-round-plus", "Added recruitment group"]])
+    setMarkers((m) => [...m, ["user-round-plus", "Added 4 recruitment groups"]])
     await p.sleep(MARKER_MS)
     setMarkers((m) => [...m, ["notepad-text", "Added New Section Screener"]]); setAudStage(3)
     await p.sleep(600)
@@ -593,19 +603,19 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
         {thinking && <Thinking />}
         {country === 1 && (
           <ChipQuestion title="Which country should participants live in?" footer="1 of 1"
-            options={["United States", "United Kingdom", "United States + United Kingdom", "Something else..."]}
+            options={["United States", COUNTRIES_PICK, "United States + United Kingdom", "Something else..."]}
             hovered={cHover} picked={cPicked} />
         )}
-        {country === 2 && <AnsweredCard qa={[["Which country should participants live in?", "United States"]]} />}
+        {country === 2 && <AnsweredCard qa={[["Which country should participants live in?", COUNTRIES_PICK]]} />}
         {setupText && <div style={{ color: T.body }}>{setupText}{setupText.length < SETUP_TEXT.length && <Caret />}</div>}
         {markers.map(([icon, text, act]) => <Marker key={text} icon={icon} text={text} active={act} />)}
         {markers.some((m) => m[2]) && <DotSpinner size={18} />}
         {screener && (
           <div className="ll-enter" style={{ color: T.body, fontSize: 12.5, lineHeight: 1.45 }}>
-            <div className="ll-500">Screener (4 questions):</div>
+            <div className="ll-500">Screener (9 questions):</div>
             <ul style={{ paddingLeft: 18, marginTop: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-              <li>Apps used in past month — ChatGPT hidden among Spotify, Venmo, Notion</li>
-              <li>Years in the workforce → 5 years or less (early-career)</li>
+              <li>Title → Chief Officer (CEO, CFO, CMO, COO…)</li>
+              <li>Organisation size → 1,000+ employees</li>
             </ul>
           </div>
         )}
@@ -616,7 +626,7 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
         {suggestions && (
           <div className="ll-enter" style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
             <div style={{ fontSize: 11.5, color: T.inkSoft }}>Suggestions</div>
-            {["Narrow the workforce screener to 3 years or less", "Increase sample size from 100 to 200 participants", "Also allow part-time workers to qualify"].map((s) => (
+            {["Also allow Senior Vice Presidents to qualify", "Increase each panel from 100 to 200 executives"].map((s) => (
               <span key={s} className="ll-chip" style={{ height: 24, fontSize: 11, justifyContent: "space-between", background: T.fill, borderColor: "transparent" }}>{s} <I name="arrow-up" size={10} /></span>
             ))}
           </div>
@@ -634,33 +644,30 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
           {audStage >= 2 ? (
             <>
               <div style={{ marginTop: 10, fontSize: 12.5, color: T.inkSoft }}>Listen will find participants with the following criteria</div>
-              <div className="ll-enter" style={{ marginTop: 12, borderLeft: `2px solid ${T.brandFaint}`, paddingLeft: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
-                  <span className="ll-500">US General Audience</span>
-                  <Chip>Draft</Chip>
-                </div>
-                <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                  <span className="ll-chip" style={{ height: 26, fontSize: 12, color: T.ink }}><I name="users" size={12} /> 100</span>
-                  <span style={{ color: T.inkFaint, fontSize: 11 }}>×</span>
-                  {["United States", "Ages 18–27", "General Population"].map((c) => (
-                    <span key={c} className="ll-chip" style={{ height: 26, fontSize: 12, color: T.ink }}>{c} <I name="chevron-down" size={10} style={{ color: T.inkSoft }} /></span>
-                  ))}
-                </div>
-                <div style={{ marginTop: 14, fontSize: 12, color: T.inkSoft, display: "flex", justifyContent: "center", alignItems: "center", gap: 6 }}>
-                  <I name="plus" size={11} /> New recruitment
-                </div>
+              <div className="ll-enter" style={{ marginTop: 12, borderLeft: `2px solid ${T.brandFaint}`, paddingLeft: 14, display: "flex", flexDirection: "column", gap: 5 }}>
+                {PANELS.map(([name, flag, country]) => (
+                  <div key={name} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, flexWrap: "nowrap", whiteSpace: "nowrap" }}>
+                    <span className="ll-500" style={{ fontSize: 13 }}>{name}</span>
+                    <Chip>Draft</Chip>
+                    <span style={{ flex: 1 }} />
+                    <span className="ll-chip" style={{ height: 22, fontSize: 11.5, color: T.ink }}><I name="users" size={11} /> 100</span>
+                    <span style={{ color: T.inkFaint, fontSize: 11 }}>×</span>
+                    <span className="ll-chip" style={{ height: 22, fontSize: 11.5, color: T.ink }}>{flag} {country} <I name="chevron-down" size={10} style={{ color: T.inkSoft }} /></span>
+                    <span className="ll-chip" style={{ height: 22, fontSize: 11.5, color: T.ink }}>Professionals <I name="chevron-down" size={10} style={{ color: T.inkSoft }} /></span>
+                  </div>
+                ))}
               </div>
             </>
           ) : (
             <div style={{ marginTop: 10, fontSize: 13, color: T.inkFaint }}>Your target audience will be displayed here</div>
           )}
-          <Divider />
+          <div style={{ borderTop: `1px solid ${T.appBorder}`, margin: "14px 0" }} />
           <div className="ll-enter" style={audStage >= 2 ? { borderLeft: `2px solid ${T.brandFaint}`, paddingLeft: 14 } : undefined}>
             <Chip>{<I name="message-circle" size={12} />} Welcome Message</Chip>
             {audStage >= 2 && <div className="ll-500" style={{ marginTop: 10, fontSize: 15 }}>Welcome</div>}
             <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: T.body }}>
               {audStage >= 2
-                ? "Thanks for your interest. We'll start with a few quick questions to see if you're a fit for this study, and then move into a short conversation about your everyday experiences."
+                ? WELCOME_TEXT
                 : "Welcome! I would like to ask you a couple of questions."}
             </div>
             <div style={{ marginTop: 12, border: `1px solid ${T.appBorder}`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
@@ -675,17 +682,17 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
           </div>
           {audStage >= 3 && (
             <div className="ll-enter">
-              <Divider />
+              <div style={{ borderTop: `1px solid ${T.appBorder}`, margin: "14px 0" }} />
               <div style={{ display: "flex", gap: 8 }}>
                 <Chip>Screening Section</Chip>
-                <span style={{ fontSize: 12, color: T.inkSoft, alignSelf: "center" }}>4 Questions</span>
+                <span style={{ fontSize: 12, color: T.inkSoft, alignSelf: "center" }}>9 Questions</span>
               </div>
               <div style={{ marginTop: 12, borderLeft: `2px solid ${T.brandFaint}`, paddingLeft: 14 }}>
                 <div style={{ display: "flex", gap: 6 }}>
                   <Chip>{<I name="circle-help" size={11} />} Q1</Chip>
                   <Chip>Multiple choice <I name="chevron-down" size={10} /></Chip>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 14 }}>Which of these apps have you used in the past month?</div>
+                <div style={{ marginTop: 8, fontSize: 14 }}>Which of the following best describes your current employment situation?</div>
               </div>
             </div>
           )}
