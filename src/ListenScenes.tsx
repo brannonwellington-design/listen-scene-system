@@ -703,71 +703,224 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
 }
 
 // ================================================== 3. Interview at scale ===
+// Participant interview UI, rebuilt from a product screen recording
+// (2026-09-17): a left-aligned question column (600px, centred), a large
+// webcam tile bottom-right, a wide brand-blue Start Recording button that
+// becomes a Pause · timer · Submit bar while recording, then a three-dot
+// loader and the moderator's follow-up streaming in word by word. The
+// product does not transcribe live, so no text appears while recording.
+// Real page is ~1511px wide; the scene scales it by ~0.74 into 1120x640.
+const IV_COL_W = 408                 // 552px text column × 0.74
+const IV_COL_X = (FRAME_W - IV_COL_W) / 2
+const IV_BTN_H = 34
+const IV_BTN_Y = FRAME_H - 20 - IV_BTN_H / 2   // button centre, design px
+const IV_CAM = 184                   // webcam tile, 248px × 0.74
+const IV_RED = "#DC2626"
+const IV_QUESTION = "What do you think the company or service being advertised actually does? What is it offering?"
+// verbatim moderator follow-up from the general-population Billboard Ad Test, respondent 6
+const IV_FOLLOWUP = "How confident are you in that understanding? Is there anything about the ad that leaves you uncertain about what they actually do?"
+const IV_WORDS = IV_FOLLOWUP.split(" ")
+const IV_WORD_MS = 95
+const IV_REC_SECS = 6
+const IV_TICK = 30                   // ms per grid column (scrollMs), and the script's tick
+
+// --- Speech dot grid — port of brannonwellington-design/audio-visualizer
+// (DotGridVisualizer, "chronological" view, binary dots) at its defaults:
+// 140 columns × 17 rows, 75% dot size, 30ms/column, 5% edge tapers.
+// The scene has no microphone, so a deterministic synthetic speech envelope
+// (syllable bursts, fast attack / slow release, gated phrase gaps) stands in
+// for the analyzer's level. Everything is a pure function of the recording
+// clock, so freeze-frame and scrubbing land on the exact same dots.
+const DG_COLS = 140
+const DG_ROWS = 17
+const DG_DOT = 0.75
+const DG_ACTIVE = "#CF2617"
+const DG_TAPER = 0.05
+
+type Syllable = { at: number; dur: number; amp: number }
+function buildSyllables(seed: number, totalMs: number): Syllable[] {
+  // mulberry32
+  let a = seed >>> 0
+  const rnd = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 }
+  const out: Syllable[] = []
+  let t = 380 // a breath before the first word
+  while (t < totalMs) {
+    const n = 3 + Math.floor(rnd() * 7)           // syllables per phrase
+    for (let i = 0; i < n && t < totalMs; i++) {
+      const dur = 90 + rnd() * 130
+      out.push({ at: t, dur, amp: 0.45 + rnd() * 0.55 })
+      t += dur + 20 + rnd() * 45
+    }
+    t += 300 + rnd() * 350                          // phrase gap
+  }
+  return out
+}
+const DG_SYLLABLES = buildSyllables(7, 12000)
+const DG_ATTACK = 12, DG_RELEASE = 110
+function speechLevel(t: number): number {
+  let v = 0
+  for (const s of DG_SYLLABLES) {
+    if (t < s.at) break
+    const dt = t - s.at
+    const e = dt <= s.dur
+      ? 1 - Math.exp(-dt / DG_ATTACK)
+      : Math.exp(-(dt - s.dur) / DG_RELEASE)
+    v = Math.max(v, s.amp * e)
+  }
+  return v < 0.03 ? 0 : v
+}
+const smoothstep = (p: number) => p * p * (3 - 2 * p)
+
+/** Column values at recording time t: newest at the right, one column per tick. */
+function gridValues(t: number): number[] {
+  const vals = new Array(DG_COLS).fill(0)
+  for (let c = 0; c < DG_COLS; c++) {
+    const end = t - (DG_COLS - 1 - c) * IV_TICK
+    if (end <= 0) continue
+    let m = 0
+    for (let k = 0; k < 4; k++) m = Math.max(m, speechLevel(end - (k * IV_TICK) / 4))
+    vals[c] = m
+  }
+  const taperCols = Math.max(1, Math.round(DG_COLS * DG_TAPER))
+  for (let c = 0; c < taperCols; c++) {
+    const f = smoothstep(c / taperCols)
+    vals[c] *= f; vals[DG_COLS - 1 - c] *= f
+  }
+  return vals
+}
+
+function DotStrip({ t, w, h }: { t: number; w: number; h: number }): JSX.Element {
+  const ref = React.useRef<HTMLCanvasElement>(null)
+  React.useEffect(() => {
+    const cv = ref.current; if (!cv) return
+    const S = 3 // backing scale: dots are ~1px in design space and get scaled up by ScaleBox
+    cv.width = w * S; cv.height = h * S
+    const ctx = cv.getContext("2d"); if (!ctx) return
+    ctx.clearRect(0, 0, cv.width, cv.height)
+    const cellW = (w * S) / DG_COLS, cellH = (h * S) / DG_ROWS
+    const radius = (Math.min(cellW, cellH) / 2) * DG_DOT
+    const centerRow = (DG_ROWS - 1) / 2
+    const maxRowDist = Math.max(1, centerRow - (DG_ROWS % 2 === 0 ? 0.5 : 0))
+    const vals = gridValues(t)
+    // inactive dots are not drawn: only the active dots and the center line show
+    ctx.fillStyle = DG_ACTIVE
+    ctx.beginPath()
+    for (let c = 0; c < DG_COLS; c++) {
+      const v = vals[c], x = (c + 0.5) * cellW
+      for (let r = 0; r < DG_ROWS; r++) {
+        let dist = Math.abs(r - centerRow)
+        if (DG_ROWS % 2 === 0) dist = Math.max(0, dist - 0.5)
+        const th = dist / maxRowDist
+        if (!(v >= th && (th === 0 || v > 0))) continue
+        ctx.moveTo(x + radius, (r + 0.5) * cellH)
+        ctx.arc(x, (r + 0.5) * cellH, radius, 0, Math.PI * 2)
+      }
+    }
+    ctx.fill()
+  }, [t, w, h])
+  return <canvas ref={ref} style={{ width: w, height: h, display: "block" }} />
+}
+
 export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
-  const [recording, setRecording] = React.useState(false)
-  const [timer, setTimer] = React.useState(0)
-  const [answer, setAnswer] = React.useState("")
+  const [phase, setPhase] = React.useState<"idle" | "recording" | "loading" | "reply">("idle")
+  const [recT, setRecT] = React.useState(0)        // ms since Start Recording
+  const [words, setWords] = React.useState(0)
+  const [enabled, setEnabled] = React.useState(false)
   const cur = useCursor()
-  const REC = { x: 560, y: 574 } // Start Recording button, design coords
-  // verbatim from the general-population Billboard Ad Test, respondent 6, Q3
-  const ANSWER = "I think that they are offering AI solutions for companies that maybe want to figure out what their customers need, and AI can maybe do that more efficiently to figure out what customers want..."
+  const START = { x: FRAME_W / 2, y: IV_BTN_Y }
+  const CARD_PAD = 6, STRIP_H = 44, ROW_H = 24
+  const CARD_H = CARD_PAD * 2 + STRIP_H + 5 + ROW_H
+  const SUBMIT = { x: IV_COL_X + IV_COL_W - CARD_PAD - 36, y: FRAME_H - 20 - CARD_PAD - ROW_H / 2 }
 
   useScene(active, async (p) => {
-    setRecording(false); setTimer(0); setAnswer(""); cur.hide()
+    setPhase("idle"); setRecT(0); setWords(0); setEnabled(false); cur.hide()
     await p.sleep(700)
-    cur.show(REC.x - 200, REC.y - 120)
+    cur.show(START.x - 180, START.y - 110)
     await p.sleep(350)
-    cur.move(REC.x, REC.y)
+    cur.move(START.x, START.y)
     await p.sleep(750)
     cur.click(1); await p.sleep(250)
-    setRecording(true)
-    cur.hide()
+    setPhase("recording"); cur.hide()
+    for (let i = 1; i <= (IV_REC_SECS * 1000) / IV_TICK; i++) { await p.sleep(IV_TICK); setRecT(i * IV_TICK) }
+    cur.show(SUBMIT.x - 120, SUBMIT.y - 90)
+    await p.sleep(300)
+    cur.move(SUBMIT.x, SUBMIT.y)
     await p.sleep(600)
-    // type in ~1s chunks, advancing the timer on the same virtual clock so
-    // scrub mode shows the correct elapsed time at any position
-    const CPS3 = 24
-    for (let i = 0; i < ANSWER.length; i += CPS3) {
-      await p.type((s) => setAnswer(ANSWER.slice(0, i) + s), ANSWER.slice(i, i + CPS3), CPS3)
-      setTimer(Math.floor(i / CPS3) + 1)
-    }
+    cur.click(2); await p.sleep(250)
+    setPhase("loading"); cur.hide()
+    await p.sleep(1400)
+    setPhase("reply")
+    for (let i = 1; i <= IV_WORDS.length; i++) { await p.sleep(IV_WORD_MS); setWords(i) }
+    await p.sleep(500)
+    setEnabled(true)
     await p.sleep(2200)
   }, onDone, runKey, hold, playFrom, onTime)
 
-  const mm = (s: number) => `0:${String(s).padStart(2, "0")}`
+  const mm = (ms: number) => `00:${String(Math.floor(ms / 1000)).padStart(2, "0")}`
+  const recording = phase === "recording"
+  const barBtn: React.CSSProperties = { height: 24, padding: "0 9px", borderRadius: 6, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }
+
   return (
     <ProductFrame variant="bare" cursor={cur.state}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 0 24px", position: "relative" }}>
-        <div style={{ fontSize: 12 }}>
-          <span style={{ color: T.inkSoft }}>Section 1 / </span>
-          <span>Question 3</span>
+      <div style={{ flex: 1, position: "relative" }}>
+        {/* header: Skip · settings */}
+        <div style={{ position: "absolute", top: 12, right: 16, display: "flex", alignItems: "center", gap: 14, fontSize: 12.5, color: T.ink }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Skip <I name="skip-forward" size={13} /></span>
+          <I name="settings" size={15} />
         </div>
-        <div style={{ marginTop: 28, fontSize: 24, lineHeight: 1.4, textAlign: "center", maxWidth: 560, color: T.body }}>
-          What do you think the company or service being advertised actually does? What is it offering?
-        </div>
-        <div style={{ marginTop: 32, maxWidth: 560, minHeight: 120, fontSize: 15, lineHeight: 1.65, textAlign: "center", color: T.inkSoft, display: "flex", flexDirection: "column", alignItems: "center" }}>
-          {!recording && <span style={{ marginTop: 36 }}><DotSpinner size={30} /></span>}
-          <span>{answer}{recording && answer.length < ANSWER.length && <Caret />}</span>
-        </div>
-        <span style={{ flex: 1 }} />
-        <button className="ll-btn dark" style={{ width: 420, height: 40, borderRadius: 8, justifyContent: "center", fontSize: 14 }}>
-          {recording ? (
-            <>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#E5484D" }} className="ll-enter" />
-              <Waveform />
-              <span style={{ fontVariantNumeric: "tabular-nums" }}>{mm(timer)}</span>
-            </>
-          ) : (
-            "Start Recording"
+
+        {/* question column */}
+        <div style={{ position: "absolute", left: IV_COL_X, top: 58, width: IV_COL_W }}>
+          <div style={{ fontSize: 24, lineHeight: "29px", color: T.ink, opacity: phase === "idle" || recording ? 1 : 0, transition: "opacity .3s ease" }}>
+            {IV_QUESTION}
+          </div>
+          {phase === "loading" && (
+            <div className="ll-enter" style={{ position: "absolute", top: 12, left: 0, display: "flex", gap: 8 }}>
+              {[0, 1, 2].map((i) => (
+                <span key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: T.ink, animation: "ll-pulse 1s ease-in-out infinite", animationDelay: `${i * 0.18}s` }} />
+              ))}
+            </div>
           )}
-        </button>
-        {/* participant video bubble */}
-        <div style={{ position: "absolute", right: 24, bottom: 24, width: 104, height: 78, borderRadius: 8, background: "linear-gradient(135deg, #DCD6C9, #C9C2B2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span className="ll-avatar" style={{ width: 30, height: 30, fontSize: 13 }}>M</span>
-          {recording && <span style={{ position: "absolute", top: 6, left: 8, width: 7, height: 7, borderRadius: "50%", background: "#E5484D" }} />}
+          {phase === "reply" && (
+            <div style={{ position: "absolute", top: 0, left: 0, width: IV_COL_W, fontSize: 24, lineHeight: "29px" }}>
+              {IV_WORDS.map((w, i) => (
+                <span key={i} style={{ color: i < words ? T.ink : "#E4E4E4", opacity: i < words ? 1 : 0, transition: "color .7s ease, opacity .25s ease" }}>{w}{i < IV_WORDS.length - 1 ? " " : ""}</span>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* bottom control: Start Recording ⇄ Pause · timer · Submit */}
+        <div style={{ position: "absolute", left: IV_COL_X, width: IV_COL_W, bottom: 20 }}>
+          {recording ? (
+            <div className="ll-enter" style={{ height: CARD_H, borderRadius: 12, background: "#EEEEEE", padding: CARD_PAD, display: "flex", flexDirection: "column", gap: 5 }}>
+              <DotStrip t={recT} w={IV_COL_W - CARD_PAD * 2} h={STRIP_H} />
+              <div style={{ height: ROW_H, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ ...barBtn, border: `1px solid ${IV_RED}`, color: IV_RED, background: T.appBg }}>Pause <I name="circle-pause" size={12} /></span>
+                <span style={{ flex: 1, textAlign: "center", color: IV_RED, fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{mm(recT)}</span>
+                <span style={{ ...barBtn, background: T.brand, color: "#FAFAFA" }}>Submit <I name="circle-stop" size={12} /></span>
+              </div>
+            </div>
+          ) : (
+            <button className="ll-btn primary" style={{
+              width: "100%", height: IV_BTN_H, borderRadius: 8, justifyContent: "center", fontSize: 13.5,
+              background: phase === "idle" || enabled ? T.brand : "#ECEFFF", color: phase === "idle" || enabled ? "#FAFAFA" : T.brandFaint,
+              transition: "background-color .35s ease, color .35s ease",
+            }}>Start Recording</button>
+          )}
+        </div>
+
+        {/* webcam tile */}
+        <div style={{ position: "absolute", right: 18, bottom: 18, width: IV_CAM, height: IV_CAM, borderRadius: 8, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
+          <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 44, height: 44, fontSize: 18 }}>M</span>
+          <I name="shrink" size={13} style={{ position: "absolute", top: 8, left: 8, color: "#FFFFFF", opacity: .9 }} />
+          {recording && <span style={{ position: "absolute", top: 10, right: 10, width: 7, height: 7, borderRadius: "50%", background: IV_RED }} />}
+        </div>
+
         {/* scale strip */}
-        <div style={{ position: "absolute", left: 24, bottom: 24, fontSize: 12, color: T.inkSoft, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ position: "absolute", left: 20, bottom: 24, fontSize: 12, color: T.inkSoft, display: "flex", alignItems: "center", gap: 8 }}>
           <Chip kind="live">127 interviews live</Chip>
           <span>24/7 · 120+ languages</span>
         </div>
