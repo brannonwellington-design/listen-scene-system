@@ -6,6 +6,9 @@ import { readFile } from "node:fs/promises"
 import { extname, join, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 
+// the desktop app assigns a free port via PORT; 4173 is the fallback for manual runs
+const PORT = Number(process.env.PORT) || 4173
+
 const root = join(dirname(fileURLToPath(import.meta.url)), "..")
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" }
 
@@ -20,4 +23,4 @@ createServer(async (req, res) => {
     res.writeHead(404)
     res.end("not found")
   }
-}).listen(4173, () => console.log("demo server on http://localhost:4173"))
+}).listen(PORT, () => console.log(`demo server on http://localhost:${PORT}`))
