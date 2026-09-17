@@ -735,7 +735,6 @@ const DG_COLS = 140
 const DG_ROWS = 17
 const DG_DOT = 0.75
 const DG_ACTIVE = "#CF2617"
-const DG_INACTIVE = "#E3E3E3"
 const DG_TAPER = 0.05
 
 type Syllable = { at: number; dur: number; amp: number }
@@ -803,23 +802,21 @@ function DotStrip({ t, w, h }: { t: number; w: number; h: number }): JSX.Element
     const centerRow = (DG_ROWS - 1) / 2
     const maxRowDist = Math.max(1, centerRow - (DG_ROWS % 2 === 0 ? 0.5 : 0))
     const vals = gridValues(t)
-    for (const active of [false, true]) {
-      ctx.fillStyle = active ? DG_ACTIVE : DG_INACTIVE
-      ctx.beginPath()
-      for (let c = 0; c < DG_COLS; c++) {
-        const v = vals[c], x = (c + 0.5) * cellW
-        for (let r = 0; r < DG_ROWS; r++) {
-          let dist = Math.abs(r - centerRow)
-          if (DG_ROWS % 2 === 0) dist = Math.max(0, dist - 0.5)
-          const th = dist / maxRowDist
-          const on = v >= th && (th === 0 || v > 0)
-          if (on !== active) continue
-          ctx.moveTo(x + radius, (r + 0.5) * cellH)
-          ctx.arc(x, (r + 0.5) * cellH, radius, 0, Math.PI * 2)
-        }
+    // inactive dots are not drawn: only the active dots and the center line show
+    ctx.fillStyle = DG_ACTIVE
+    ctx.beginPath()
+    for (let c = 0; c < DG_COLS; c++) {
+      const v = vals[c], x = (c + 0.5) * cellW
+      for (let r = 0; r < DG_ROWS; r++) {
+        let dist = Math.abs(r - centerRow)
+        if (DG_ROWS % 2 === 0) dist = Math.max(0, dist - 0.5)
+        const th = dist / maxRowDist
+        if (!(v >= th && (th === 0 || v > 0))) continue
+        ctx.moveTo(x + radius, (r + 0.5) * cellH)
+        ctx.arc(x, (r + 0.5) * cellH, radius, 0, Math.PI * 2)
       }
-      ctx.fill()
     }
+    ctx.fill()
   }, [t, w, h])
   return <canvas ref={ref} style={{ width: w, height: h, display: "block" }} />
 }
