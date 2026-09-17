@@ -710,7 +710,8 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
   const [answer, setAnswer] = React.useState("")
   const cur = useCursor()
   const REC = { x: 560, y: 574 } // Start Recording button, design coords
-  const ANSWER = "Honestly, it's become my first tab of the day. I use it to draft emails, break down readings for class, and sanity-check my code before I push it..."
+  // verbatim from the general-population Billboard Ad Test, respondent 6, Q3
+  const ANSWER = "I think that they are offering AI solutions for companies that maybe want to figure out what their customers need, and AI can maybe do that more efficiently to figure out what customers want..."
 
   useScene(active, async (p) => {
     setRecording(false); setTimer(0); setAnswer(""); cur.hide()
@@ -739,10 +740,10 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 0 24px", position: "relative" }}>
         <div style={{ fontSize: 12 }}>
           <span style={{ color: T.inkSoft }}>Section 1 / </span>
-          <span>Question 5</span>
+          <span>Question 3</span>
         </div>
         <div style={{ marginTop: 28, fontSize: 24, lineHeight: 1.4, textAlign: "center", maxWidth: 560, color: T.body }}>
-          Can you tell me more about how you're using ChatGPT in your day-to-day work?
+          What do you think the company or service being advertised actually does? What is it offering?
         </div>
         <div style={{ marginTop: 32, maxWidth: 560, minHeight: 120, fontSize: 15, lineHeight: 1.65, textAlign: "center", color: T.inkSoft, display: "flex", flexDirection: "column", alignItems: "center" }}>
           {!recording && <span style={{ marginTop: 36 }}><DotSpinner size={30} /></span>}
