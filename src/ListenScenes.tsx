@@ -193,15 +193,18 @@ function MorphCard(props: { from: Rect; to?: Rect; text: string }): JSX.Element 
 }
 
 // =================================================== 1. Design the study ====
-const GOAL_TEXT = "I want to know how Gen Z uses ChatGPT in their daily lives"
-const STUDY_TITLE = "Gen Z (Early-Career) Daily ChatGPT Use"
-const GOAL_PARA = "Build a grounded picture of how Gen Z early-career professionals actually use ChatGPT day to day, to inform general market/trend understanding."
+// Content: the "Listen Labs Billboard Ad Test - C-Suite Demo" study (the
+// hard-to-reach audience story); insights in later stages come from the
+// general-population run of the same billboard test.
+const GOAL_TEXT = "I want to understand how C-suite executives react to our billboard ad"
+const STUDY_TITLE = "Listen Labs Billboard Ad Test - C-Suite Demo"
+const GOAL_PARA = "Decide whether the billboard clearly communicates what Listen Labs is and resonates with C-suite executives at large enterprises, or whether the messaging needs to be revised."
 const KEY_QS = [
-  "What specific tasks do they use ChatGPT for at work and in personal life?",
-  "How often and at what moments does it come up in their day?",
-  "Where do they trust it, where do they not, and how do they verify?",
+  "What do they think the product or service is after seeing the ad?",
+  "What are their unfiltered first reactions, and what triggers them?",
+  "Does the ad make them curious enough to learn more or visit the site?",
 ]
-const RECAP = "I've set the study up around how Gen Z early-career professionals actually use ChatGPT day to day. Does that cover what you want to learn?"
+const RECAP = "I've set the study up to test whether the billboard lands with chief officers at 1,000+ employee enterprises. Does that cover what you want to learn?"
 
 const TEMPLATES: Array<[string, string, string, boolean?]> = [
   ["MARKET RESEARCH", "What makes AI research feel trustworthy to enterprise buyers?", "Understand the proof points that turn interest into purchase confidence."],
@@ -283,14 +286,14 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
     await p.sleep(1100)
     setThinking(false)
     setQuestion(1)
-    // cursor picks option 3 ("General market/trend understanding")
+    // cursor picks option 3 ("Evaluate ad clarity and appeal")
     cur.show(OPT(2).x, OPT(2).y + 160); await p.sleep(300)
     cur.move(OPT(2).x, OPT(2).y); await p.sleep(550)
     setHovered(2); await p.sleep(250)
     cur.click(1); await p.sleep(200); setHovered(-1); setPicked(2)
     await p.sleep(500)
     setQuestion(2); setPicked(-1)
-    // option 2 ("Early-career professionals")
+    // option 2 ("Chief officers at 1,000+ employee companies")
     cur.move(OPT(1).x, OPT(1).y); await p.sleep(550)
     setHovered(1); await p.sleep(250)
     cur.click(2); await p.sleep(200); setHovered(-1); setPicked(1)
@@ -420,7 +423,7 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
         <div ref={bubbleRef} style={{ alignSelf: "flex-end", background: T.fill, borderRadius: 14, padding: "10px 14px", maxWidth: 240, visibility: morph ? "hidden" : "visible" }}>{GOAL_TEXT}</div>
         {question >= 1 && question < 3 && (
           <>
-            <div style={{ color: T.body }}>Welcome! Great topic — Gen Z and ChatGPT in everyday life. Let me ask one thing to sharpen the focus.</div>
+            <div style={{ color: T.body }}>Welcome! Testing a billboard with C-suite executives is a sharp brief. Let me ask one thing to sharpen the focus.</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: T.inkSoft }}>
               <I name="sparkles" size={12} /> Waiting for selection...
             </div>
@@ -428,16 +431,16 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
         )}
         {question === 1 && (
           <ChipQuestion title="What decision should this study inform?" footer="1 of 2"
-            options={["Build a product/feature for Gen Z", "Shape marketing or positioning", "General market/trend understanding", "Content or thought-leadership report", "Something else..."]}
+            options={["Decide whether to run the campaign", "Revise the messaging before launch", "Evaluate ad clarity and appeal", "Compare how regions interpret it", "Something else..."]}
             hovered={hovered} picked={picked} />
         )}
         {question === 2 && (
-          <ChipQuestion title="Which slice of Gen Z matters most?" footer="2 of 2"
-            options={["Students (high school/university)", "Early-career professionals", "Both", "Any Gen Z (18–27)", "Something else..."]}
+          <ChipQuestion title="Which executives matter most?" footer="2 of 2"
+            options={["Any senior leader (VP and above)", "Chief officers at 1,000+ employee companies", "Marketing leaders only", "Founders and owners", "Something else..."]}
             hovered={hovered} picked={picked} />
         )}
         {question === 3 && (
-          <AnsweredCard qa={[["What decision should this study inform?", "General market/trend understanding"], ["Which slice of Gen Z matters most?", "Early-career professionals"]]} />
+          <AnsweredCard qa={[["What decision should this study inform?", "Evaluate ad clarity and appeal"], ["Which executives matter most?", "Chief officers at 1,000+ employee companies"]]} />
         )}
         {thinking && question >= 1 && <Thinking />}
         {markers.map(([icon, text, act]) => <Marker key={text} icon={icon} text={text} active={act} />)}
