@@ -1071,13 +1071,14 @@ export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom
 }
 
 // ============================================== 5. Compound your learnings ==
+// Research Agent suggestions for the Billboard Ad Test workspace
 const SUGGESTIONS = [
   ["lightbulb", "Brainstorm topics for further research"],
   ["presentation", "Create slides that summarize the main findings"],
   ["circle-alert", "Show me unexpected findings and outlier opinions"],
-  ["chart-column", "What is the fastest growing tool being used by Gen Z?"],
-  ["circle-help", "What bothers Gen Z the most about AI tools?"],
-  ["table", "Create a table of quotes about ChatGPT saving time"],
+  ["circle-help", "What confused people most about the billboard?"],
+  ["chart-column", "Which line made the service clearest to people?"],
+  ["table", "Create a table of quotes about the retro telephones"],
 ]
 
 export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
@@ -1090,7 +1091,8 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
   const [answer, setAnswer] = React.useState("")
   const cur = useCursor()
   const CARD4 = { x: 380, y: 424 } // suggestion card row 2, col 1
-  const ANSWER = "Across 380 interviews, Gemini is the fastest growing — up 18 points since your March study — while ChatGPT still owns daily habits."
+  // grounded in the general-population Billboard Ad Test transcripts and analysis
+  const ANSWER = "Across 11 interviews, the retro telephones were the biggest puzzle — people liked them but couldn't say why they were there — while the line about finding out what people think is what made it read as AI research."
 
   useScene(active, async (p) => {
     setLoading(true); setPicked(-1); setHovered(-1); setQuery(""); setThinking(false); setAnswer(""); cur.hide()
@@ -1117,7 +1119,7 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
   }, onDone, runKey, hold, playFrom, onTime)
 
   return (
-    <ProductFrame title="Gen Z ChatGPT Usage Study" variant="analysis" activeTab="Chat" cursor={cur.state}>
+    <ProductFrame title="Listen Labs Billboard Ad Test" variant="analysis" activeTab="Chat" cursor={cur.state}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 0 24px" }}>
         <Chip kind="brand">New Feature</Chip>
         <div style={{ marginTop: 12, fontSize: 36, lineHeight: "44px", color: T.brand }}>I'm your Listen Research Agent</div>

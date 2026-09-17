@@ -397,12 +397,12 @@ export function PatternLayer(props: {
 
 // ------------------------------------------------------------------ logo ----
 export function Logo(): JSX.Element {
-  // simplified Listen Labs asterisk glyph
+  // the Listen Labs mark: the two glyph paths of the brand plugin's
+  // assets/listen-labs-logo.svg (wordmark), cropped to the mark's own box
   return (
-    <svg className="ll-logo" viewBox="0 0 16 16">
-      <g stroke={T.ink} strokeWidth="1.6" strokeLinecap="round">
-        <path d="M8 2v12" /><path d="M2.8 5l10.4 6" /><path d="M13.2 5L2.8 11" />
-      </g>
+    <svg className="ll-logo" viewBox="0 0 16.3 22.6" fill={T.ink}>
+      <path d="M15.3743 0.408977H8.45517C7.9619 0.408977 7.56238 0.808502 7.56238 1.30177V8.22092C7.56238 8.71419 7.9619 9.11371 8.45517 9.11371H15.3743C15.8676 9.11371 16.2671 8.71419 16.2671 8.22092V1.30177C16.2671 0.808502 15.8676 0.408977 15.3743 0.408977Z" />
+      <path d="M6.71435 9.11354H0.893341C0.383333 9.11354 -0.0284702 9.54096 0.00166153 10.051C0.308559 15.266 3.15769 19.8081 7.3248 22.453C7.75 22.7231 8.31468 22.5847 8.57025 22.1506L11.5232 17.1498C11.7642 16.7413 11.6437 16.2157 11.2486 15.9534C9.23873 14.6221 7.84597 12.4314 7.60268 9.90812C7.55916 9.45503 7.17079 9.11354 6.71547 9.11354H6.71435Z" />
     </svg>
   )
 }
