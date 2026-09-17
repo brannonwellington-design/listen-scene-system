@@ -204,7 +204,7 @@ const KEY_QS = [
   "What are their unfiltered first reactions, and what triggers them?",
   "Does the ad make them curious enough to learn more or visit the site?",
 ]
-const RECAP = "I've set the study up to test whether the billboard lands with chief officers at 1,000+ employee enterprises. Does that cover what you want to learn?"
+const RECAP = "I've set this up to test the billboard with chief officers at 1,000+ employee enterprises. Sound right?"
 
 const TEMPLATES: Array<[string, string, string, boolean?]> = [
   ["MARKET RESEARCH", "What makes AI research feel trustworthy to enterprise buyers?", "Understand the proof points that turn interest into purchase confidence."],
@@ -328,7 +328,11 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
         {/* persistent top bar: entry breadcrumb ⇄ editor chrome, crossfaded */}
         <div className="ll-topbar" style={{ position: "relative" }}>
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", padding: "0 16px", opacity: isEditor ? 0 : 1, transition: "opacity .35s ease" }}>
-            <span style={{ width: 204, flexShrink: 0 }} />
+            <span className="ll-500" style={{ width: 204, flexShrink: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: T.ink }}>
+              <Logo />
+              Brannon's Personal
+              <I name="chevrons-up-down" size={11} style={{ color: T.inkFaint }} />
+            </span>
             <I name="panel-left-close" size={15} style={{ color: T.inkSoft }} />
             <span style={{ position: "absolute", left: 0, right: 0, textAlign: "center", fontSize: 13 }}>
               <span style={{ color: T.inkSoft }}>Brannon's Personal / </span><span className="ll-500">Create</span>
@@ -351,14 +355,7 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
         <div className="ll-body">
           {/* entry workspace sidebar collapses as the editor takes over */}
           <div style={{ width: isEditor ? 0 : 212, opacity: isEditor ? 0 : 1, overflow: "hidden", flexShrink: 0, transition: `width ${collapse}, opacity .35s ease` }}>
-          <div style={{ width: 212, height: "100%", boxSizing: "border-box", padding: "4px 10px 12px", fontSize: 12.5, color: T.inkSoft, display: "flex", flexDirection: "column", gap: 1 }}>
-            <div className="ll-500" style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 6px 10px", color: T.ink, fontSize: 13 }}>
-              <svg width="15" height="15" viewBox="0 0 16 16"><g stroke={T.ink} strokeWidth="1.6" strokeLinecap="round"><path d="M8 2v12" /><path d="M2.8 5l10.4 6" /><path d="M13.2 5L2.8 11" /></g></svg>
-              Brannon's Personal
-              <span style={{ flex: 1 }} />
-              <I name="chevrons-up-down" size={11} style={{ color: T.inkFaint }} />
-            </div>
-            <div style={{ fontSize: 10.5, color: T.inkFaint, padding: "0 6px 6px" }}>Brannon's Personal Workspace</div>
+          <div style={{ width: 212, height: "100%", boxSizing: "border-box", padding: "8px 10px 12px", fontSize: 12.5, color: T.inkSoft, display: "flex", flexDirection: "column", gap: 1 }}>
             {SIDEBAR_NAV.map(([icon, n, isNew]) => (
               <div key={n} style={{ padding: "5px 6px", display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
                 <I name={icon} size={13} />
@@ -450,7 +447,7 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
       </ChatShell>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <DocStrip />
-        <div style={{ flex: 1, padding: "16px 105px 0" }}>
+        <div className="ll-doc-fade" style={{ flex: 1, padding: "16px 105px 0" }}>
           <div className="ll-500" style={{ fontSize: 27, lineHeight: "33px", borderLeft: docTitle.length < STUDY_TITLE.length && docTitle !== "Empty Study" ? `2px solid ${T.inkSoft}` : "2px solid transparent", paddingLeft: 6, marginLeft: -8 }}>
             {docTitle}
           </div>
@@ -943,7 +940,7 @@ const CURIOSITY: Array<[string, number]> = [["High", 4], ["Moderate", 2], ["Low 
 const REPORT_STATS: Array<[string, string]> = [["11", "interviews analysed"], ["6 of 11", "curious to learn more"], ["4", "clearly enthusiastic"]]
 // verbatim, general-population Billboard Ad Test respondent 8, Q6
 const REPORT_QUOTE = "I would say that this ad makes me very curious to learn more, and I think if I saw this, I would definitely Google just to find out more about it"
-const REPORT_SCROLL = 336 // px the report document scrolls to reveal the visuals
+const REPORT_SCROLL = 352 // px the report document scrolls to reveal the visuals
 
 export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
@@ -1007,7 +1004,7 @@ export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom
           <Chip kind="blue">New</Chip>
           <I name="download" size={14} /><I name="ellipsis" size={14} />
         </div>
-        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        <div className="ll-doc-fade" style={{ flex: 1, position: "relative" }}>
           <div style={{ padding: "16px 88px 0", transform: `translateY(${scrolled ? -REPORT_SCROLL : 0}px)`, transition: "transform 1s cubic-bezier(.22,1,.36,1)" }}>
             <h1 className="ll-h1" style={{ maxWidth: 620, minHeight: 80 }}>
               {title}{title && title.length < TITLE.length && <Caret />}

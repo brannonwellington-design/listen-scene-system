@@ -64,6 +64,8 @@ const CSS = `
 .ll-tab:hover { color:${T.ink}; }
 .ll-tab.active { color:${T.ink}; background:${T.appBg}; border-color:${T.appBorder}; box-shadow:${T.shadow}; }
 .ll-body { flex:1; display:flex; min-height:0; position:relative; }
+/* doc areas that continue below the frame fade out instead of chopping a heading */
+.ll-doc-fade { overflow:hidden; -webkit-mask-image:linear-gradient(#000 calc(100% - 36px), transparent); mask-image:linear-gradient(#000 calc(100% - 36px), transparent); }
 
 .ll-btn { height:32px; padding:0 14px; border-radius:8px; font-size:14px;
   display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
