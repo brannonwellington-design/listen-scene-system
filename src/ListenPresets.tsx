@@ -35,8 +35,8 @@ export const PRESETS: Preset[] = [
     props: { content: "compound", canvasHeight: 360, pattern: "crosshairs", patternSpacing: 48, radius: 16, segStart: 1200, segEnd: 9000, loopPause: 4 },
   },
   {
-    name: "EI report · dots",
-    props: { content: "ei-report", canvasHeight: 400, pattern: "dots", radius: 16, loopPause: 4 },
+    name: "EI hero report · dots",
+    props: { content: "ei-hero-report", canvasHeight: 400, pattern: "dots", radius: 16, loopPause: 4 },
   },
   {
     name: "AI moderator · circles",
@@ -56,16 +56,16 @@ export const PRESETS: Preset[] = [
     props: { content: "live-interview-card", canvasHeight: 320, pattern: "circles", patternSpacing: 32, padX: 44, padY: 36, radius: 16, loopPause: 4 },
   },
   {
-    name: "EI visual · dots",
-    props: { content: "ei-visual-card", canvasHeight: 360, pattern: "dots", padX: 44, padY: 36, radius: 16, loopPause: 4 },
+    name: "EI signals · dots",
+    props: { content: "ei-feature-signals", canvasHeight: 360, pattern: "dots", padX: 44, padY: 36, radius: 16, loopPause: 4 },
   },
   {
-    name: "EI response · circles",
-    props: { content: "ei-response-card", canvasHeight: 360, pattern: "circles", patternSpacing: 36, padX: 44, padY: 36, radius: 16, loopPause: 4 },
+    name: "EI traceable · circles",
+    props: { content: "ei-feature-traceable", canvasHeight: 360, pattern: "circles", patternSpacing: 36, padX: 44, padY: 36, radius: 16, loopPause: 4 },
   },
   {
     name: "EI comparison · clean",
-    props: { content: "ei-comparison-card", canvasHeight: 360, radius: 16, padX: 44, padY: 36, loopPause: 4 },
+    props: { content: "ei-feature-comparison", canvasHeight: 360, radius: 16, padX: 44, padY: 36, loopPause: 4 },
   },
 ]
 

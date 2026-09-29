@@ -1,16 +1,18 @@
 // SceneCanvas — the universal live product-shot component.
-// One Framer component, two personalities:
-//   variant="hero"    → multi-stage How-It-Works (auto-cycle, stage rail, scrubber)
-//   variant="callout" → a single scene, fragment, or custom crop of a scene
-// Every instance gets the canvas system: surface-secondary container, optional
-// background pattern, and a fit engine (responsive scaling vs corner-pinned
-// native pixels with masking + optional small-screen fallback).
+// One Framer component, two layouts:
+//   layout="single"     → one product shot: a scene, fragment, or custom crop
+//   layout="multi-step" → a sequence of shots in one frame, cycling, with a
+//                         caption rail under it (title + body per step)
+// Both layouts share the same canvas system: surface-secondary container,
+// optional background pattern, and a fit engine (responsive scaling vs
+// corner-pinned native pixels with masking + optional small-screen fallback).
+// Multi-step is literally the single layout per step, plus the rail.
 import * as React from "react"
 import { addPropertyControls, ControlType } from "framer"
 import {
-  T, ScaleBox, PatternLayer, PatternType, ensureCss, FRAME_W, FRAME_H,
+  T, PatternLayer, PatternType, ensureCss,
 } from "./ListenKit"
-import { REGISTRY, STAGES, byKey, RegistryEntry } from "./ListenRegistry"
+import { REGISTRY, SEQUENCES, byKey, sequenceByKey, RegistryEntry, Step } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
 import { PRESETS, getPreset, presetNames } from "./ListenPresets"
 import { I } from "./ListenIcons"
@@ -38,14 +40,16 @@ export const anchorAxes = (a: Anchor): { v: "top" | "center" | "bottom"; h: "lef
 }
 
 export type SceneCanvasProps = {
-  variant?: "hero" | "callout"
+  layout?: "single" | "multi-step"
   /** apply a named composition from ListenPresets; touched controls override */
   preset?: string
-  // hero
+  // multi-step: a named sequence from the registry, or "custom" to use `steps`
+  sequence?: string
+  steps?: Step[]
   autoCycle?: boolean
   resumeDelay?: number
   scrubber?: boolean
-  // callout content: any registry key (scene or fragment), or "custom" to
+  // single content: any registry key (scene or fragment), or "custom" to
   // crop a rect out of a scene
   content?: string
   customScene?: string
@@ -53,7 +57,7 @@ export type SceneCanvasProps = {
   cropY?: number
   cropW?: number
   cropH?: number
-  // callout playback
+  // single playback
   loop?: boolean
   loopPause?: number
   /** loop only a time-slice of the session (virtual ms); 0/0 = whole session */
@@ -86,6 +90,7 @@ export type SceneCanvasProps = {
 
 /** control defaults — single source for destructuring and preset merging */
 export const CANVAS_DEFAULTS = {
+  layout: "single" as "single" | "multi-step", sequence: "how-it-works",
   autoCycle: true, resumeDelay: 14, scrubber: false, maxWidth: 1200,
   content: "design-study", customScene: "design-study",
   cropX: 0, cropY: 0, cropW: 0, cropH: 0,
@@ -130,19 +135,21 @@ function ShotUnit(props: {
   )
 }
 
-// -------------------------------------------------------------- callout -----
-function Callout(props: typeof CANVAS_DEFAULTS & {
+// ---------------------------------------------------------------- single -----
+function Single(props: typeof CANVAS_DEFAULTS & {
   debugHold?: number
   debugPlayFrom?: number
   debugOnTime?: (t: number) => void
   debugCanvasRef?: React.Ref<HTMLDivElement>
+  /** multi-step hands control here: called when the shot finishes instead of looping */
+  onFinish?: () => void
 }): JSX.Element {
   const {
     content, customScene, cropX, cropY, cropW, cropH,
     loop, loopPause, segStart, segEnd,
     fit, anchor, insetX, insetY, zoom, smallBehavior, fitBelow, canvasHeight,
     pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius,
-    debugHold, debugPlayFrom, debugOnTime, debugCanvasRef,
+    debugHold, debugPlayFrom, debugOnTime, debugCanvasRef, onFinish,
   } = props
 
   const entry = byKey(content === "custom" ? customScene : content)
@@ -165,10 +172,11 @@ function Callout(props: typeof CANVAS_DEFAULTS & {
   const restartTimer = React.useRef<ReturnType<typeof setTimeout>>()
   React.useEffect(() => () => clearTimeout(restartTimer.current), [])
   const scheduleRestart = React.useCallback(() => {
+    if (onFinish) { onFinish(); return }
     if (!loop) return
     clearTimeout(restartTimer.current)
     restartTimer.current = setTimeout(() => setRunKey((k) => k + 1), loopPause * 1000)
-  }, [loop, loopPause])
+  }, [loop, loopPause, onFinish])
 
   const segment = segEnd > 0
   const onTime = React.useCallback((t: number) => {
@@ -241,7 +249,7 @@ function Callout(props: typeof CANVAS_DEFAULTS & {
   }
 
   // responsive: scale to width; when canvasHeight is set (>0) the container is
-  // fixed-height and the shot is contained + centered, so rows of callouts align
+  // fixed-height and the shot is contained + centered, so rows of shots align
   const fixedH = canvasHeight > 0
   const availH = fixedH ? canvasHeight - padY * 2 : Infinity
   const scale = availW > 0 ? Math.min(availW / rect.w, availH / rect.h) : 1
@@ -258,43 +266,35 @@ function Callout(props: typeof CANVAS_DEFAULTS & {
   )
 }
 
-// ----------------------------------------------------------------- hero -----
-function Hero(props: Required<Pick<SceneCanvasProps,
-  "autoCycle" | "resumeDelay" | "scrubber" | "maxWidth" |
-  "pattern" | "patternSpacing" | "patternOpacity" | "bgColor" | "padX" | "padY" | "radius">>): JSX.Element {
-  const { autoCycle, resumeDelay, scrubber, maxWidth, pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius } = props
+// ------------------------------------------------------------ multi-step -----
+function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[] }): JSX.Element {
+  const { sequence, autoCycle, resumeDelay, scrubber, maxWidth, steps: customSteps, ...canvas } = props
+  const steps = sequence === "custom" && customSteps?.length ? customSteps : sequenceByKey(sequence).steps
   const [index, setIndex] = React.useState(0)
   const [hovered, setHovered] = React.useState(-1)
   const [runKey, setRunKey] = React.useState(0)
-  const [inView, setInView] = React.useState(false)
   const [scrubOn, setScrubOn] = React.useState(false)
   const [scrubT, setScrubT] = React.useState(0)
   const [playStart, setPlayStart] = React.useState<number | null>(null)
   const scrubPlay = playStart != null
   const lastClick = React.useRef(0)
   const resumeTimer = React.useRef<ReturnType<typeof setTimeout>>()
-  const rootRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     if (scrubT >= 25000 && scrubPlay) setPlayStart(null)
   }, [scrubT, scrubPlay])
 
-  React.useEffect(() => {
-    const el = rootRef.current
-    if (!el || typeof IntersectionObserver === "undefined") { setInView(true); return }
-    const io = new IntersectionObserver((e) => setInView(e[0].isIntersecting), { threshold: 0.25 })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-
   React.useEffect(() => () => clearTimeout(resumeTimer.current), [])
 
-  const advance = React.useCallback(() => {
-    setIndex((i) => (i + 1) % STAGES.length)
-    setRunKey((k) => k + 1)
-  }, [])
+  // a shorter custom list can leave the index past the end
+  const at = index % steps.length
 
-  const onSceneDone = React.useCallback(() => {
+  const advance = React.useCallback(() => {
+    setIndex((i) => (i + 1) % steps.length)
+    setRunKey((k) => k + 1)
+  }, [steps.length])
+
+  const onStepDone = React.useCallback(() => {
     if (scrubOn) return
     if (!autoCycle) return
     const idleMs = resumeDelay * 1000
@@ -304,7 +304,7 @@ function Hero(props: Required<Pick<SceneCanvasProps,
     else resumeTimer.current = setTimeout(advance, idleMs - sinceClick)
   }, [scrubOn, autoCycle, resumeDelay, advance])
 
-  const onStageClick = (i: number) => {
+  const onStepClick = (i: number) => {
     lastClick.current = Date.now()
     clearTimeout(resumeTimer.current)
     setIndex(i)
@@ -320,12 +320,10 @@ function Hero(props: Required<Pick<SceneCanvasProps,
     setRunKey((k) => k + 1)
   }
 
-  const entry = STAGES[index]
-  const Scene = entry.Scene
   const btn: React.CSSProperties = { border: `1px solid ${T.brandFaint}`, borderRadius: 6, padding: "3px 10px", background: "transparent", cursor: "pointer", font: "inherit", fontSize: 12 }
 
   return (
-    <div ref={rootRef} className="ll" style={{ width: "100%", maxWidth, margin: "0 auto" }}>
+    <div className="ll" style={{ width: "100%", maxWidth, margin: "0 auto" }}>
       {scrubber && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, fontSize: 12, color: T.inkSoft }}>
           {!scrubOn ? (
@@ -349,35 +347,30 @@ function Hero(props: Required<Pick<SceneCanvasProps,
           )}
         </div>
       )}
-      {/* surface-secondary container housing the product frame */}
-      <div style={{ position: "relative", overflow: "hidden", background: bgColor, borderRadius: radius, padding: `${padY}px ${padX}px` }}>
-        <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
-        <div key={index + "-" + runKey} className={scrubOn && !scrubPlay ? "ll-noanim" : scrubOn ? undefined : "ll-scene-fade"} style={{ position: "relative" }}>
-          <ScaleBox designWidth={FRAME_W} designHeight={FRAME_H}>
-            <Scene
-              active={inView}
-              onDone={onSceneDone}
-              runKey={runKey}
-              hold={scrubOn && !scrubPlay ? scrubT : undefined}
-              playFrom={scrubOn && scrubPlay ? playStart! : undefined}
-              onTime={scrubOn ? setScrubT : undefined}
-            />
-          </ScaleBox>
-        </div>
+      {/* each step is the single layout, remounted per step so it fades in fresh;
+          steps always play whole (no loop, no segment) and report back to advance */}
+      <div className={scrubOn && !scrubPlay ? "ll-noanim" : undefined}>
+        <Single key={at + "-" + runKey} {...canvas}
+          content={steps[at].content} loop={false} segStart={0} segEnd={0}
+          onFinish={onStepDone}
+          debugHold={scrubOn && !scrubPlay ? scrubT : undefined}
+          debugPlayFrom={scrubOn && scrubPlay ? playStart! : undefined}
+          debugOnTime={scrubOn ? setScrubT : undefined}
+        />
       </div>
       <div style={{ display: "flex", gap: 32, marginTop: 28, alignItems: "flex-start" }}>
-        {STAGES.map((s, i) => {
-          const on = i === index || i === hovered
+        {steps.map((s, i) => {
+          const on = i === at || i === hovered
           return (
-            <button key={s.key} onClick={() => onStageClick(i)}
+            <button key={i} onClick={() => onStepClick(i)}
               onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(-1)}
               style={{ flex: 1, textAlign: "left", display: "block", minWidth: 0, background: "none", border: "none", cursor: "pointer", font: "inherit", padding: 0 }}
-              aria-pressed={i === index}>
+              aria-pressed={i === at}>
               <span style={{ display: "block", fontSize: 20, lineHeight: 1.3, color: on ? T.brand : T.brandFaint, transition: "color .3s" }}>
-                {s.stage!.title}
+                {s.title}
               </span>
               <span style={{ display: "block", fontSize: 15, lineHeight: 1.6, marginTop: 12, color: on ? T.brand : T.brandFaint, transition: "color .3s" }}>
-                {s.stage!.body}
+                {s.body}
               </span>
             </button>
           )
@@ -394,15 +387,11 @@ function Hero(props: Required<Pick<SceneCanvasProps,
  */
 export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   ensureCss()
-  const variant = props.variant ?? "callout"
   const merged = mergePreset(props)
 
-  if (variant === "hero") {
-    const { autoCycle, resumeDelay, scrubber, maxWidth, pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius } = merged
-    return <Hero {...{ autoCycle, resumeDelay, scrubber, maxWidth, pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius }} />
-  }
+  if (merged.layout === "multi-step") return <MultiStep {...merged} steps={props.steps} />
   return (
-    <Callout {...merged}
+    <Single {...merged}
       debugHold={props.debugHold}
       debugPlayFrom={props.debugPlayFrom}
       debugOnTime={props.debugOnTime}
@@ -411,38 +400,53 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   )
 }
 
-const isCallout = (p: SceneCanvasProps) => (p.variant ?? "callout") !== "hero"
-const isHero = (p: SceneCanvasProps) => (p.variant ?? "callout") === "hero"
+const isSingle = (p: SceneCanvasProps) => (p.layout ?? "single") === "single"
+const isMulti = (p: SceneCanvasProps) => p.layout === "multi-step"
+const stepContentKeys = REGISTRY.map((e) => e.key)
+const stepContentTitles = REGISTRY.map((e) => e.title)
 
 addPropertyControls(SceneCanvas, {
-  variant: { type: ControlType.Enum, title: "Variant", options: ["hero", "callout"], optionTitles: ["Hero (stages)", "Callout (single)"], defaultValue: "callout" },
-  preset: { type: ControlType.Enum, title: "Preset", options: ["custom", ...presetNames()], defaultValue: "custom", hidden: isHero },
-  // hero
-  autoCycle: { type: ControlType.Boolean, title: "Auto-cycle", defaultValue: true, hidden: isCallout },
-  resumeDelay: { type: ControlType.Number, title: "Resume after (s)", defaultValue: 14, min: 4, max: 60, step: 1, hidden: isCallout },
-  scrubber: { type: ControlType.Boolean, title: "Scrubber (dev)", defaultValue: false, hidden: isCallout },
-  maxWidth: { type: ControlType.Number, title: "Max width", defaultValue: 1200, min: 640, max: 1600, step: 10, hidden: isCallout },
-  // callout content — one unified list (scenes + fragments) plus custom crop
-  content: { type: ControlType.Enum, title: "Content", options: [...REGISTRY.map((e) => e.key), "custom"], optionTitles: [...REGISTRY.map((e) => e.title), "Custom crop…"], defaultValue: "design-study", hidden: isHero },
-  customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), optionTitles: REGISTRY.map((e) => e.title), hidden: (p) => isHero(p) || p.content !== "custom" },
-  cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isHero(p) || p.content !== "custom" },
-  cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: 640, hidden: (p) => isHero(p) || p.content !== "custom" },
-  cropW: { type: ControlType.Number, title: "Crop W (0=full)", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isHero(p) || p.content !== "custom" },
-  cropH: { type: ControlType.Number, title: "Crop H", defaultValue: 0, min: 0, max: 640, hidden: (p) => isHero(p) || p.content !== "custom" },
-  // callout playback
-  loop: { type: ControlType.Boolean, title: "Loop", defaultValue: true, hidden: isHero },
-  loopPause: { type: ControlType.Number, title: "Loop pause (s)", defaultValue: 3, min: 0, max: 20, step: 0.5, hidden: isHero },
-  segStart: { type: ControlType.Number, title: "Segment start (ms)", defaultValue: 0, min: 0, max: 25000, step: 100, hidden: isHero },
-  segEnd: { type: ControlType.Number, title: "Segment end (ms)", defaultValue: 0, min: 0, max: 25000, step: 100, hidden: isHero },
-  // fit
-  fit: { type: ControlType.Enum, title: "Fit", options: ["responsive", "pinned"], optionTitles: ["Responsive scale", "Pinned (mask)"], defaultValue: "responsive", hidden: isHero },
-  anchor: { type: ControlType.Enum, title: "Anchor", options: ANCHORS, optionTitles: ["Top left", "Top center", "Top right", "Left center", "Center", "Right center", "Bottom left", "Bottom center", "Bottom right"], defaultValue: "top-left", hidden: (p) => isHero(p) || p.fit !== "pinned" },
-  insetX: { type: ControlType.Number, title: "Inset X", defaultValue: 40, min: 0, max: 200, hidden: (p) => isHero(p) || p.fit !== "pinned" },
-  insetY: { type: ControlType.Number, title: "Inset Y", defaultValue: 40, min: 0, max: 200, hidden: (p) => isHero(p) || p.fit !== "pinned" },
-  zoom: { type: ControlType.Number, title: "Shot zoom", defaultValue: 1, min: 0.5, max: 2, step: 0.05, hidden: (p) => isHero(p) || p.fit !== "pinned" },
-  canvasHeight: { type: ControlType.Number, title: "Canvas height (0=auto)", defaultValue: 0, min: 0, max: 1200, hidden: isHero },
-  smallBehavior: { type: ControlType.Enum, title: "When small", options: ["fit", "mask"], optionTitles: ["Fall back to fit", "Keep masking"], defaultValue: "fit", hidden: (p) => isHero(p) || p.fit !== "pinned" },
-  fitBelow: { type: ControlType.Number, title: "Fall back below (px)", defaultValue: 480, min: 240, max: 900, hidden: (p) => isHero(p) || p.fit !== "pinned" || p.smallBehavior !== "fit" },
+  layout: { type: ControlType.Enum, title: "Layout", options: ["single", "multi-step"], optionTitles: ["Single", "Multi-step"], defaultValue: "single", displaySegmentedControl: true },
+  preset: { type: ControlType.Enum, title: "Preset", options: ["custom", ...presetNames()], defaultValue: "custom" },
+  // multi-step — a named sequence, or a custom list of shots + captions
+  sequence: { type: ControlType.Enum, title: "Sequence", options: [...SEQUENCES.map((s) => s.key), "custom"], optionTitles: [...SEQUENCES.map((s) => s.title), "Custom steps…"], defaultValue: "how-it-works", hidden: isSingle },
+  steps: {
+    type: ControlType.Array, title: "Steps", maxCount: 8,
+    control: {
+      type: ControlType.Object,
+      controls: {
+        content: { type: ControlType.Enum, title: "Shot", options: stepContentKeys, optionTitles: stepContentTitles, defaultValue: "design-study" },
+        title: { type: ControlType.String, title: "Title", defaultValue: "Step title" },
+        body: { type: ControlType.String, title: "Body", defaultValue: "", displayTextArea: true },
+      },
+    },
+    hidden: (p) => !isMulti(p) || p.sequence !== "custom",
+  },
+  autoCycle: { type: ControlType.Boolean, title: "Auto-cycle", defaultValue: true, hidden: isSingle },
+  resumeDelay: { type: ControlType.Number, title: "Resume after (s)", defaultValue: 14, min: 4, max: 60, step: 1, hidden: isSingle },
+  scrubber: { type: ControlType.Boolean, title: "Scrubber (dev)", defaultValue: false, hidden: isSingle },
+  maxWidth: { type: ControlType.Number, title: "Max width", defaultValue: 1200, min: 640, max: 1600, step: 10, hidden: isSingle },
+  // single content — one unified list (scenes + fragments) plus custom crop
+  content: { type: ControlType.Enum, title: "Content", options: [...REGISTRY.map((e) => e.key), "custom"], optionTitles: [...REGISTRY.map((e) => e.title), "Custom crop…"], defaultValue: "design-study", hidden: isMulti },
+  customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), optionTitles: REGISTRY.map((e) => e.title), hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: 640, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropW: { type: ControlType.Number, title: "Crop W (0=full)", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropH: { type: ControlType.Number, title: "Crop H", defaultValue: 0, min: 0, max: 640, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  // single playback (multi-step steps always play whole, then advance)
+  loop: { type: ControlType.Boolean, title: "Loop", defaultValue: true, hidden: isMulti },
+  loopPause: { type: ControlType.Number, title: "Loop pause (s)", defaultValue: 3, min: 0, max: 20, step: 0.5, hidden: isMulti },
+  segStart: { type: ControlType.Number, title: "Segment start (ms)", defaultValue: 0, min: 0, max: 25000, step: 100, hidden: isMulti },
+  segEnd: { type: ControlType.Number, title: "Segment end (ms)", defaultValue: 0, min: 0, max: 25000, step: 100, hidden: isMulti },
+  // fit — shared by both layouts
+  fit: { type: ControlType.Enum, title: "Fit", options: ["responsive", "pinned"], optionTitles: ["Responsive scale", "Pinned (mask)"], defaultValue: "responsive" },
+  anchor: { type: ControlType.Enum, title: "Anchor", options: ANCHORS, optionTitles: ["Top left", "Top center", "Top right", "Left center", "Center", "Right center", "Bottom left", "Bottom center", "Bottom right"], defaultValue: "top-left", hidden: (p) => p.fit !== "pinned" },
+  insetX: { type: ControlType.Number, title: "Inset X", defaultValue: 40, min: 0, max: 200, hidden: (p) => p.fit !== "pinned" },
+  insetY: { type: ControlType.Number, title: "Inset Y", defaultValue: 40, min: 0, max: 200, hidden: (p) => p.fit !== "pinned" },
+  zoom: { type: ControlType.Number, title: "Shot zoom", defaultValue: 1, min: 0.5, max: 2, step: 0.05, hidden: (p) => p.fit !== "pinned" },
+  canvasHeight: { type: ControlType.Number, title: "Canvas height (0=auto)", defaultValue: 0, min: 0, max: 1200 },
+  smallBehavior: { type: ControlType.Enum, title: "When small", options: ["fit", "mask"], optionTitles: ["Fall back to fit", "Keep masking"], defaultValue: "fit", hidden: (p) => p.fit !== "pinned" },
+  fitBelow: { type: ControlType.Number, title: "Fall back below (px)", defaultValue: 480, min: 240, max: 900, hidden: (p) => p.fit !== "pinned" || p.smallBehavior !== "fit" },
   // canvas
   pattern: { type: ControlType.Enum, title: "Pattern", options: ["none", "dots", "grid", "circles", "crosshairs"], defaultValue: "none" },
   patternSpacing: { type: ControlType.Number, title: "Pattern spacing", defaultValue: 16, min: 8, max: 120, step: 4, hidden: (p) => p.pattern === "none" },
