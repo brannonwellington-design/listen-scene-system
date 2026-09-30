@@ -81,6 +81,23 @@ key says where the shot goes. The Emotional Intelligence page
 Fragments are the same, just authored at their own design size — export the
 component plus `_W`/`_H` constants and register them.
 
+## Interview webcam clip
+
+Step 3's webcam tile plays a real clip, and the recording visualizer is
+driven by that clip's own loudness, so mouth and dots stay in sync (live,
+while scrubbing, and in freeze-frames: the video follows the recording clock).
+
+```bash
+python3 scripts/prep-interview-clip.py video/answer.mov --start 1.2 --end 7.8
+```
+
+Record 6–8s of someone answering the on-screen question, face centered, in a
+quiet room. The script (needs ffmpeg) writes `media/interview-clip.mp4` (240px
+square, muted) and `src/ListenClip.tsx` (loudness per 30ms). The recording
+beat lasts exactly as long as the trimmed clip. `--placeholder` generates a
+synthetic stand-in; `INTERVIEW_CLIP.placeholder` says which one is live. In
+Framer, upload the MP4 as an asset and set `INTERVIEW_CLIP.src` to its URL.
+
 ## Local development
 
 ```bash

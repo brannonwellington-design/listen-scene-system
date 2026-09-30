@@ -12,6 +12,7 @@ import {
   AppShell, workspaceNav, studyEditNav, studyNav, chatNav,
 } from "./ListenKit"
 import { I } from "./ListenIcons"
+import { INTERVIEW_CLIP } from "./ListenClip"
 
 export type SceneProps = {
   active: boolean
@@ -657,14 +658,49 @@ const IV_EDGE = 18                   // 24px bottom / right margins
 const IV_CAM = 89                    // 120px webcam tile on question screens
 const IV_Q_FONT = { fontSize: 17.8, lineHeight: "24.9px", letterSpacing: -0.36 } // 24/33.6, -0.48
 const IV_PROGRESS = 0.3              // progress bar fill, this far into the study
+// webcam tile (bottom right) with the participant clip. Off for now: the
+// recording visualizer carries the moment. Flip to true to bring it back —
+// the clip, its sync, and the prep script are all still wired up.
+const IV_SHOW_CAM = false
 const IV_RED = "#DC2626"
 const IV_QUESTION = "What do you think the company or service being advertised actually does? What is it offering?"
 // verbatim moderator follow-up from the general-population Billboard Ad Test, respondent 6
 const IV_FOLLOWUP = "How confident are you in that understanding? Is there anything about the ad that leaves you uncertain about what they actually do?"
 const IV_WORDS = IV_FOLLOWUP.split(" ")
 const IV_WORD_MS = 95
-const IV_REC_SECS = 6
+// the recording beat lasts exactly as long as the webcam clip
+const IV_REC_MS = Math.round(INTERVIEW_CLIP.durationMs / 30) * 30
 const IV_TICK = 30                   // ms per grid column (scrollMs), and the script's tick
+
+// --- Webcam clip: slaved to the recording clock (not the other way round), so
+// the participant's mouth and the dot grid can never drift apart. Live, it plays
+// and eases its rate (±15%) toward the clock — the scene's 30ms ticks run a hair
+// slow — seeking only past 300ms; scrubbing and freeze-frames seek exactly.
+function ClipVideo({ t, playing }: { t: number; playing: boolean }): JSX.Element {
+  const ref = React.useRef<HTMLVideoElement>(null)
+  const [ready, setReady] = React.useState(false)
+  React.useEffect(() => {
+    const v = ref.current
+    if (!v || !ready) return
+    const target = Math.min(t, INTERVIEW_CLIP.durationMs - 40) / 1000
+    // at the tail, hold the last frame (play() on an ended video would restart it)
+    const atEnd = v.ended || target >= INTERVIEW_CLIP.durationMs / 1000 - 0.1
+    if (playing && !atEnd) {
+      const drift = target - v.currentTime
+      if (Math.abs(drift) > 0.3) v.currentTime = target
+      v.playbackRate = Math.max(0.85, Math.min(1.15, 1 + drift * 2))
+      if (v.paused) v.play().catch(() => {})
+    } else {
+      if (!v.paused) v.pause()
+      if (Math.abs(v.currentTime - target) > 0.02) v.currentTime = target
+    }
+  }, [t, playing, ready])
+  return (
+    <video ref={ref} src={INTERVIEW_CLIP.src} muted playsInline preload="auto"
+      onLoadedData={() => setReady(true)} onError={() => setReady(false)}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: ready ? 1 : 0, transition: "opacity .3s ease" }} />
+  )
+}
 
 // --- Speech dot grid — port of brannonwellington-design/audio-visualizer
 // (DotGridVisualizer, "chronological" view, binary dots) at its defaults:
@@ -699,7 +735,21 @@ function buildSyllables(seed: number, totalMs: number): Syllable[] {
 }
 const DG_SYLLABLES = buildSyllables(7, 12000)
 const DG_ATTACK = 12, DG_RELEASE = 110
+// real loudness from the webcam clip (scripts/prep-interview-clip.py): one
+// value per 30ms, linearly interpolated; the synthetic envelope below is the
+// fallback when no clip is present
+const CLIP_LEVELS: number[] = (INTERVIEW_CLIP.levels.match(/\d\d/g) ?? []).map((d) => +d / 99)
+function clipLevel(t: number): number {
+  const f = t / INTERVIEW_CLIP.frameMs
+  const i = Math.floor(f)
+  if (i < 0 || i >= CLIP_LEVELS.length) return 0
+  const a = CLIP_LEVELS[i], b = CLIP_LEVELS[Math.min(i + 1, CLIP_LEVELS.length - 1)]
+  const v = a + (b - a) * (f - i)
+  return v < 0.03 ? 0 : v
+}
+
 function speechLevel(t: number): number {
+  if (CLIP_LEVELS.length) return clipLevel(t)
   let v = 0
   for (const s of DG_SYLLABLES) {
     if (t < s.at) break
@@ -782,7 +832,7 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
     await p.sleep(750)
     cur.click(1); await p.sleep(250)
     setPhase("recording"); cur.hide()
-    for (let i = 1; i <= (IV_REC_SECS * 1000) / IV_TICK; i++) { await p.sleep(IV_TICK); setRecT(i * IV_TICK) }
+    for (let i = 1; i <= IV_REC_MS / IV_TICK; i++) { await p.sleep(IV_TICK); setRecT(i * IV_TICK) }
     cur.show("iv-submit", -120, -90)
     await p.sleep(300)
     cur.move("iv-submit")
@@ -855,12 +905,16 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
           )}
         </div>
 
-        {/* webcam tile */}
-        <div style={{ position: "absolute", right: IV_EDGE, bottom: IV_EDGE, width: IV_CAM, height: IV_CAM, borderRadius: 6, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
-          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
-          <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 30, height: 30, fontSize: 13 }}>M</span>
-          {recording && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: IV_RED }} />}
-        </div>
+        {/* webcam tile (see IV_SHOW_CAM) */}
+        {IV_SHOW_CAM && (
+          <div style={{ position: "absolute", right: IV_EDGE, bottom: IV_EDGE, width: IV_CAM, height: IV_CAM, borderRadius: 6, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
+            <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 30, height: 30, fontSize: 13 }}>M</span>
+            {/* the participant: the clip covers the fallback avatar once it loads */}
+            <ClipVideo t={phase === "idle" ? 0 : recording ? recT : IV_REC_MS} playing={recording && hold == null && active} />
+            {recording && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: IV_RED }} />}
+          </div>
+        )}
 
       </div>
     </BareFrame>
