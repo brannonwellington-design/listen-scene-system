@@ -57,6 +57,9 @@ export type SceneCanvasProps = {
   cropY?: number
   cropW?: number
   cropH?: number
+  // app-shell scenes: how the product chrome starts (visitors can change it)
+  startCollapsed?: boolean
+  startTheme?: "light" | "dark"
   // single playback
   loop?: boolean
   loopPause?: number
@@ -95,8 +98,9 @@ export const CANVAS_DEFAULTS = {
   content: "design-study", customScene: "design-study",
   cropX: 0, cropY: 0, cropW: 0, cropH: 0,
   loop: true, loopPause: 3, segStart: 0, segEnd: 0,
+  startCollapsed: false, startTheme: "light" as "light" | "dark",
   fit: "responsive" as const, anchor: "top-left" as Anchor, insetX: 40, insetY: 40,
-  zoom: 1, smallBehavior: "fit" as const, fitBelow: 480, canvasHeight: 0,
+  zoom: 0.5, smallBehavior: "fit" as const, fitBelow: 480, canvasHeight: 0,
   pattern: "none" as PatternType, patternSpacing: 16, patternOpacity: 1,
   bgColor: T.pageContainer, padX: 56, padY: 44, radius: 0,
 }
@@ -391,7 +395,7 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   // one set of shell preferences (sidebar collapse, dark mode) per canvas, so
   // a visitor's choice survives loop restarts and step changes (each remounts
   // the scene)
-  const prefs = useShellPrefs()
+  const prefs = useShellPrefs({ collapsed: merged.startCollapsed, dark: merged.startTheme === "dark" })
 
   return (
     <ShellPrefs.Provider value={prefs}>
@@ -415,9 +419,15 @@ const stepContentKeys = REGISTRY.map((e) => e.key)
 const stepContentTitles = REGISTRY.map((e) => e.title)
 
 addPropertyControls(SceneCanvas, {
+  // 1 content
   layout: { type: ControlType.Enum, title: "Layout", options: ["single", "multi-step"], optionTitles: ["Single", "Multi-step"], defaultValue: "single", displaySegmentedControl: true },
   preset: { type: ControlType.Enum, title: "Preset", options: ["custom", ...presetNames()], defaultValue: "custom" },
-  // multi-step — a named sequence, or a custom list of shots + captions
+  content: { type: ControlType.Enum, title: "Shot", options: [...REGISTRY.map((e) => e.key), "custom"], optionTitles: [...REGISTRY.map((e) => e.title), "Custom crop…"], defaultValue: "design-study", hidden: isMulti },
+  customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), optionTitles: REGISTRY.map((e) => e.title), hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: APP_W, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: APP_H, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropW: { type: ControlType.Number, title: "Crop W (0=full)", defaultValue: 0, min: 0, max: APP_W, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropH: { type: ControlType.Number, title: "Crop H", defaultValue: 0, min: 0, max: APP_H, hidden: (p) => isMulti(p) || p.content !== "custom" },
   sequence: { type: ControlType.Enum, title: "Sequence", options: [...SEQUENCES.map((s) => s.key), "custom"], optionTitles: [...SEQUENCES.map((s) => s.title), "Custom steps…"], defaultValue: "how-it-works", hidden: isSingle },
   steps: {
     type: ControlType.Array, title: "Steps", maxCount: 8,
@@ -431,32 +441,28 @@ addPropertyControls(SceneCanvas, {
     },
     hidden: (p) => !isMulti(p) || p.sequence !== "custom",
   },
-  autoCycle: { type: ControlType.Boolean, title: "Auto-cycle", defaultValue: true, hidden: isSingle },
-  resumeDelay: { type: ControlType.Number, title: "Resume after (s)", defaultValue: 14, min: 4, max: 60, step: 1, hidden: isSingle },
-  scrubber: { type: ControlType.Boolean, title: "Scrubber (dev)", defaultValue: false, hidden: isSingle },
-  maxWidth: { type: ControlType.Number, title: "Max width", defaultValue: 1200, min: 640, max: 1600, step: 10, hidden: isSingle },
-  // single content — one unified list (scenes + fragments) plus custom crop
-  content: { type: ControlType.Enum, title: "Content", options: [...REGISTRY.map((e) => e.key), "custom"], optionTitles: [...REGISTRY.map((e) => e.title), "Custom crop…"], defaultValue: "design-study", hidden: isMulti },
-  customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), optionTitles: REGISTRY.map((e) => e.title), hidden: (p) => isMulti(p) || p.content !== "custom" },
-  cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: APP_W, hidden: (p) => isMulti(p) || p.content !== "custom" },
-  cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: APP_H, hidden: (p) => isMulti(p) || p.content !== "custom" },
-  cropW: { type: ControlType.Number, title: "Crop W (0=full)", defaultValue: 0, min: 0, max: APP_W, hidden: (p) => isMulti(p) || p.content !== "custom" },
-  cropH: { type: ControlType.Number, title: "Crop H", defaultValue: 0, min: 0, max: APP_H, hidden: (p) => isMulti(p) || p.content !== "custom" },
-  // single playback (multi-step steps always play whole, then advance)
+  // 2 playback — single loops (optionally a time-slice); multi-step steps play whole, then advance
   loop: { type: ControlType.Boolean, title: "Loop", defaultValue: true, hidden: isMulti },
   loopPause: { type: ControlType.Number, title: "Loop pause (s)", defaultValue: 3, min: 0, max: 20, step: 0.5, hidden: isMulti },
   segStart: { type: ControlType.Number, title: "Segment start (ms)", defaultValue: 0, min: 0, max: 25000, step: 100, hidden: isMulti },
   segEnd: { type: ControlType.Number, title: "Segment end (ms)", defaultValue: 0, min: 0, max: 25000, step: 100, hidden: isMulti },
-  // fit — shared by both layouts
-  fit: { type: ControlType.Enum, title: "Fit", options: ["responsive", "pinned"], optionTitles: ["Responsive scale", "Pinned (mask)"], defaultValue: "responsive" },
+  autoCycle: { type: ControlType.Boolean, title: "Auto-advance", defaultValue: true, hidden: isSingle },
+  resumeDelay: { type: ControlType.Number, title: "Pause after click (s)", defaultValue: 14, min: 4, max: 60, step: 1, hidden: isSingle },
+  scrubber: { type: ControlType.Boolean, title: "Scrubber (dev)", defaultValue: false, hidden: isSingle },
+  // 3 scene state — how app-shell scenes start (visitors can change it)
+  startCollapsed: { type: ControlType.Boolean, title: "Sidebar", enabledTitle: "Collapsed", disabledTitle: "Open", defaultValue: false },
+  startTheme: { type: ControlType.Enum, title: "Theme", options: ["light", "dark"], optionTitles: ["Light", "Dark"], defaultValue: "light", displaySegmentedControl: true },
+  // 4 framing — shared by both layouts
+  fit: { type: ControlType.Enum, title: "Framing", options: ["responsive", "pinned"], optionTitles: ["Scale to fit", "Pin"], defaultValue: "responsive", displaySegmentedControl: true },
   anchor: { type: ControlType.Enum, title: "Anchor", options: ANCHORS, optionTitles: ["Top left", "Top center", "Top right", "Left center", "Center", "Right center", "Bottom left", "Bottom center", "Bottom right"], defaultValue: "top-left", hidden: (p) => p.fit !== "pinned" },
   insetX: { type: ControlType.Number, title: "Inset X", defaultValue: 40, min: 0, max: 200, hidden: (p) => p.fit !== "pinned" },
   insetY: { type: ControlType.Number, title: "Inset Y", defaultValue: 40, min: 0, max: 200, hidden: (p) => p.fit !== "pinned" },
-  zoom: { type: ControlType.Number, title: "Shot zoom", defaultValue: 1, min: 0.5, max: 2, step: 0.05, hidden: (p) => p.fit !== "pinned" },
-  canvasHeight: { type: ControlType.Number, title: "Canvas height (0=auto)", defaultValue: 0, min: 0, max: 1200 },
-  smallBehavior: { type: ControlType.Enum, title: "When small", options: ["fit", "mask"], optionTitles: ["Fall back to fit", "Keep masking"], defaultValue: "fit", hidden: (p) => p.fit !== "pinned" },
+  zoom: { type: ControlType.Number, title: "Shot zoom", defaultValue: 0.5, min: 0.3, max: 2, step: 0.05, hidden: (p) => p.fit !== "pinned" },
+  smallBehavior: { type: ControlType.Enum, title: "Small screens", options: ["fit", "mask"], optionTitles: ["Scale to fit", "Keep pinned"], defaultValue: "fit", hidden: (p) => p.fit !== "pinned" },
   fitBelow: { type: ControlType.Number, title: "Fall back below (px)", defaultValue: 480, min: 240, max: 900, hidden: (p) => p.fit !== "pinned" || p.smallBehavior !== "fit" },
-  // canvas
+  canvasHeight: { type: ControlType.Number, title: "Height (0 = auto)", defaultValue: 0, min: 0, max: 1200 },
+  maxWidth: { type: ControlType.Number, title: "Max width", defaultValue: 1200, min: 640, max: 1600, step: 10, hidden: isSingle },
+  // 5 canvas
   pattern: { type: ControlType.Enum, title: "Pattern", options: ["none", "dots", "grid", "circles", "crosshairs"], defaultValue: "none" },
   patternSpacing: { type: ControlType.Number, title: "Pattern spacing", defaultValue: 16, min: 8, max: 120, step: 4, hidden: (p) => p.pattern === "none" },
   patternOpacity: { type: ControlType.Number, title: "Pattern opacity", defaultValue: 1, min: 0.05, max: 1, step: 0.05, hidden: (p) => p.pattern === "none" },

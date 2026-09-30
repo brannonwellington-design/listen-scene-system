@@ -21,17 +21,23 @@ ready to paste into **Framer**.
 1. In Framer: **Assets → Code → Create Code File**, named exactly:
    - `ListenKit.tsx`, `ListenIcons.tsx`, `ListenScenes.tsx`, `ListenRegistry.tsx` — paste from `src/`
 2. **Create Code Component**: `SceneCanvas.tsx` — paste from `src/`
-3. Drag **SceneCanvas** anywhere. The properties panel drives everything:
-   - **Layout**: Single ⇄ Multi-step. The only difference is whether more
-     than one shot plays in the frame; multi-step adds the caption rail
-   - **Content** (single): one unified list of every scene and fragment,
-     or `Custom crop…` with your own rect into any scene
-   - **Sequence** (multi-step): a named sequence such as How it works, or
-     `Custom steps…` to list shots with your own title + body
-   - **Fit**: responsive, or pinned to a corner with insets (e.g. 40/40
-     top-left) while the container masks; per-instance small-screen behavior
-   - **Canvas**: fill color, pattern (dots / grid / circles / crosshairs),
-     spacing, opacity, padding, radius
+3. Drag **SceneCanvas** anywhere. The properties panel follows the order you
+   build a shot in (the workbench rail uses the same five groups):
+   1. **Content** — Layout: Single ⇄ Multi-step (the only difference is
+      whether more than one shot plays in the frame; multi-step adds the
+      caption rail). Single picks a **Shot** from one unified list of scenes
+      and fragments, or `Custom crop…` into any scene; multi-step picks a
+      **Sequence** such as How it works, or `Custom steps…` (shot + title +
+      body each).
+   2. **Playback** — single: loop, pause, and an optional time-slice
+      (segment start/end); multi-step: auto-advance and the pause after a
+      visitor clicks a step.
+   3. **Scene state** — how app-shell scenes start: sidebar open or
+      collapsed, light or dark theme. Visitors can still change both.
+   4. **Framing** — scale to fit, or pin to a corner with insets and zoom
+      while the container masks; small-screen fallback; auto or fixed height.
+   5. **Canvas** — fill color, pattern (dots / grid / circles / crosshairs),
+      spacing, opacity, padding, radius.
 
 The `import { addPropertyControls, ControlType } from "framer"` lines resolve
 natively inside Framer. Locally they're aliased to `src/framer-stub.ts`.
@@ -95,13 +101,15 @@ node scripts/dev-server.mjs   # → http://localhost:4173
 - `/?scene=design-study&hold=9700&frame=1` adds the **crop helper**:
   drag a box over the frozen scene to read off a crop rect in design
   coordinates, ready for SceneCanvas's custom crop controls.
-- `/` (the landing page) is the **composition workbench**: tune every SceneCanvas
-  setting live (content, crop, fit, pattern, fill, padding, segment beat)
-  with direct manipulation — drag the canvas to reposition a pinned shot,
-  scroll to zoom, drag-resize the crop over a ghosted scene, punch segment
-  in/out from the scrub playhead — preview at any width/breakpoint, then
-  save as a named preset (localStorage draft + copy-paste TS block for
-  `ListenPresets.tsx`). Presets appear in SceneCanvas's Framer dropdown.
+- `/` (the landing page) is the **composition workbench**. Its right rail
+  starts with the preset (load one — an *edited* tag shows drift — then
+  **Save as…** a browser draft or **Export** a preset block / JSX to paste
+  into `ListenPresets.tsx`), followed by the same five groups as Framer:
+  Content, Playback, Scene state, Framing, Canvas. Direct manipulation on
+  the stage: drag the canvas to reposition a pinned shot, scroll to zoom,
+  drag-resize the crop over a ghosted scene, punch segment in/out from the
+  scrub playhead, and preview at any width/breakpoint. Presets appear in
+  SceneCanvas's Framer dropdown.
 
 ## Motion & state vocabulary (harvested from the live app)
 

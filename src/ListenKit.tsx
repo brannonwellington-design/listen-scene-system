@@ -673,10 +673,13 @@ export type ShellPrefsValue = {
 }
 export const ShellPrefs = React.createContext<ShellPrefsValue | null>(null)
 
-/** state for a ShellPrefs provider */
-export function useShellPrefs(): ShellPrefsValue {
-  const [collapsed, setCollapsed] = React.useState(false)
-  const [dark, setDark] = React.useState(false)
+/** state for a ShellPrefs provider; follows `start` whenever it changes (a
+ *  preset or the workbench), while visitor clicks change it in between */
+export function useShellPrefs(start: { collapsed?: boolean; dark?: boolean } = {}): ShellPrefsValue {
+  const [collapsed, setCollapsed] = React.useState(!!start.collapsed)
+  const [dark, setDark] = React.useState(!!start.dark)
+  React.useEffect(() => setCollapsed(!!start.collapsed), [start.collapsed])
+  React.useEffect(() => setDark(!!start.dark), [start.dark])
   return { collapsed, setCollapsed, dark, setDark }
 }
 
