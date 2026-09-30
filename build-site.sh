@@ -9,4 +9,6 @@ cp dist/demo.js site/
 sed 's#src="dist/demo.js"#src="demo.js"#' demo.html > site/index.html
 # reference screenshots power compare mode (?scene=X&ref=01.png)
 cp -R "image examples" "site/image examples"
+# the interview scene's webcam clip (scripts/prep-interview-clip.py)
+cp -R media site/media
 echo SITE_OK
