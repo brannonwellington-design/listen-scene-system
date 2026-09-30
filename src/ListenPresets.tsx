@@ -24,7 +24,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: "Interview · clean",
-    props: { content: "interview-scale", canvasHeight: 360, radius: 16, segStart: 2000, segEnd: 11000, loopPause: 3 },
+    props: { content: "interview-scale", canvasHeight: 360, radius: 16, segStart: 2000, segEnd: 14000, loopPause: 3 },
   },
   {
     name: "Report · grid",
