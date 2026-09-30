@@ -809,9 +809,8 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "rgba(0, 0, 0, 0.1)" }}>
           <div style={{ width: `${IV_PROGRESS * 100}%`, height: "100%", background: T.brand }} />
         </div>
-        {/* header: Skip · settings */}
-        <div style={{ position: "absolute", top: 14, right: IV_EDGE, display: "flex", alignItems: "center", gap: 12, fontSize: 9, lineHeight: "12px", color: T.ink }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "0 6px" }}>Skip <I name="skip-forward" size={10} /></span>
+        {/* header: settings (Skip is admin-only, so participants don't see it) */}
+        <div style={{ position: "absolute", top: 14, right: IV_EDGE, color: T.ink }}>
           <I name="settings" size={15} />
         </div>
 
@@ -863,11 +862,6 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
           {recording && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: IV_RED }} />}
         </div>
 
-        {/* scale strip */}
-        <div style={{ position: "absolute", left: 20, bottom: 24, fontSize: 12, color: T.inkSoft, display: "flex", alignItems: "center", gap: 8 }}>
-          <Chip kind="live">127 interviews live</Chip>
-          <span>24/7 · 120+ languages</span>
-        </div>
       </div>
     </BareFrame>
   )
