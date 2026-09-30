@@ -20,7 +20,7 @@ export const PRESETS: Preset[] = [
   },
   {
     name: "Design study · pinned circles",
-    props: { content: "design-study", fit: "pinned", anchor: "top-left", insetX: 40, insetY: 40, zoom: 0.6, canvasHeight: 340, pattern: "circles", patternSpacing: 36, radius: 16, segStart: 8500, segEnd: 16000, loopPause: 4 },
+    props: { content: "design-study", fit: "pinned", anchor: "top-left", insetX: 40, insetY: 40, zoom: 0.5, canvasHeight: 340, pattern: "circles", patternSpacing: 36, radius: 16, segStart: 8500, segEnd: 16000, loopPause: 4 },
   },
   {
     name: "Interview · clean",

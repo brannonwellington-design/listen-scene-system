@@ -18,7 +18,7 @@ import {
   EI_USECASE_W, EI_USECASE_H,
   SceneProps,
 } from "./ListenScenes"
-import { FRAME_W, FRAME_H } from "./ListenKit"
+import { FRAME_W, FRAME_H, APP_W, APP_H } from "./ListenKit"
 
 export type RegistryEntry = {
   key: string
@@ -31,15 +31,15 @@ export type RegistryEntry = {
 
 export const REGISTRY: RegistryEntry[] = [
   // --- How it works (homepage) ----------------------------------------------
-  { key: "design-study", title: "Design the study", Scene: SceneDesignStudy, w: FRAME_W, h: FRAME_H, kind: "scene" },
-  { key: "reach-people", title: "Reach the right people", Scene: SceneReachPeople, w: FRAME_W, h: FRAME_H, kind: "scene" },
+  { key: "design-study", title: "Design the study", Scene: SceneDesignStudy, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "reach-people", title: "Reach the right people", Scene: SceneReachPeople, w: APP_W, h: APP_H, kind: "scene" },
   { key: "interview-scale", title: "Interview at scale", Scene: SceneInterviewScale, w: FRAME_W, h: FRAME_H, kind: "scene" },
-  { key: "deliver-results", title: "Deliver meaningful results", Scene: SceneDeliverResults, w: FRAME_W, h: FRAME_H, kind: "scene" },
-  { key: "compound", title: "Compound your learnings", Scene: SceneCompound, w: FRAME_W, h: FRAME_H, kind: "scene" },
+  { key: "deliver-results", title: "Deliver meaningful results", Scene: SceneDeliverResults, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "compound", title: "Compound your learnings", Scene: SceneCompound, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- /features/emotional-intelligence — the page's 8 product shots, in
   // page order: hero, the three Features cards, the four Use-case cards
-  { key: "ei-hero-report", title: "EI · Hero · Study report", Scene: SceneEIHeroReport, w: FRAME_W, h: FRAME_H, kind: "scene" },
+  { key: "ei-hero-report", title: "EI · Hero · Study report", Scene: SceneEIHeroReport, w: APP_W, h: APP_H, kind: "scene" },
   { key: "ei-feature-signals", title: "EI · Feature · Multi-signal detection", Scene: FragmentEIFeatureSignals, w: EI_SIGNALS_W, h: EI_SIGNALS_H, kind: "fragment" },
   { key: "ei-feature-traceable", title: "EI · Feature · Research-grounded + traceable", Scene: FragmentEIFeatureTraceable, w: EI_TRACEABLE_W, h: EI_TRACEABLE_H, kind: "fragment" },
   { key: "ei-feature-comparison", title: "EI · Feature · Structured for comparison", Scene: FragmentEIFeatureComparison, w: EI_COMPARISON_W, h: EI_COMPARISON_H, kind: "fragment" },
