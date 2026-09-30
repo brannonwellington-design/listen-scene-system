@@ -64,7 +64,7 @@ function ChatShell(props: { step: string; placeholder: string; busy?: boolean; c
           <span style={{ width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.inkSoft }}><I name="plus" size={14} /></span>
           <span style={{ flex: 1 }} />
           {props.busy ? (
-            <span style={{ width: 24, height: 24, borderRadius: 7, background: T.dark, color: "#FAFAFA", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><I name="square" size={9} style={{ fill: "currentColor" } as React.CSSProperties} /></span>
+            <span style={{ width: 24, height: 24, borderRadius: 7, background: T.dark, color: T.onDark, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><I name="square" size={9} style={{ fill: "currentColor" } as React.CSSProperties} /></span>
           ) : (
             <span style={{ width: 24, height: 24, borderRadius: 12, background: T.fill, color: T.inkSoft, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><I name="arrow-up" size={13} /></span>
           )}
@@ -505,7 +505,7 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
 
   const srcBtn = (icon: string, label: string, sub: string, hovered: boolean, target: string): JSX.Element => (
     <div data-cursor={target} style={{
-      background: hovered ? "#E7E7E7" : T.fill, borderRadius: 10, padding: "9px 12px", fontSize: 12.5,
+      background: hovered ? T.hoverFill : T.fill, borderRadius: 10, padding: "9px 12px", fontSize: 12.5,
       display: "flex", gap: 9, alignItems: "flex-start", transition: "background-color .15s ease",
     }}>
       <I name={icon} size={14} style={{ marginTop: 2, color: T.inkSoft }} />
@@ -611,7 +611,7 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
                 <div style={{ fontSize: 13 }}>Consent checkbox <I name="info" size={11} style={{ color: T.inkFaint, verticalAlign: -1 }} /></div>
                 <div style={{ fontSize: 11.5, color: T.inkSoft, marginTop: 2 }}>Optionally require users consent before beginning the study.</div>
               </div>
-              <span style={{ width: 34, height: 19, borderRadius: 10, background: "#DDDDDD", position: "relative", flexShrink: 0 }}>
+              <span style={{ width: 34, height: 19, borderRadius: 10, background: T.track, position: "relative", flexShrink: 0 }}>
                 <span style={{ position: "absolute", left: 2, top: 2, width: 15, height: 15, borderRadius: "50%", background: "#FFF", boxShadow: T.shadow }} />
               </span>
             </div>
@@ -1047,7 +1047,7 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 0 24px" }}>
         <Chip kind="brand">New Feature</Chip>
         <div style={{ marginTop: 12, fontSize: 36, lineHeight: "44px", color: T.brand }}>I'm your Listen Research Agent</div>
-        <div style={{ marginTop: 2, fontSize: 21, color: "rgba(0, 33, 204, 0.55)" }}>What can I help you discover?</div>
+        <div style={{ marginTop: 2, fontSize: 21, color: T.brand, opacity: 0.55 }}>What can I help you discover?</div>
         {(thinking || answer) && (
           <div className="ll-card ll-enter" style={{ marginTop: 22, width: 566, padding: "12px 16px", fontSize: 13.5, lineHeight: 1.6, color: T.body }}>
             <div style={{ fontSize: 11, color: T.brand, marginBottom: 5, display: "flex", alignItems: "center", gap: 5 }}><I name="sparkles" size={12} /> Research Agent</div>
@@ -1066,7 +1066,7 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
                 <div key={label} data-cursor={"sugg-" + i} className={i === picked ? "ll-ring" : undefined} style={{
                   minHeight: 66, padding: "8px 11px", fontSize: 11.5, lineHeight: 1.4, color: T.body,
                   background: T.appPanelAlt, borderRadius: 8, transition: "border-color .15s ease",
-                  border: `1px solid ${i === picked ? T.brand : i === hovered ? "rgba(26, 26, 26, 0.3)" : T.appBorder}`,
+                  border: `1px solid ${i === picked ? T.brand : i === hovered ? T.inkFaint : T.appBorder}`,
                 }}>
                   <I name={icon} size={13} style={{ color: T.inkSoft, marginBottom: 3, display: "block" }} />
                   {label}
@@ -1075,7 +1075,7 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
             </div>
           </>
         )}
-        <div style={{ marginTop: 12, width: 564, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 8, boxShadow: T.shadow }}>
+        <div style={{ marginTop: 12, width: 564, background: T.appBg, border: `1px solid ${T.appBorder}`, borderRadius: 8, boxShadow: T.shadow }}>
           <div style={{ padding: "10px 12px", fontSize: 13, color: query ? T.ink : T.inkFaint }}>
             {query || "Ask a question..."}
           </div>
@@ -1449,7 +1449,7 @@ const COL_GROW = 500
 
 function EIToggle({ on }: { on: boolean }): JSX.Element {
   return (
-    <span data-cursor="ei-toggle" style={{ width: 30, height: 17, borderRadius: 9, background: on ? T.brand : "#D4D4D4", display: "inline-flex", alignItems: "center", padding: 2, boxSizing: "border-box", transition: "background .3s" }}>
+    <span data-cursor="ei-toggle" style={{ width: 30, height: 17, borderRadius: 9, background: on ? T.brand : T.track, display: "inline-flex", alignItems: "center", padding: 2, boxSizing: "border-box", transition: "background .3s" }}>
       <span style={{ width: 13, height: 13, borderRadius: "50%", background: "#FFF", transform: on ? "translateX(13px)" : "none", transition: "transform .3s cubic-bezier(.22,1,.36,1)" }} />
     </span>
   )
@@ -1523,7 +1523,7 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
         {/* report body */}
         <div style={{ flex: 1, overflow: "hidden", padding: "18px 0" }}>
           <div style={{ width: 704, margin: "0 auto" }}>
-            <span style={{ display: "inline-block", fontSize: 10.5, padding: "2px 7px", borderRadius: 5, background: "#DCFCE7", color: "#16A34A" }}>Up to date</span>
+            <span style={{ display: "inline-block", fontSize: 10.5, padding: "2px 7px", borderRadius: 5, background: T.positiveSoft, color: T.positive }}>Up to date</span>
             <div className="ll-500" style={{ fontSize: 24, lineHeight: "32px", marginTop: 6 }}>Study Report Details</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, marginTop: 4 }}>
               <span className="ll-500">380 complete</span>
@@ -1551,10 +1551,10 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
                         <span style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%) rotate(-90deg)", fontSize: 9.5, color: T.inkSoft, whiteSpace: "nowrap" }}>4 Concepts ›</span>
                       </span>
                     )}
-                    <span style={{ flex: 1, height: CHART_H, background: "#EFEFEF", borderRadius: 3, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 1.5, overflow: "hidden" }}>
+                    <span style={{ flex: 1, height: CHART_H, background: T.fill, borderRadius: 3, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 1.5, overflow: "hidden" }}>
                       {/* segs are authored bottom-up; render reversed so anger sits at the base */}
                       {[...c.segs].reverse().map(([emo, f], j) => (
-                        <span key={j} style={{ height: f * CHART_H * e, borderRadius: 1.5, background: emotions ? EMOTIONS[emo].fg : "#E0E0E0", transition: "background .4s" }} />
+                        <span key={j} style={{ height: f * CHART_H * e, borderRadius: 1.5, background: emotions ? EMOTIONS[emo].fg : T.navLine, transition: "background .4s" }} />
                       ))}
                     </span>
                   </React.Fragment>
@@ -1572,7 +1572,7 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10, fontSize: 11, color: T.inkSoft }}>
               {EIREP_LEGEND.map((emo) => (
                 <span key={emo} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2.5, background: emo === "neutral" ? "#E0E0E0" : EMOTIONS[emo].fg }} />
+                  <span style={{ width: 8, height: 8, borderRadius: 2.5, background: emo === "neutral" ? T.navLine : EMOTIONS[emo].fg }} />
                   {emo[0].toUpperCase() + emo.slice(1)}
                 </span>
               ))}
@@ -1591,7 +1591,7 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
                   Create and download AI-generated slide decks based on your research data
                 </div>
               </div>
-              <button data-cursor="ei-generate" className="ll-btn ghost" style={{ height: 28, fontSize: 12, borderColor: genHover ? "rgba(26,26,26,.3)" : undefined }}>
+              <button data-cursor="ei-generate" className="ll-btn ghost" style={{ height: 28, fontSize: 12, borderColor: genHover ? T.inkFaint : undefined }}>
                 {genBusy ? <span className="ll-shimmer">Generating…</span> : <>Generate <I name="sparkles" size={13} /></>}
               </button>
             </div>

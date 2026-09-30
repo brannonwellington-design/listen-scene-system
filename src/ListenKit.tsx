@@ -9,15 +9,17 @@ import * as React from "react"
 import { I } from "./ListenIcons"
 
 // ---------------------------------------------------------------- tokens ----
-export const T = {
-  // page (Paper / light — marketing wrap around the frame)
-  pageBg: "#F9F4EB",        // surface-primary
-  pageContainer: "#EEE8DD", // surface-secondary — houses the product frame
+// Product colors are CSS variables so an app shell can switch to dark mode
+// (the sidebar's Dark Mode toggle). Light values are the defaults and the
+// var() fallbacks; dark values apply under `.ll-app.dark`.
+const LIGHT = {
   // product surfaces (measured from the live app)
   appBg: "#FFFFFF",
   chromeBg: "#F5F5F5",      // quiet fills (input backings, callouts); bare-frame surround
   appPanelAlt: "#FAFAFA",   // side panels inside a page (editor chat, suggestion cards)
-  fill: "#F0F0F0",          // chat bubbles, inactive segmented controls
+  fill: "#F0F0F0",          // chat bubbles, inactive segmented controls, chart tracks
+  hoverFill: "#E7E7E7",     // hovered fill
+  track: "#D4D4D4",         // switch track, off
   appBorder: "#E6E6E6",
   ink: "#1A1A1A",
   inkSoft: "rgba(26, 26, 26, 0.55)",
@@ -29,15 +31,64 @@ export const T = {
   positive: "#0F8A38",
   positiveSoft: "#D6F5E0",
   dark: "#1A1A1A",          // Launch / Start Recording buttons
-  darkSoft: "#333333",      // secondary dark buttons (Study Guide, Edit)
+  darkSoft: "#333333",      // secondary dark buttons (Review, Edit)
+  onDark: "#FAFAFA",        // text on dark / darkSoft buttons
   shadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-  font: "'Inter', -apple-system, sans-serif",
   // app shell (sidebar + top bar), from the Figma mock "Sidebar Navigation"
   // (Product Design 2026, 2026-09-29)
   navBg: "#F0F0F0",         // surface/secondary — sidebar
   navLine: "#E0E0E0",       // surface/tertiary — shell borders, avatar fill
   surface: "#FAFAFA",       // surface/primary — content + top bar
   inkSecondary: "#666666",  // content/secondary — inactive nav, page titles
+  hover: "rgba(0, 0, 0, 0.05)",  // icon-button hover
+  tbtnBg: "#F4F4F5",        // top bar buttons (Share), live app
+  tbtnInk: "#18181B",
+}
+type Tok = keyof typeof LIGHT
+
+// neutral dark ramp: sidebar darkest, content a step up, cards a step above
+const DARK: Record<Tok, string> = {
+  appBg: "#202020",
+  chromeBg: "#262626",
+  appPanelAlt: "#1E1E1E",
+  fill: "#2A2A2A",
+  hoverFill: "#333333",
+  track: "#444444",
+  appBorder: "#2F2F2F",
+  ink: "#EDEDED",
+  inkSoft: "rgba(237, 237, 237, 0.6)",
+  inkFaint: "rgba(237, 237, 237, 0.38)",
+  body: "rgba(255, 255, 255, 0.86)",
+  brand: "#4F6BFF",
+  brandSoft: "rgba(79, 107, 255, 0.2)",
+  brandFaint: "rgba(79, 107, 255, 0.45)",
+  positive: "#4ADE80",
+  positiveSoft: "rgba(74, 222, 128, 0.14)",
+  dark: "#EDEDED",
+  darkSoft: "#3A3A3A",
+  onDark: "#141414",
+  shadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
+  navBg: "#141414",
+  navLine: "#2A2A2A",
+  surface: "#1A1A1A",
+  inkSecondary: "#9A9A9A",
+  hover: "rgba(255, 255, 255, 0.07)",
+  tbtnBg: "#2A2A2A",
+  tbtnInk: "#EDEDED",
+}
+
+const tokens = Object.fromEntries(
+  (Object.keys(LIGHT) as Tok[]).map((k) => [k, `var(--ll-${k}, ${LIGHT[k]})`]),
+) as Record<Tok, string>
+const varBlock = (vals: Record<Tok, string>) =>
+  (Object.keys(vals) as Tok[]).map((k) => `--ll-${k}:${vals[k]};`).join(" ")
+
+export const T = {
+  // page (Paper / light — marketing wrap around the frame; never themed)
+  pageBg: "#F9F4EB",        // surface-primary
+  pageContainer: "#EEE8DD", // surface-secondary — houses the product frame
+  font: "'Inter', -apple-system, sans-serif",
+  ...tokens,
 }
 
 // Design-space size every full scene is authored at. Cursor coordinates and
@@ -55,6 +106,10 @@ const ROW_W = NAV_W - 16
 
 // ------------------------------------------------------------------- css ----
 const CSS = `
+:root { ${varBlock(LIGHT)} }
+.ll-app.dark { ${varBlock(DARK)} color-scheme:dark; }
+/* theme switch: ease colors only while toggling, so scene motion is untouched */
+.ll-app.theming, .ll-app.theming * { transition:background-color .35s ease, color .35s ease, border-color .35s ease, fill .35s ease !important; }
 .ll * { margin:0; padding:0; box-sizing:border-box; }
 .ll { font-family:${T.font}; font-weight:400; color:${T.ink};
   -webkit-font-smoothing:antialiased;
@@ -72,8 +127,8 @@ const CSS = `
   display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
   transition:background-color .15s ease, border-color .15s ease; }
 .ll-btn.primary { background:${T.brand}; color:#FAFAFA; }
-.ll-btn.dark { background:${T.dark}; color:#FAFAFA; }
-.ll-btn.darksoft { background:${T.darkSoft}; color:#FAFAFA; }
+.ll-btn.dark { background:${T.dark}; color:${T.onDark}; }
+.ll-btn.darksoft { background:${T.darkSoft}; color:${T.onDark}; }
 .ll-btn.ghost { border:1px solid ${T.appBorder}; background:${T.appBg}; box-shadow:${T.shadow}; }
 
 .ll-chip { display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 9px;
@@ -145,7 +200,7 @@ const CSS = `
 .ll-iconbtn { width:32px; height:32px; flex-shrink:0; display:inline-flex; align-items:center;
   justify-content:center; border-radius:8px; color:${T.inkSecondary}; transition:background-color .15s, opacity .2s; }
 .ll-iconbtn.sm { width:24px; height:24px; }
-button.ll-iconbtn:hover { background:rgba(0,0,0,.05); }
+button.ll-iconbtn:hover { background:${T.hover}; }
 .ll-nav { padding:8px 8px 0; display:flex; flex-direction:column; min-height:0; }
 .ll-row { height:32px; width:${ROW_W}px; display:flex; align-items:center; gap:4px; border-radius:8px;
   color:${T.inkSecondary}; white-space:nowrap; flex-shrink:0; transition:color .15s, background-color .15s; }
@@ -164,11 +219,14 @@ button.ll-iconbtn:hover { background:rgba(0,0,0,.05); }
 .ll-sub.on { background:${T.navLine}; }
 .ll-sub.on .t { color:${T.ink}; }
 .ll-side-foot { margin-top:auto; padding:0 8px 8px; display:flex; flex-direction:column; }
-.ll-toggle { width:36px; height:20px; border-radius:16px; background:${T.navBg}; border:1px solid ${T.navLine};
+.ll-app .ll-toggle { width:36px; height:20px; border-radius:16px; background:${T.navBg}; border:1px solid ${T.navLine};
   position:relative; flex-shrink:0; margin-left:auto; transition:opacity .2s; }
-.ll-toggle::after { content:""; position:absolute; left:-1px; top:-1px; width:20px; height:20px; border-radius:16px;
-  background:#FFF; border:1px solid ${T.navLine}; box-sizing:border-box; }
-.ll-app.collapsed .ll-toggle { opacity:0; }
+.ll-app .ll-toggle::after { content:""; position:absolute; left:-1px; top:-1px; width:20px; height:20px; border-radius:16px;
+  background:#FFF; border:1px solid ${T.navLine}; box-sizing:border-box; transition:transform .3s cubic-bezier(.22,1,.36,1); }
+.ll-app button.ll-toggle { cursor:pointer; padding:0; }
+.ll-app .ll-toggle.on { background:${T.brand}; border-color:${T.brand}; }
+.ll-app .ll-toggle.on::after { transform:translateX(16px); border-color:${T.brand}; }
+.ll-app.collapsed .ll-toggle { opacity:0; pointer-events:none; }
 .ll-account { border-top:1px solid ${T.navLine}; padding:8px; flex-shrink:0; }
 .ll-account .row { width:${ROW_W}px; height:32px; padding:4px; display:flex; align-items:center; gap:8px; border-radius:8px; color:${T.ink}; }
 .ll-account .av { width:24px; height:24px; border-radius:8px; background:${T.navLine}; display:inline-flex;
@@ -185,7 +243,7 @@ button.ll-iconbtn:hover { background:rgba(0,0,0,.05); }
 .ll-top .acts { margin-left:auto; display:flex; align-items:center; gap:8px; position:relative; z-index:1; }
 .ll-top .meta { color:${T.inkSoft}; }
 .ll-tbtn { height:32px; padding:0 8px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;
-  background:#F4F4F5; color:#18181B; flex-shrink:0; }
+  background:${T.tbtnBg}; color:${T.tbtnInk}; flex-shrink:0; }
 .ll-tbtn.dark { background:${T.darkSoft}; color:#FAFAFA; }
 .ll-tbtn.plain { background:transparent; color:${T.body}; }
 .ll-view { flex:1; min-height:0; display:flex; position:relative; overflow:hidden; }
@@ -515,7 +573,7 @@ export function Logo(): JSX.Element {
   // the Listen Labs mark: the two glyph paths of the brand plugin's
   // assets/listen-labs-logo.svg (wordmark), cropped to the mark's own box
   return (
-    <svg className="ll-logo" viewBox="0 0 16.3 22.6" fill={T.ink}>
+    <svg className="ll-logo" viewBox="0 0 16.3 22.6" style={{ fill: T.ink }}>
       <path d="M15.3743 0.408977H8.45517C7.9619 0.408977 7.56238 0.808502 7.56238 1.30177V8.22092C7.56238 8.71419 7.9619 9.11371 8.45517 9.11371H15.3743C15.8676 9.11371 16.2671 8.71419 16.2671 8.22092V1.30177C16.2671 0.808502 15.8676 0.408977 15.3743 0.408977Z" />
       <path d="M6.71435 9.11354H0.893341C0.383333 9.11354 -0.0284702 9.54096 0.00166153 10.051C0.308559 15.266 3.15769 19.8081 7.3248 22.453C7.75 22.7231 8.31468 22.5847 8.57025 22.1506L11.5232 17.1498C11.7642 16.7413 11.6437 16.2157 11.2486 15.9534C9.23873 14.6221 7.84597 12.4314 7.60268 9.90812C7.55916 9.45503 7.17079 9.11354 6.71547 9.11354H6.71435Z" />
     </svg>
@@ -600,9 +658,21 @@ export const chatNav = (study: string, history: Array<{ group: string; chats: st
   ],
 })
 
-/** SceneCanvas provides this so a visitor's collapse survives loop restarts
- *  and multi-step changes; without it each shell keeps its own state. */
-export const ShellCollapse = React.createContext<[boolean, (v: boolean) => void] | null>(null)
+/** Visitor-controlled shell preferences. SceneCanvas provides these so a
+ *  collapse or theme switch survives loop restarts and multi-step changes;
+ *  without a provider each shell keeps its own state. */
+export type ShellPrefsValue = {
+  collapsed: boolean; setCollapsed: (v: boolean) => void
+  dark: boolean; setDark: (v: boolean) => void
+}
+export const ShellPrefs = React.createContext<ShellPrefsValue | null>(null)
+
+/** state for a ShellPrefs provider */
+export function useShellPrefs(): ShellPrefsValue {
+  const [collapsed, setCollapsed] = React.useState(false)
+  const [dark, setDark] = React.useState(false)
+  return { collapsed, setCollapsed, dark, setDark }
+}
 
 const WORDMARK_D: string[] = ["M10.7424 0.288086H5.90755C5.56287 0.288086 5.28369 0.568061 5.28369 0.913731V5.76248C5.28369 6.10815 5.56287 6.38813 5.90755 6.38813H10.7424C11.0871 6.38813 11.3662 6.10815 11.3662 5.76248V0.913731C11.3662 0.568061 11.0871 0.288086 10.7424 0.288086Z","M4.69168 6.38672H0.624159C0.267784 6.38672 -0.0199686 6.68623 0.00108638 7.04367C0.215535 10.6982 2.2064 13.8812 5.11823 15.7347C5.41535 15.9239 5.80993 15.8269 5.98851 15.5227L8.05192 12.0183C8.22033 11.732 8.13611 11.3637 7.86004 11.1799C6.45561 10.247 5.4824 8.71179 5.31241 6.94354C5.28199 6.62602 5.01062 6.38672 4.69244 6.38672H4.69168Z","M18.2685 14.3778V0H20.3968V12.5479H26.7014V14.3778H18.2685Z","M28.3113 3.82069H30.3392V14.3778H28.3113V3.82069ZM28.271 2.29242V0H30.3793V2.29242H28.271Z","M32.0672 11.1604H34.0751C34.4165 12.2865 35.1594 12.9702 36.625 12.9702C37.8297 12.9702 38.6932 12.4273 38.6932 11.4822C38.6932 10.4968 37.6893 10.2354 36.2034 9.87344L35.4604 9.67236C33.7138 9.25007 32.4085 8.46583 32.4085 6.63592C32.4085 4.76579 34.0951 3.53916 36.4444 3.53916C38.7736 3.53916 40.2995 4.54461 40.5403 6.61582H38.6129C38.3117 5.67069 37.609 5.14788 36.3841 5.14788C35.0991 5.14788 34.4767 5.67069 34.4767 6.45494C34.4767 7.31962 35.0991 7.56092 36.3841 7.94301L37.5086 8.26474C39.6169 8.86801 40.7212 9.51148 40.7212 11.2811C40.7212 13.3121 38.9743 14.6191 36.565 14.6191C33.9948 14.6191 32.4889 13.5131 32.0672 11.1604Z","M45.0967 0.965224V3.82069H47.0644V5.38918H45.0967V11.7235C45.0967 12.749 45.5987 13.0305 46.3817 13.0305C46.5224 13.0305 46.7431 13.0104 46.8837 12.9903V14.4985C46.5824 14.5588 46.3617 14.5789 46.1007 14.5789C44.2334 14.5789 43.0488 13.9555 43.0488 11.8441V5.38918H41.4626V3.82069H43.0488V0.965224H45.0967Z","M58.1753 9.63214H49.9232C49.9835 11.4822 51.2282 12.9501 53.2361 12.9501C54.6817 12.9501 55.3844 12.2664 55.9267 11.3615H57.9546C57.3723 13.2718 55.6657 14.6393 53.1558 14.6393C49.9032 14.6393 47.8753 12.4474 47.8753 9.14952C47.8753 5.85167 50.0035 3.51905 53.1558 3.51905C56.5893 3.51905 58.1753 6.13321 58.1753 8.96854V9.63214ZM50.0035 8.02344H56.0671C55.8864 6.33429 54.8624 5.16798 53.1157 5.16798C51.4492 5.16798 50.2245 6.25386 50.0035 8.02344Z","M61.9279 3.82069V5.24841C62.4699 4.3435 63.5141 3.51905 65.281 3.51905C67.7104 3.51905 68.9753 5.14788 68.9753 7.88268V14.3778H66.9274V8.64681C66.9274 6.55549 66.2447 5.24841 64.5782 5.24841C62.8916 5.24841 61.9679 6.61582 61.9679 8.28485V14.3778H59.94V4.62504C59.94 4.36363 59.94 4.0821 59.92 3.82069H61.9279Z","M76.3423 14.3778V0H78.4705V12.5479H84.7753V14.3778H76.3423Z","M95.2195 14.3778H93.3122C93.2519 13.9555 93.2319 13.7142 93.2116 12.93C92.4086 14.0762 91.3444 14.5789 89.6578 14.5789C87.4492 14.5789 85.8429 13.493 85.8429 11.5224C85.8429 9.27017 88.0114 8.50605 90.8224 8.12397C91.525 8.02344 92.2882 7.94299 92.9909 7.88268C92.9909 5.75112 92.1074 5.14788 90.722 5.14788C89.1961 5.14788 88.4731 5.85167 88.3327 7.11854H86.3449C86.4454 4.86634 88.2524 3.53916 90.7621 3.53916C93.0109 3.53916 94.9585 4.28318 94.9585 8.4055V10.4566C94.9585 12.1659 95.0389 13.4126 95.2195 14.3778ZM93.031 9.35063C89.5977 9.67236 88.0315 10.0544 88.0315 11.5023C88.0315 12.4876 88.8347 13.111 90.1197 13.111C92.027 13.111 93.0109 11.9849 93.0109 9.91367V9.59193C93.0109 9.49138 93.011 9.41095 93.031 9.35063Z","M96.9484 14.3778V0H98.9964V4.12232C98.9964 4.44406 98.9964 4.78592 98.9764 5.16798C99.5987 4.3033 100.723 3.49895 102.41 3.49895C105.381 3.49895 107.329 5.87177 107.329 9.06909C107.329 12.3669 105.321 14.6191 102.43 14.6191C100.603 14.6191 99.4784 13.8349 98.8558 12.8898V14.3778H96.9484ZM102.008 5.2082C100.061 5.2082 98.876 6.837 98.876 9.08919C98.876 11.4218 100.02 12.9501 102.028 12.9501C104.016 12.9501 105.14 11.4419 105.14 9.08919C105.14 6.837 103.996 5.2082 102.008 5.2082Z","M108.346 11.1604H110.354C110.696 12.2865 111.438 12.9702 112.904 12.9702C114.109 12.9702 114.972 12.4273 114.972 11.4822C114.972 10.4968 113.968 10.2354 112.482 9.87344L111.739 9.67236C109.993 9.25007 108.688 8.46583 108.688 6.63592C108.688 4.76579 110.374 3.53916 112.723 3.53916C115.052 3.53916 116.578 4.54461 116.819 6.61582H114.892C114.591 5.67069 113.888 5.14788 112.663 5.14788C111.378 5.14788 110.756 5.67069 110.756 6.45494C110.756 7.31962 111.378 7.56092 112.663 7.94301L113.787 8.26474C115.896 8.86801 117 9.51148 117 11.2811C117 13.3121 115.253 14.6191 112.844 14.6191C110.274 14.6191 108.768 13.5131 108.346 11.1604Z"]
 const ORG_MARK_D: string[] = ["M18 11.5C18 12.424 17.8302 13.2224 17.4906 13.8954C17.151 14.5684 16.6852 15.0875 16.0931 15.4525C15.5009 15.8175 14.8247 16 14.0642 16C13.3038 16 12.6275 15.8175 12.0354 15.4525C11.4433 15.0875 10.9774 14.5684 10.6378 13.8954C10.2982 13.2224 10.1284 12.424 10.1284 11.5C10.1284 10.576 10.2982 9.77757 10.6378 9.10456C10.9774 8.43156 11.4433 7.91255 12.0354 7.54753C12.6275 7.18251 13.3038 7 14.0642 7C14.8247 7 15.5009 7.18251 16.0931 7.54753C16.6852 7.91255 17.151 8.43156 17.4906 9.10456C17.8302 9.77757 18 10.576 18 11.5ZM16.9551 11.5C16.9551 10.7414 16.8259 10.1012 16.5676 9.57937C16.3122 9.05751 15.9653 8.66255 15.5271 8.39449C15.0917 8.12643 14.6041 7.9924 14.0642 7.9924C13.5243 7.9924 13.0353 8.12643 12.597 8.39449C12.1616 8.66255 11.8148 9.05751 11.5565 9.57937C11.301 10.1012 11.1733 10.7414 11.1733 11.5C11.1733 12.2586 11.301 12.8988 11.5565 13.4206C11.8148 13.9425 12.1616 14.3375 12.597 14.6055C13.0353 14.8736 13.5243 15.0076 14.0642 15.0076C14.6041 15.0076 15.0917 14.8736 15.5271 14.6055C15.9653 14.3375 16.3122 13.9425 16.5676 13.4206C16.8259 12.8988 16.9551 12.2586 16.9551 11.5Z","M15.9358 11.5C15.9358 12.424 15.766 13.2224 15.4264 13.8954C15.0868 14.5684 14.621 15.0875 14.0288 15.4525C13.4367 15.8175 12.7605 16 12 16C11.2395 16 10.5633 15.8175 9.97115 15.4525C9.37904 15.0875 8.91319 14.5684 8.5736 13.8954C8.23401 13.2224 8.06421 12.424 8.06421 11.5C8.06421 10.576 8.23401 9.77757 8.5736 9.10456C8.91319 8.43156 9.37904 7.91255 9.97115 7.54753C10.5633 7.18251 11.2395 7 12 7C12.7605 7 13.4367 7.18251 14.0288 7.54753C14.621 7.91255 15.0868 8.43156 15.4264 9.10456C15.766 9.77757 15.9358 10.576 15.9358 11.5ZM14.8909 11.5C14.8909 10.7414 14.7617 10.1012 14.5034 9.57937C14.248 9.05751 13.9011 8.66255 13.4629 8.39449C13.0275 8.12643 12.5399 7.9924 12 7.9924C11.4601 7.9924 10.9711 8.12643 10.5328 8.39449C10.0974 8.66255 9.75056 9.05751 9.49224 9.57937C9.23682 10.1012 9.10911 10.7414 9.10911 11.5C9.10911 12.2586 9.23682 12.8988 9.49224 13.4206C9.75056 13.9425 10.0974 14.3375 10.5328 14.6055C10.9711 14.8736 11.4601 15.0076 12 15.0076C12.5399 15.0076 13.0275 14.8736 13.4629 14.6055C13.9011 14.3375 14.248 13.9425 14.5034 13.4206C14.7617 12.8988 14.8909 12.2586 14.8909 11.5Z","M13.8716 11.5C13.8716 12.424 13.7018 13.2224 13.3622 13.8954C13.0226 14.5684 12.5567 15.0875 11.9646 15.4525C11.3725 15.8175 10.6962 16 9.93579 16C9.17533 16 8.49905 15.8175 7.90694 15.4525C7.31483 15.0875 6.84898 14.5684 6.50939 13.8954C6.1698 13.2224 6 12.424 6 11.5C6 10.576 6.1698 9.77757 6.50939 9.10456C6.84898 8.43156 7.31483 7.91255 7.90694 7.54753C8.49905 7.18251 9.17533 7 9.93579 7C10.6962 7 11.3725 7.18251 11.9646 7.54753C12.5567 7.91255 13.0226 8.43156 13.3622 9.10456C13.7018 9.77757 13.8716 10.576 13.8716 11.5ZM12.8267 11.5C12.8267 10.7414 12.6975 10.1012 12.4392 9.57937C12.1838 9.05751 11.8369 8.66255 11.3986 8.39449C10.9633 8.12643 10.4757 7.9924 9.93579 7.9924C9.39592 7.9924 8.90685 8.12643 8.46858 8.39449C8.0332 8.66255 7.68635 9.05751 7.42803 9.57937C7.17261 10.1012 7.0449 10.7414 7.0449 11.5C7.0449 12.2586 7.17261 12.8988 7.42803 13.4206C7.68635 13.9425 8.0332 14.3375 8.46858 14.6055C8.90685 14.8736 9.39592 15.0076 9.93579 15.0076C10.4757 15.0076 10.9633 14.8736 11.3986 14.6055C11.8369 14.3375 12.1838 13.9425 12.4392 13.4206C12.6975 12.8988 12.8267 12.2586 12.8267 11.5Z"]
@@ -611,7 +681,7 @@ const ORG_MARK_D: string[] = ["M18 11.5C18 12.424 17.8302 13.2224 17.4906 13.895
 function Wordmark(): JSX.Element {
   return (
     <span className="mark">
-      <svg width={117} height={16} viewBox="0 0 117 16" fill={T.ink} aria-label="Listen Labs" style={{ display: "block" }}>
+      <svg width={117} height={16} viewBox="0 0 117 16" aria-label="Listen Labs" style={{ display: "block", fill: T.ink }}>
         {WORDMARK_D.map((d, i) => <path key={i} d={d} />)}
       </svg>
     </span>
@@ -621,7 +691,8 @@ function Wordmark(): JSX.Element {
 function OrgMark(): JSX.Element {
   return (
     <svg width={24} height={24} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-      <rect x={0.5} y={0.5} width={23} height={23} rx={7.5} fill={T.surface} stroke={T.navLine} />
+      {/* a customer's brand mark: its tile stays light in either theme */}
+      <rect x={0.5} y={0.5} width={23} height={23} rx={7.5} fill="#FAFAFA" style={{ stroke: T.navLine }} />
       {ORG_MARK_D.map((d, i) => <path key={i} d={d} fill="#120F08" />)}
     </svg>
   )
@@ -692,18 +763,26 @@ export function AppShell(props: {
   actions?: React.ReactNode
   children: React.ReactNode
   cursor?: CursorState
-  /** start collapsed (only when no SceneCanvas context is present) */
-  collapsed?: boolean
 }): JSX.Element {
   const { nav, activeSub, title, crumb, actions, children, cursor } = props
-  const ctx = React.useContext(ShellCollapse)
-  const [own, setOwn] = React.useState(!!props.collapsed)
-  const [collapsed, setCollapsed] = ctx ?? [own, setOwn]
+  const own = useShellPrefs()
+  const { collapsed, setCollapsed, dark, setDark } = React.useContext(ShellPrefs) ?? own
   const toggle = (e: React.MouseEvent) => { e.stopPropagation(); setCollapsed(!collapsed) }
+  // colors ease only during a theme switch
+  const [theming, setTheming] = React.useState(false)
+  const themeTimer = React.useRef<ReturnType<typeof setTimeout>>()
+  React.useEffect(() => () => clearTimeout(themeTimer.current), [])
+  const toggleDark = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setTheming(true)
+    setDark(!dark)
+    clearTimeout(themeTimer.current)
+    themeTimer.current = setTimeout(() => setTheming(false), 400)
+  }
   const isOn = (n: NavNode) => (n.type === "item" || n.type === "chat") && n.label === nav.active
 
   return (
-    <div className={"ll ll-app" + (collapsed ? " collapsed" : "")}>
+    <div className={"ll ll-app" + (collapsed ? " collapsed" : "") + (dark ? " dark" : "") + (theming ? " theming" : "")}>
       <div className="ll-side">
         <div className="ll-side-inner">
           <div className="ll-side-head">
@@ -721,7 +800,8 @@ export function AppShell(props: {
             <div className="ll-row">
               <span className="ll-iconbtn" style={{ color: "inherit" }}><I name="moon" stroke={NAV_STROKE} /></span>
               <span className="lbl" style={{ flex: "none" }}>Dark Mode</span>
-              <span className="ll-toggle" />
+              <button className={"ll-toggle" + (dark ? " on" : "")} onClick={toggleDark} onMouseDown={(e) => e.stopPropagation()}
+                role="switch" aria-checked={dark} aria-label="Dark Mode" />
             </div>
             <div className="ll-row">
               <span className="ll-iconbtn" style={{ color: "inherit" }}><I name="megaphone" stroke={NAV_STROKE} /></span>
@@ -836,7 +916,7 @@ export function PhoneShell(props: {
             <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 1 }}>
               {[3, 5, 7, 9].map((h) => <span key={h} style={{ width: 2, height: h, borderRadius: 1, background: T.ink }} />)}
             </span>
-            <svg width="12" height="9" viewBox="0 0 14 10"><path d="M7 9.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8ZM2.1 5.2a7 7 0 0 1 9.8 0l-1.5 1.5a4.9 4.9 0 0 0-6.8 0Zm-2-2a9.8 9.8 0 0 1 13.8 0l-1.4 1.4a7.8 7.8 0 0 0-11 0Z" fill={T.ink} /></svg>
+            <svg width="12" height="9" viewBox="0 0 14 10"><path d="M7 9.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8ZM2.1 5.2a7 7 0 0 1 9.8 0l-1.5 1.5a4.9 4.9 0 0 0-6.8 0Zm-2-2a9.8 9.8 0 0 1 13.8 0l-1.4 1.4a7.8 7.8 0 0 0-11 0Z" style={{ fill: T.ink }} /></svg>
             <span style={{ width: 18, height: 9, border: `1px solid ${T.ink}`, borderRadius: 2.5, padding: 1, display: "inline-flex" }}>
               <span style={{ width: "75%", background: T.ink, borderRadius: 1 }} />
             </span>
@@ -950,14 +1030,14 @@ export function Donut(props: { pct: number; size?: number; stroke?: number; labe
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E6E6E6" strokeWidth={stroke} />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={T.brand} strokeWidth={stroke} strokeLinecap="round"
+        strokeWidth={stroke} strokeLinecap="round"
         strokeDasharray={c}
         strokeDashoffset={c * (1 - pct / 100)}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: "stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)" }}
+        style={{ stroke: T.brand, transition: "stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)" }}
       />
       <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle"
-        fontSize={size * 0.22} fontFamily={T.font} fill={T.ink}>{label}</text>
+        fontSize={size * 0.22} fontFamily={T.font} style={{ fill: T.ink }}>{label}</text>
     </svg>
   )
 }

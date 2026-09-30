@@ -10,7 +10,7 @@
 import * as React from "react"
 import { addPropertyControls, ControlType } from "framer"
 import {
-  T, PatternLayer, PatternType, ensureCss, ShellCollapse, APP_W, APP_H,
+  T, PatternLayer, PatternType, ensureCss, ShellPrefs, useShellPrefs, APP_W, APP_H,
 } from "./ListenKit"
 import { REGISTRY, SEQUENCES, byKey, sequenceByKey, RegistryEntry, Step } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
@@ -388,12 +388,13 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[] }): JSX.Elem
 export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   ensureCss()
   const merged = mergePreset(props)
-  // one sidebar collapse state per canvas, so a visitor's click survives loop
-  // restarts and step changes (each remounts the scene)
-  const collapse = React.useState(false)
+  // one set of shell preferences (sidebar collapse, dark mode) per canvas, so
+  // a visitor's choice survives loop restarts and step changes (each remounts
+  // the scene)
+  const prefs = useShellPrefs()
 
   return (
-    <ShellCollapse.Provider value={collapse}>
+    <ShellPrefs.Provider value={prefs}>
       {merged.layout === "multi-step" ? (
         <MultiStep {...merged} steps={props.steps} />
       ) : (
@@ -404,7 +405,7 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
           debugCanvasRef={props.debugCanvasRef}
         />
       )}
-    </ShellCollapse.Provider>
+    </ShellPrefs.Provider>
   )
 }
 
