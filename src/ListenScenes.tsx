@@ -658,6 +658,10 @@ const IV_EDGE = 18                   // 24px bottom / right margins
 const IV_CAM = 89                    // 120px webcam tile on question screens
 const IV_Q_FONT = { fontSize: 17.8, lineHeight: "24.9px", letterSpacing: -0.36 } // 24/33.6, -0.48
 const IV_PROGRESS = 0.3              // progress bar fill, this far into the study
+// webcam tile (bottom right) with the participant clip. Off for now: the
+// recording visualizer carries the moment. Flip to true to bring it back —
+// the clip, its sync, and the prep script are all still wired up.
+const IV_SHOW_CAM = false
 const IV_RED = "#DC2626"
 const IV_QUESTION = "What do you think the company or service being advertised actually does? What is it offering?"
 // verbatim moderator follow-up from the general-population Billboard Ad Test, respondent 6
@@ -901,14 +905,16 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
           )}
         </div>
 
-        {/* webcam tile */}
-        <div style={{ position: "absolute", right: IV_EDGE, bottom: IV_EDGE, width: IV_CAM, height: IV_CAM, borderRadius: 6, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
-          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
-          <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 30, height: 30, fontSize: 13 }}>M</span>
-          {/* the participant: the clip covers the fallback avatar once it loads */}
-          <ClipVideo t={phase === "idle" ? 0 : recording ? recT : IV_REC_MS} playing={recording && hold == null && active} />
-          {recording && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: IV_RED }} />}
-        </div>
+        {/* webcam tile (see IV_SHOW_CAM) */}
+        {IV_SHOW_CAM && (
+          <div style={{ position: "absolute", right: IV_EDGE, bottom: IV_EDGE, width: IV_CAM, height: IV_CAM, borderRadius: 6, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
+            <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 30, height: 30, fontSize: 13 }}>M</span>
+            {/* the participant: the clip covers the fallback avatar once it loads */}
+            <ClipVideo t={phase === "idle" ? 0 : recording ? recT : IV_REC_MS} playing={recording && hold == null && active} />
+            {recording && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: IV_RED }} />}
+          </div>
+        )}
 
       </div>
     </BareFrame>
