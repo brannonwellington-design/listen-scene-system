@@ -45,9 +45,13 @@ export const T = {
 export const FRAME_W = 1120
 export const FRAME_H = 640
 // Scenes inside the app shell are authored larger (same aspect ratio) so the
-// 260px sidebar leaves the content about the width FRAME_W scenes had.
+// open sidebar leaves the content about the width FRAME_W scenes had.
 export const APP_W = 1344
 export const APP_H = 768
+// open sidebar width, matched to the live app (the Figma mock shows 260);
+// rows inset 8px each side
+const NAV_W = 235
+const ROW_W = NAV_W - 16
 
 // ------------------------------------------------------------------- css ----
 const CSS = `
@@ -126,10 +130,10 @@ const CSS = `
 .ll-app { display:flex; width:100%; height:100%; position:relative; overflow:hidden;
   background:${T.navBg}; border:1px solid ${T.navLine}; border-radius:12px;
   font-size:14px; line-height:20px; letter-spacing:-0.28px; }
-.ll-side { width:260px; flex-shrink:0; display:flex; flex-direction:column; overflow:hidden;
+.ll-side { width:${NAV_W}px; flex-shrink:0; display:flex; flex-direction:column; overflow:hidden;
   transition:width .36s cubic-bezier(.22,1,.36,1); }
 .ll-app.collapsed .ll-side { width:48px; }
-.ll-side-inner { width:260px; height:100%; display:flex; flex-direction:column; }
+.ll-side-inner { width:${NAV_W}px; height:100%; display:flex; flex-direction:column; }
 .ll-side-head { height:48px; flex-shrink:0; position:relative; border-bottom:1px solid ${T.navLine}; }
 .ll-side-head .mark { position:absolute; left:16px; top:16px; width:117px; height:16px; overflow:hidden;
   transition:opacity .2s, width .36s cubic-bezier(.22,1,.36,1), left .36s cubic-bezier(.22,1,.36,1); }
@@ -143,7 +147,7 @@ const CSS = `
 .ll-iconbtn.sm { width:24px; height:24px; }
 button.ll-iconbtn:hover { background:rgba(0,0,0,.05); }
 .ll-nav { padding:8px 8px 0; display:flex; flex-direction:column; min-height:0; }
-.ll-row { height:32px; width:244px; display:flex; align-items:center; gap:4px; border-radius:8px;
+.ll-row { height:32px; width:${ROW_W}px; display:flex; align-items:center; gap:4px; border-radius:8px;
   color:${T.inkSecondary}; white-space:nowrap; flex-shrink:0; transition:color .15s, background-color .15s; }
 .ll-row:hover { color:${T.ink}; }
 .ll-row.on { color:${T.ink}; }
@@ -152,7 +156,7 @@ button.ll-iconbtn:hover { background:rgba(0,0,0,.05); }
 .ll-app.collapsed .ll-row .lbl, .ll-app.collapsed .ll-row .end,
 .ll-app.collapsed .ll-group, .ll-app.collapsed .ll-sub { opacity:0; }
 .ll-group { padding:8px; font-size:12px; line-height:16px; letter-spacing:-0.24px; color:${T.inkSecondary}; transition:opacity .2s; }
-.ll-sub { margin-left:36px; width:208px; height:38px; padding:4px 8px; border-radius:8px; flex-shrink:0; overflow:hidden;
+.ll-sub { margin-left:36px; width:${ROW_W - 36}px; height:38px; padding:4px 8px; border-radius:8px; flex-shrink:0; overflow:hidden;
   transition:opacity .2s, height .36s cubic-bezier(.22,1,.36,1), padding .36s cubic-bezier(.22,1,.36,1), background-color .15s; }
 .ll-app.collapsed .ll-sub { height:0; padding-top:0; padding-bottom:0; }
 .ll-sub .t { font-size:12px; line-height:16px; letter-spacing:-0.24px; color:${T.inkSecondary}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -166,7 +170,7 @@ button.ll-iconbtn:hover { background:rgba(0,0,0,.05); }
   background:#FFF; border:1px solid ${T.navLine}; box-sizing:border-box; }
 .ll-app.collapsed .ll-toggle { opacity:0; }
 .ll-account { border-top:1px solid ${T.navLine}; padding:8px; flex-shrink:0; }
-.ll-account .row { width:244px; height:32px; padding:4px; display:flex; align-items:center; gap:8px; border-radius:8px; color:${T.ink}; }
+.ll-account .row { width:${ROW_W}px; height:32px; padding:4px; display:flex; align-items:center; gap:8px; border-radius:8px; color:${T.ink}; }
 .ll-account .av { width:24px; height:24px; border-radius:8px; background:${T.navLine}; display:inline-flex;
   align-items:center; justify-content:center; flex-shrink:0; }
 .ll-main { flex:1; min-width:0; display:flex; flex-direction:column; background:${T.surface};
