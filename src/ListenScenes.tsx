@@ -792,9 +792,10 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
     await p.sleep(1400)
     setPhase("reply")
     for (let i = 1; i <= IV_WORDS.length; i++) { await p.sleep(IV_WORD_MS); setWords(i) }
-    await p.sleep(500)
+    // short tail: the button re-arms as the last word lands, one beat to read
+    await p.sleep(250)
     setEnabled(true)
-    await p.sleep(2200)
+    await p.sleep(950)
   }, onDone, runKey, hold, playFrom, onTime)
 
   const mm = (ms: number) => `00:${String(Math.floor(ms / 1000)).padStart(2, "0")}`
