@@ -15,8 +15,8 @@ export const T = {
   pageContainer: "#EEE8DD", // surface-secondary — houses the product frame
   // product surfaces (measured from the live app)
   appBg: "#FFFFFF",
-  chromeBg: "#F5F5F5",      // off-white surround behind topbar/tabs; content sits in a white card
-  appPanelAlt: "#FAFAFA",   // sidebars, active tab fill
+  chromeBg: "#F5F5F5",      // quiet fills (input backings, callouts); bare-frame surround
+  appPanelAlt: "#FAFAFA",   // side panels inside a page (editor chat, suggestion cards)
   fill: "#F0F0F0",          // chat bubbles, inactive segmented controls
   appBorder: "#E6E6E6",
   ink: "#1A1A1A",
@@ -32,12 +32,22 @@ export const T = {
   darkSoft: "#333333",      // secondary dark buttons (Study Guide, Edit)
   shadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
   font: "'Inter', -apple-system, sans-serif",
+  // app shell (sidebar + top bar), from the Figma mock "Sidebar Navigation"
+  // (Product Design 2026, 2026-09-29)
+  navBg: "#F0F0F0",         // surface/secondary — sidebar
+  navLine: "#E0E0E0",       // surface/tertiary — shell borders, avatar fill
+  surface: "#FAFAFA",       // surface/primary — content + top bar
+  inkSecondary: "#666666",  // content/secondary — inactive nav, page titles
 }
 
 // Design-space size every full scene is authored at. Cursor coordinates and
 // layout inside scenes are in this space; ScaleBox maps it to the container.
 export const FRAME_W = 1120
 export const FRAME_H = 640
+// Scenes inside the app shell are authored larger (same aspect ratio) so the
+// 260px sidebar leaves the content about the width FRAME_W scenes had.
+export const APP_W = 1344
+export const APP_H = 768
 
 // ------------------------------------------------------------------- css ----
 const CSS = `
@@ -49,20 +59,7 @@ const CSS = `
 
 .ll-frame { background:${T.chromeBg}; border:1px solid ${T.appBorder}; border-radius:12px;
   overflow:hidden; display:flex; flex-direction:column; width:100%; height:100%; position:relative; }
-.ll-topbar { height:48px; flex-shrink:0; display:flex; align-items:center; gap:12px;
-  padding:0 16px; font-size:14px; }
 .ll-logo { width:16px; height:16px; flex-shrink:0; }
-.ll-topbar .spacer { flex:1; }
-.ll-topbar .meta { color:${T.inkSoft}; font-size:13px; }
-.ll-tabs { display:flex; gap:4px; padding:0 12px 8px; font-size:14px; }
-.ll-content-card { flex:1; display:flex; min-height:0; margin:0 8px 8px;
-  background:${T.appBg}; border:1px solid ${T.appBorder}; border-radius:10px;
-  overflow:hidden; box-shadow:${T.shadow}; }
-.ll-tab { height:32px; padding:0 12px; border-radius:8px; color:${T.inkSoft};
-  display:inline-flex; align-items:center; gap:6px; border:1px solid transparent;
-  transition:color .15s ease, background-color .15s ease; }
-.ll-tab:hover { color:${T.ink}; }
-.ll-tab.active { color:${T.ink}; background:${T.appBg}; border-color:${T.appBorder}; box-shadow:${T.shadow}; }
 .ll-body { flex:1; display:flex; min-height:0; position:relative; }
 /* doc areas that continue below the frame fade out instead of chopping a heading */
 .ll-doc-fade { overflow:hidden; -webkit-mask-image:linear-gradient(#000 calc(100% - 36px), transparent); mask-image:linear-gradient(#000 calc(100% - 36px), transparent); }
@@ -124,6 +121,70 @@ const CSS = `
 @keyframes ll-spin { to{transform:rotate(360deg)} }
 
 .ll-scene-fade { animation:ll-scene .5s ease both; }
+
+/* -- app shell: sidebar + top bar (Figma mock, live-app content) -- */
+.ll-app { display:flex; width:100%; height:100%; position:relative; overflow:hidden;
+  background:${T.navBg}; border:1px solid ${T.navLine}; border-radius:12px;
+  font-size:14px; line-height:20px; letter-spacing:-0.28px; }
+.ll-side { width:260px; flex-shrink:0; display:flex; flex-direction:column; overflow:hidden;
+  transition:width .36s cubic-bezier(.22,1,.36,1); }
+.ll-app.collapsed .ll-side { width:48px; }
+.ll-side-inner { width:260px; height:100%; display:flex; flex-direction:column; }
+.ll-side-head { height:48px; flex-shrink:0; position:relative; border-bottom:1px solid ${T.navLine}; }
+.ll-side-head .mark { position:absolute; left:16px; top:16px; width:117px; height:16px; overflow:hidden;
+  transition:opacity .2s, width .36s cubic-bezier(.22,1,.36,1), left .36s cubic-bezier(.22,1,.36,1); }
+.ll-app.collapsed .ll-side-head .mark { width:12px; left:18px; }
+.ll-side-head .toggle { position:absolute; top:8px; right:8px; }
+.ll-app.collapsed .ll-side-head .toggle { right:auto; left:8px; opacity:0; }
+.ll-app.collapsed .ll-side-head:hover .toggle { opacity:1; }
+.ll-app.collapsed .ll-side-head:hover .mark { opacity:0; }
+.ll-iconbtn { width:32px; height:32px; flex-shrink:0; display:inline-flex; align-items:center;
+  justify-content:center; border-radius:8px; color:${T.inkSecondary}; transition:background-color .15s, opacity .2s; }
+.ll-iconbtn.sm { width:24px; height:24px; }
+button.ll-iconbtn:hover { background:rgba(0,0,0,.05); }
+.ll-nav { padding:8px 8px 0; display:flex; flex-direction:column; min-height:0; }
+.ll-row { height:32px; width:244px; display:flex; align-items:center; gap:4px; border-radius:8px;
+  color:${T.inkSecondary}; white-space:nowrap; flex-shrink:0; transition:color .15s, background-color .15s; }
+.ll-row:hover { color:${T.ink}; }
+.ll-row.on { color:${T.ink}; }
+.ll-row .lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; transition:opacity .2s; }
+.ll-row .end { margin-left:auto; }
+.ll-app.collapsed .ll-row .lbl, .ll-app.collapsed .ll-row .end,
+.ll-app.collapsed .ll-group, .ll-app.collapsed .ll-sub { opacity:0; }
+.ll-group { padding:8px; font-size:12px; line-height:16px; letter-spacing:-0.24px; color:${T.inkSecondary}; transition:opacity .2s; }
+.ll-sub { margin-left:36px; width:208px; height:38px; padding:4px 8px; border-radius:8px; flex-shrink:0; overflow:hidden;
+  transition:opacity .2s, height .36s cubic-bezier(.22,1,.36,1), padding .36s cubic-bezier(.22,1,.36,1), background-color .15s; }
+.ll-app.collapsed .ll-sub { height:0; padding-top:0; padding-bottom:0; }
+.ll-sub .t { font-size:12px; line-height:16px; letter-spacing:-0.24px; color:${T.inkSecondary}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ll-sub .m { font-size:10px; line-height:14px; letter-spacing:0; color:${T.inkSecondary}; opacity:.8; }
+.ll-sub.on { background:${T.navLine}; }
+.ll-sub.on .t { color:${T.ink}; }
+.ll-side-foot { margin-top:auto; padding:0 8px 8px; display:flex; flex-direction:column; }
+.ll-toggle { width:36px; height:20px; border-radius:16px; background:${T.navBg}; border:1px solid ${T.navLine};
+  position:relative; flex-shrink:0; margin-left:auto; transition:opacity .2s; }
+.ll-toggle::after { content:""; position:absolute; left:-1px; top:-1px; width:20px; height:20px; border-radius:16px;
+  background:#FFF; border:1px solid ${T.navLine}; box-sizing:border-box; }
+.ll-app.collapsed .ll-toggle { opacity:0; }
+.ll-account { border-top:1px solid ${T.navLine}; padding:8px; flex-shrink:0; }
+.ll-account .row { width:244px; height:32px; padding:4px; display:flex; align-items:center; gap:8px; border-radius:8px; color:${T.ink}; }
+.ll-account .av { width:24px; height:24px; border-radius:8px; background:${T.navLine}; display:inline-flex;
+  align-items:center; justify-content:center; flex-shrink:0; }
+.ll-main { flex:1; min-width:0; display:flex; flex-direction:column; background:${T.surface};
+  border-left:1px solid ${T.navLine}; }
+.ll-top { height:48px; flex-shrink:0; display:flex; align-items:center; gap:8px; padding:0 8px;
+  border-bottom:1px solid ${T.navLine}; position:relative; }
+.ll-top .ttl { height:32px; padding:0 6px; display:inline-flex; align-items:center; gap:4px;
+  color:${T.inkSoft}; max-width:300px; white-space:nowrap; position:relative; z-index:1; }
+.ll-top .ttl span { overflow:hidden; text-overflow:ellipsis; }
+.ll-top .crumb { position:absolute; left:0; right:0; text-align:center; pointer-events:none; color:${T.inkSecondary}; }
+.ll-top .crumb .cur { color:${T.ink}; }
+.ll-top .acts { margin-left:auto; display:flex; align-items:center; gap:8px; position:relative; z-index:1; }
+.ll-top .meta { color:${T.inkSoft}; }
+.ll-tbtn { height:32px; padding:0 8px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;
+  background:#F4F4F5; color:#18181B; flex-shrink:0; }
+.ll-tbtn.dark { background:${T.darkSoft}; color:#FAFAFA; }
+.ll-tbtn.plain { background:transparent; color:${T.body}; }
+.ll-view { flex:1; min-height:0; display:flex; position:relative; overflow:hidden; }
 @keyframes ll-scene { from{opacity:0} to{opacity:1} }
 
 .ll-wave { display:inline-flex; align-items:center; gap:2px; height:16px; }
@@ -314,17 +375,55 @@ export function ScaleBox(props: {
 }
 
 // ---------------------------------------------------------------- Cursor ----
-export function Cursor(props: { x: number; y: number; visible: boolean; clickKey: number }): JSX.Element {
-  const { x, y, visible, clickKey } = props
+/** Cursor state: a point in design coords, or a `data-cursor` target to track.
+ *  Targets are resolved from the DOM after each render and followed while the
+ *  layout reflows (e.g. the sidebar collapsing), so scripted clicks land at any
+ *  sidebar width and in freeze-frame mode. */
+export type CursorState = {
+  x: number; y: number; visible: boolean; clickKey: number
+  target?: string; dx?: number; dy?: number
+}
+
+export function Cursor(props: CursorState): JSX.Element {
+  const { visible, clickKey, target, dx = 0, dy = 0 } = props
+  const ref = React.useRef<HTMLDivElement>(null)
   const [clicking, setClicking] = React.useState(false)
+  const [at, setAt] = React.useState<{ x: number; y: number } | null>(null)
   React.useEffect(() => {
     if (!clickKey) return
     setClicking(true)
     const id = setTimeout(() => setClicking(false), 480)
     return () => clearTimeout(id)
   }, [clickKey])
+
+  // resolve the target's center relative to the cursor's positioned parent,
+  // in unscaled design px; keep following it while visible
+  React.useLayoutEffect(() => {
+    if (!target) { setAt(null); return }
+    let raf = 0
+    const resolve = () => {
+      const el = ref.current
+      const root = el?.offsetParent as HTMLElement | null
+      const hit = root?.querySelector(`[data-cursor="${target}"]`) as HTMLElement | null
+      if (root && hit) {
+        const rb = root.getBoundingClientRect()
+        const s = rb.width / root.offsetWidth || 1
+        const r = hit.getBoundingClientRect()
+        const x = (r.x + r.width / 2 - rb.x) / s + dx
+        const y = (r.y + r.height / 2 - rb.y) / s + dy
+        setAt((p) => (p && Math.abs(p.x - x) < 0.5 && Math.abs(p.y - y) < 0.5 ? p : { x, y }))
+      }
+      if (visible) raf = requestAnimationFrame(resolve)
+    }
+    resolve()
+    return () => cancelAnimationFrame(raf)
+  }, [target, dx, dy, visible])
+
+  const x = target && at ? at.x : props.x
+  const y = target && at ? at.y : props.y
   return (
     <div
+      ref={ref}
       className={"ll-cursor" + (clicking ? " clicking" : "")}
       style={{ transform: `translate(${x}px, ${y}px)`, opacity: visible ? 1 : 0 }}
     >
@@ -336,14 +435,24 @@ export function Cursor(props: { x: number; y: number; visible: boolean; clickKey
   )
 }
 
-/** Scene-side hook that pairs with <Cursor/>: move/click in design coords.
- *  Pass a stable id to click() so scrub-mode replays don't re-pulse the ring. */
-export function useCursor() {
-  const [c, setC] = React.useState({ x: FRAME_W / 2, y: FRAME_H + 40, visible: false, clickKey: 0 })
+type CursorTo = string | { x: number; y: number }
+
+/** Scene-side hook that pairs with <Cursor/>. Aim at a `data-cursor` key
+ *  (preferred — survives reflow) or a raw design-space point; dx/dy nudge off
+ *  the target's center. Pass a stable id to click() so scrub-mode replays
+ *  don't re-pulse the ring. */
+export function useCursor(start: { x: number; y: number } = { x: FRAME_W / 2, y: FRAME_H + 40 }) {
+  const [c, setC] = React.useState<CursorState>({ ...start, visible: false, clickKey: 0 })
+  const aim = (to: CursorTo, dx = 0, dy = 0) =>
+    typeof to === "string" ? { target: to, dx, dy } : { target: undefined, x: to.x + dx, y: to.y + dy, dx: 0, dy: 0 }
   return {
     state: c,
-    show: (x: number, y: number) => setC((s) => ({ ...s, x, y, visible: true })),
-    move: (x: number, y: number) => setC((s) => ({ ...s, x, y })),
+    show: (to: CursorTo | number, a?: number, b?: number) => setC((s) => ({
+      ...s, visible: true, ...(typeof to === "number" ? aim({ x: to, y: a ?? 0 }) : aim(to, a, b)),
+    })),
+    move: (to: CursorTo | number, a?: number, b?: number) => setC((s) => ({
+      ...s, ...(typeof to === "number" ? aim({ x: to, y: a ?? 0 }) : aim(to, a, b)),
+    })),
     click: (id?: number) => setC((s) => ({ ...s, clickKey: id ?? s.clickKey + 1 })),
     hide: () => setC((s) => ({ ...s, visible: false })),
   }
@@ -409,74 +518,247 @@ export function Logo(): JSX.Element {
   )
 }
 
-// ---------------------------------------------------------- ProductFrame ----
-export const ANALYSIS_TABS = ["Recruit", "Responses", "Report", "Details", "Chat", "Clips"]
-
-/**
- * The product chrome full scenes render inside. Three variants, matching the
- * real app's surfaces:
- *  - "builder":  study editor (Edited · Invite · Preview · Launch)
- *  - "analysis": study analysis (tab row · Invite · Edit)
- *  - "bare":     no chrome (participant-facing interview)
- */
-export function ProductFrame(props: {
-  title?: string
-  step?: string
-  variant?: "builder" | "analysis" | "bare"
-  activeTab?: string
-  /** builder top-right: "saved" shows Just saved; "review" adds Invite + blue Review */
-  builderRight?: "saved" | "review"
-  children: React.ReactNode
-  cursor?: { x: number; y: number; visible: boolean; clickKey: number }
-}): JSX.Element {
-  const { title, step, variant = "builder", activeTab, builderRight = "saved", children, cursor } = props
+// ------------------------------------------------------------ BareFrame -----
+/** Chrome-less product surface (participant-facing interview): the rounded
+ *  frame and a white body, no app navigation. */
+export function BareFrame(props: { children: React.ReactNode; cursor?: CursorState }): JSX.Element {
   return (
     <div className="ll-frame">
-      {variant === "builder" && (
-        <div className="ll-topbar" style={{ position: "relative" }}>
-          <Logo />
-          <span style={{ color: T.inkFaint }}>/</span>
-          <span>{title}</span>
-          <I name="chevrons-up-down" size={13} style={{ color: T.inkSoft }} />
-          {/* centered Create › Review breadcrumb */}
-          <span style={{ position: "absolute", left: 0, right: 0, textAlign: "center", pointerEvents: "none", fontSize: 14 }}>
-            <span className="ll-500">Create</span>
-            <span style={{ color: T.inkFaint }}>  ›  </span>
-            <span style={{ color: T.inkFaint }}>Review</span>
+      <div className="ll-body" style={{ background: T.appBg }}>{props.children}</div>
+      {props.cursor && <Cursor {...props.cursor} />}
+    </div>
+  )
+}
+
+// -------------------------------------------------------------- AppShell ----
+// The product's current chrome: a collapsible sidebar plus a 48px top bar over
+// the content area. Visuals follow the Figma mock ("Sidebar Navigation",
+// Product Design 2026); what each surface shows (study nav, breadcrumbs, top
+// bar actions) follows the live app (2026-09-29). Full scenes render their
+// content as children, inside the content area under the top bar.
+
+/** one line in the sidebar */
+export type NavNode =
+  | { type: "item"; icon: string; label: string; chevron?: boolean; open?: boolean; add?: boolean; cursor?: string; sub?: Array<{ title: string; meta: string }> }
+  | { type: "back"; label: string }
+  | { type: "new"; label: string }
+  | { type: "group"; label: string }
+  | { type: "chat"; label: string }
+
+export type NavSpec = { key: string; nodes: NavNode[]; active?: string }
+
+export const workspaceNav = (active = "Studies"): NavSpec => ({
+  key: "workspace", active,
+  nodes: [
+    { type: "item", icon: "file-text", label: "Studies" },
+    { type: "item", icon: "sparkles-nav", label: "Research Library", chevron: true },
+    { type: "item", icon: "users", label: "Listen Twins", chevron: true },
+    { type: "item", icon: "building-2", label: "Workspace" },
+    { type: "item", icon: "chart-column-increasing", label: "Usage & Billing" },
+    { type: "item", icon: "mail", label: "Emails" },
+    { type: "item", icon: "shield-check", label: "Administrator" },
+  ],
+})
+
+/** study editor (Create): Study Guide → Review */
+export const studyEditNav = (active = "Study Guide"): NavSpec => ({
+  key: "study-edit", active,
+  nodes: [
+    { type: "back", label: "Studies" },
+    { type: "item", icon: "list-todo", label: "Study Guide" },
+    { type: "item", icon: "circle-user-round", label: "Review" },
+  ],
+})
+
+/** a launched study's analysis; `reports` expands the Report item */
+export const studyNav = (active: string, reports?: Array<{ title: string; meta: string }>): NavSpec => ({
+  key: "study", active,
+  nodes: [
+    { type: "back", label: "Studies" },
+    { type: "item", icon: "list-todo", label: "Study Guide" },
+    { type: "item", icon: "circle-user-round", label: "Recruit" },
+    { type: "item", icon: "messages-square", label: "Responses" },
+    { type: "item", icon: "clipboard-list", label: "Report", chevron: true, open: !!reports, add: true, sub: reports },
+    { type: "item", icon: "file-chart-pie", label: "Details" },
+    { type: "item", icon: "film", label: "Clips" },
+    { type: "item", icon: "message-circle", label: "Chat" },
+  ],
+})
+
+/** the study Chat drill-in: back to the study, new chat, artifacts, history */
+export const chatNav = (study: string, history: Array<{ group: string; chats: string[] }>, active?: string): NavSpec => ({
+  key: "chat", active,
+  nodes: [
+    { type: "back", label: study },
+    { type: "new", label: "New Chat" },
+    { type: "item", icon: "layers", label: "Artifacts" },
+    ...history.flatMap((h): NavNode[] => [{ type: "group", label: h.group }, ...h.chats.map((c): NavNode => ({ type: "chat", label: c }))]),
+  ],
+})
+
+/** SceneCanvas provides this so a visitor's collapse survives loop restarts
+ *  and multi-step changes; without it each shell keeps its own state. */
+export const ShellCollapse = React.createContext<[boolean, (v: boolean) => void] | null>(null)
+
+const WORDMARK_D: string[] = ["M10.7424 0.288086H5.90755C5.56287 0.288086 5.28369 0.568061 5.28369 0.913731V5.76248C5.28369 6.10815 5.56287 6.38813 5.90755 6.38813H10.7424C11.0871 6.38813 11.3662 6.10815 11.3662 5.76248V0.913731C11.3662 0.568061 11.0871 0.288086 10.7424 0.288086Z","M4.69168 6.38672H0.624159C0.267784 6.38672 -0.0199686 6.68623 0.00108638 7.04367C0.215535 10.6982 2.2064 13.8812 5.11823 15.7347C5.41535 15.9239 5.80993 15.8269 5.98851 15.5227L8.05192 12.0183C8.22033 11.732 8.13611 11.3637 7.86004 11.1799C6.45561 10.247 5.4824 8.71179 5.31241 6.94354C5.28199 6.62602 5.01062 6.38672 4.69244 6.38672H4.69168Z","M18.2685 14.3778V0H20.3968V12.5479H26.7014V14.3778H18.2685Z","M28.3113 3.82069H30.3392V14.3778H28.3113V3.82069ZM28.271 2.29242V0H30.3793V2.29242H28.271Z","M32.0672 11.1604H34.0751C34.4165 12.2865 35.1594 12.9702 36.625 12.9702C37.8297 12.9702 38.6932 12.4273 38.6932 11.4822C38.6932 10.4968 37.6893 10.2354 36.2034 9.87344L35.4604 9.67236C33.7138 9.25007 32.4085 8.46583 32.4085 6.63592C32.4085 4.76579 34.0951 3.53916 36.4444 3.53916C38.7736 3.53916 40.2995 4.54461 40.5403 6.61582H38.6129C38.3117 5.67069 37.609 5.14788 36.3841 5.14788C35.0991 5.14788 34.4767 5.67069 34.4767 6.45494C34.4767 7.31962 35.0991 7.56092 36.3841 7.94301L37.5086 8.26474C39.6169 8.86801 40.7212 9.51148 40.7212 11.2811C40.7212 13.3121 38.9743 14.6191 36.565 14.6191C33.9948 14.6191 32.4889 13.5131 32.0672 11.1604Z","M45.0967 0.965224V3.82069H47.0644V5.38918H45.0967V11.7235C45.0967 12.749 45.5987 13.0305 46.3817 13.0305C46.5224 13.0305 46.7431 13.0104 46.8837 12.9903V14.4985C46.5824 14.5588 46.3617 14.5789 46.1007 14.5789C44.2334 14.5789 43.0488 13.9555 43.0488 11.8441V5.38918H41.4626V3.82069H43.0488V0.965224H45.0967Z","M58.1753 9.63214H49.9232C49.9835 11.4822 51.2282 12.9501 53.2361 12.9501C54.6817 12.9501 55.3844 12.2664 55.9267 11.3615H57.9546C57.3723 13.2718 55.6657 14.6393 53.1558 14.6393C49.9032 14.6393 47.8753 12.4474 47.8753 9.14952C47.8753 5.85167 50.0035 3.51905 53.1558 3.51905C56.5893 3.51905 58.1753 6.13321 58.1753 8.96854V9.63214ZM50.0035 8.02344H56.0671C55.8864 6.33429 54.8624 5.16798 53.1157 5.16798C51.4492 5.16798 50.2245 6.25386 50.0035 8.02344Z","M61.9279 3.82069V5.24841C62.4699 4.3435 63.5141 3.51905 65.281 3.51905C67.7104 3.51905 68.9753 5.14788 68.9753 7.88268V14.3778H66.9274V8.64681C66.9274 6.55549 66.2447 5.24841 64.5782 5.24841C62.8916 5.24841 61.9679 6.61582 61.9679 8.28485V14.3778H59.94V4.62504C59.94 4.36363 59.94 4.0821 59.92 3.82069H61.9279Z","M76.3423 14.3778V0H78.4705V12.5479H84.7753V14.3778H76.3423Z","M95.2195 14.3778H93.3122C93.2519 13.9555 93.2319 13.7142 93.2116 12.93C92.4086 14.0762 91.3444 14.5789 89.6578 14.5789C87.4492 14.5789 85.8429 13.493 85.8429 11.5224C85.8429 9.27017 88.0114 8.50605 90.8224 8.12397C91.525 8.02344 92.2882 7.94299 92.9909 7.88268C92.9909 5.75112 92.1074 5.14788 90.722 5.14788C89.1961 5.14788 88.4731 5.85167 88.3327 7.11854H86.3449C86.4454 4.86634 88.2524 3.53916 90.7621 3.53916C93.0109 3.53916 94.9585 4.28318 94.9585 8.4055V10.4566C94.9585 12.1659 95.0389 13.4126 95.2195 14.3778ZM93.031 9.35063C89.5977 9.67236 88.0315 10.0544 88.0315 11.5023C88.0315 12.4876 88.8347 13.111 90.1197 13.111C92.027 13.111 93.0109 11.9849 93.0109 9.91367V9.59193C93.0109 9.49138 93.011 9.41095 93.031 9.35063Z","M96.9484 14.3778V0H98.9964V4.12232C98.9964 4.44406 98.9964 4.78592 98.9764 5.16798C99.5987 4.3033 100.723 3.49895 102.41 3.49895C105.381 3.49895 107.329 5.87177 107.329 9.06909C107.329 12.3669 105.321 14.6191 102.43 14.6191C100.603 14.6191 99.4784 13.8349 98.8558 12.8898V14.3778H96.9484ZM102.008 5.2082C100.061 5.2082 98.876 6.837 98.876 9.08919C98.876 11.4218 100.02 12.9501 102.028 12.9501C104.016 12.9501 105.14 11.4419 105.14 9.08919C105.14 6.837 103.996 5.2082 102.008 5.2082Z","M108.346 11.1604H110.354C110.696 12.2865 111.438 12.9702 112.904 12.9702C114.109 12.9702 114.972 12.4273 114.972 11.4822C114.972 10.4968 113.968 10.2354 112.482 9.87344L111.739 9.67236C109.993 9.25007 108.688 8.46583 108.688 6.63592C108.688 4.76579 110.374 3.53916 112.723 3.53916C115.052 3.53916 116.578 4.54461 116.819 6.61582H114.892C114.591 5.67069 113.888 5.14788 112.663 5.14788C111.378 5.14788 110.756 5.67069 110.756 6.45494C110.756 7.31962 111.378 7.56092 112.663 7.94301L113.787 8.26474C115.896 8.86801 117 9.51148 117 11.2811C117 13.3121 115.253 14.6191 112.844 14.6191C110.274 14.6191 108.768 13.5131 108.346 11.1604Z"]
+const ORG_MARK_D: string[] = ["M18 11.5C18 12.424 17.8302 13.2224 17.4906 13.8954C17.151 14.5684 16.6852 15.0875 16.0931 15.4525C15.5009 15.8175 14.8247 16 14.0642 16C13.3038 16 12.6275 15.8175 12.0354 15.4525C11.4433 15.0875 10.9774 14.5684 10.6378 13.8954C10.2982 13.2224 10.1284 12.424 10.1284 11.5C10.1284 10.576 10.2982 9.77757 10.6378 9.10456C10.9774 8.43156 11.4433 7.91255 12.0354 7.54753C12.6275 7.18251 13.3038 7 14.0642 7C14.8247 7 15.5009 7.18251 16.0931 7.54753C16.6852 7.91255 17.151 8.43156 17.4906 9.10456C17.8302 9.77757 18 10.576 18 11.5ZM16.9551 11.5C16.9551 10.7414 16.8259 10.1012 16.5676 9.57937C16.3122 9.05751 15.9653 8.66255 15.5271 8.39449C15.0917 8.12643 14.6041 7.9924 14.0642 7.9924C13.5243 7.9924 13.0353 8.12643 12.597 8.39449C12.1616 8.66255 11.8148 9.05751 11.5565 9.57937C11.301 10.1012 11.1733 10.7414 11.1733 11.5C11.1733 12.2586 11.301 12.8988 11.5565 13.4206C11.8148 13.9425 12.1616 14.3375 12.597 14.6055C13.0353 14.8736 13.5243 15.0076 14.0642 15.0076C14.6041 15.0076 15.0917 14.8736 15.5271 14.6055C15.9653 14.3375 16.3122 13.9425 16.5676 13.4206C16.8259 12.8988 16.9551 12.2586 16.9551 11.5Z","M15.9358 11.5C15.9358 12.424 15.766 13.2224 15.4264 13.8954C15.0868 14.5684 14.621 15.0875 14.0288 15.4525C13.4367 15.8175 12.7605 16 12 16C11.2395 16 10.5633 15.8175 9.97115 15.4525C9.37904 15.0875 8.91319 14.5684 8.5736 13.8954C8.23401 13.2224 8.06421 12.424 8.06421 11.5C8.06421 10.576 8.23401 9.77757 8.5736 9.10456C8.91319 8.43156 9.37904 7.91255 9.97115 7.54753C10.5633 7.18251 11.2395 7 12 7C12.7605 7 13.4367 7.18251 14.0288 7.54753C14.621 7.91255 15.0868 8.43156 15.4264 9.10456C15.766 9.77757 15.9358 10.576 15.9358 11.5ZM14.8909 11.5C14.8909 10.7414 14.7617 10.1012 14.5034 9.57937C14.248 9.05751 13.9011 8.66255 13.4629 8.39449C13.0275 8.12643 12.5399 7.9924 12 7.9924C11.4601 7.9924 10.9711 8.12643 10.5328 8.39449C10.0974 8.66255 9.75056 9.05751 9.49224 9.57937C9.23682 10.1012 9.10911 10.7414 9.10911 11.5C9.10911 12.2586 9.23682 12.8988 9.49224 13.4206C9.75056 13.9425 10.0974 14.3375 10.5328 14.6055C10.9711 14.8736 11.4601 15.0076 12 15.0076C12.5399 15.0076 13.0275 14.8736 13.4629 14.6055C13.9011 14.3375 14.248 13.9425 14.5034 13.4206C14.7617 12.8988 14.8909 12.2586 14.8909 11.5Z","M13.8716 11.5C13.8716 12.424 13.7018 13.2224 13.3622 13.8954C13.0226 14.5684 12.5567 15.0875 11.9646 15.4525C11.3725 15.8175 10.6962 16 9.93579 16C9.17533 16 8.49905 15.8175 7.90694 15.4525C7.31483 15.0875 6.84898 14.5684 6.50939 13.8954C6.1698 13.2224 6 12.424 6 11.5C6 10.576 6.1698 9.77757 6.50939 9.10456C6.84898 8.43156 7.31483 7.91255 7.90694 7.54753C8.49905 7.18251 9.17533 7 9.93579 7C10.6962 7 11.3725 7.18251 11.9646 7.54753C12.5567 7.91255 13.0226 8.43156 13.3622 9.10456C13.7018 9.77757 13.8716 10.576 13.8716 11.5ZM12.8267 11.5C12.8267 10.7414 12.6975 10.1012 12.4392 9.57937C12.1838 9.05751 11.8369 8.66255 11.3986 8.39449C10.9633 8.12643 10.4757 7.9924 9.93579 7.9924C9.39592 7.9924 8.90685 8.12643 8.46858 8.39449C8.0332 8.66255 7.68635 9.05751 7.42803 9.57937C7.17261 10.1012 7.0449 10.7414 7.0449 11.5C7.0449 12.2586 7.17261 12.8988 7.42803 13.4206C7.68635 13.9425 8.0332 14.3375 8.46858 14.6055C8.90685 14.8736 9.39592 15.0076 9.93579 15.0076C10.4757 15.0076 10.9633 14.8736 11.3986 14.6055C11.8369 14.3375 12.1838 13.9425 12.4392 13.4206C12.6975 12.8988 12.8267 12.2586 12.8267 11.5Z"]
+
+/** the full wordmark; the collapsed rail crops it to the mark */
+function Wordmark(): JSX.Element {
+  return (
+    <span className="mark">
+      <svg width={117} height={16} viewBox="0 0 117 16" fill={T.ink} aria-label="Listen Labs" style={{ display: "block" }}>
+        {WORDMARK_D.map((d, i) => <path key={i} d={d} />)}
+      </svg>
+    </span>
+  )
+}
+
+function OrgMark(): JSX.Element {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+      <rect x={0.5} y={0.5} width={23} height={23} rx={7.5} fill={T.surface} stroke={T.navLine} />
+      {ORG_MARK_D.map((d, i) => <path key={i} d={d} fill="#120F08" />)}
+    </svg>
+  )
+}
+
+const NAV_STROKE = 1.5 // the mock's 1px icon stroke at 16px
+
+function NavRow(props: { node: NavNode; on: boolean; activeSub?: string }): JSX.Element {
+  const { node, on } = props
+  if (node.type === "group") return <div className="ll-group">{node.label}</div>
+  if (node.type === "back") {
+    return (
+      <div className="ll-row">
+        <span className="ll-iconbtn" style={{ color: "inherit" }}><I name="chevron-left" stroke={NAV_STROKE} /></span>
+        <span className="lbl">{node.label}</span>
+      </div>
+    )
+  }
+  if (node.type === "new") {
+    return (
+      <div className="ll-row" style={{ color: T.ink, gap: 8, paddingLeft: 4 }}>
+        <span style={{ width: 24, height: 24, borderRadius: 16, background: T.navLine, border: `2px solid ${T.navBg}`, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <I name="plus" size={14} stroke={NAV_STROKE} />
+        </span>
+        <span className="lbl">{node.label}</span>
+      </div>
+    )
+  }
+  if (node.type === "chat") {
+    return (
+      <div className={"ll-row" + (on ? " on" : "")} style={{ color: T.ink, paddingLeft: 4 }}>
+        <span className="ll-iconbtn sm" style={{ color: T.inkSecondary }}><I name="message-circle" stroke={NAV_STROKE} /></span>
+        <span className="lbl">{node.label}</span>
+      </div>
+    )
+  }
+  return (
+    <>
+      <div className={"ll-row" + (on ? " on" : "")} data-cursor={node.cursor ?? "nav-" + node.label}>
+        <span className="ll-iconbtn" style={{ color: "inherit" }}><I name={node.icon} stroke={NAV_STROKE} /></span>
+        <span className="lbl">{node.label}</span>
+        {node.add && <span className="ll-iconbtn sm end" style={{ marginRight: 2 }}><I name="plus" stroke={NAV_STROKE} /></span>}
+        {(node.chevron || node.sub) && (
+          <span className="ll-iconbtn end" style={node.add ? { marginLeft: 0 } : undefined}>
+            <I name={node.open ? "chevron-down" : "chevron-right"} stroke={NAV_STROKE} />
           </span>
-          <span className="spacer" />
-          <span className="meta">Just saved</span>
-          {builderRight === "review" && (
-            <>
-              <button className="ll-btn ghost" style={{ height: 30 }}>Invite <I name="user-round-plus" size={14} /></button>
-              <button className="ll-btn primary" style={{ height: 30 }}>Review →</button>
-            </>
-          )}
+        )}
+      </div>
+      {node.open && node.sub?.map((r) => (
+        <div key={r.title} className={"ll-sub" + (r.title === props.activeSub ? " on" : "")}>
+          <div className="t">{r.title}</div>
+          <div className="m">{r.meta}</div>
         </div>
-      )}
-      {variant === "analysis" && (
-        <>
-          <div className="ll-topbar">
-            <Logo />
-            <span>{title}</span>
-            <I name="chevrons-up-down" size={13} style={{ color: T.inkSoft }} />
-            <span className="spacer" />
-            <button className="ll-btn ghost" style={{ height: 30 }}>Invite <I name="user-round-plus" size={14} /></button>
-            <button className="ll-btn darksoft" style={{ height: 30 }}>Edit <I name="square-pen" size={13} /></button>
+      ))}
+    </>
+  )
+}
+
+export function AppShell(props: {
+  nav: NavSpec
+  /** active Report sub-item (study nav) */
+  activeSub?: string
+  /** top bar, left: the study title + switcher chevron */
+  title?: string
+  /** top bar, center: breadcrumb parts; the last one is the current page */
+  crumb?: string[]
+  /** top bar, right: meta text + buttons (use .ll-tbtn) */
+  actions?: React.ReactNode
+  children: React.ReactNode
+  cursor?: CursorState
+  /** start collapsed (only when no SceneCanvas context is present) */
+  collapsed?: boolean
+}): JSX.Element {
+  const { nav, activeSub, title, crumb, actions, children, cursor } = props
+  const ctx = React.useContext(ShellCollapse)
+  const [own, setOwn] = React.useState(!!props.collapsed)
+  const [collapsed, setCollapsed] = ctx ?? [own, setOwn]
+  const toggle = (e: React.MouseEvent) => { e.stopPropagation(); setCollapsed(!collapsed) }
+  const isOn = (n: NavNode) => (n.type === "item" || n.type === "chat") && n.label === nav.active
+
+  return (
+    <div className={"ll ll-app" + (collapsed ? " collapsed" : "")}>
+      <div className="ll-side">
+        <div className="ll-side-inner">
+          <div className="ll-side-head">
+            <Wordmark />
+            <button className="ll-iconbtn toggle" onClick={toggle} onMouseDown={(e) => e.stopPropagation()}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+              <I name={collapsed ? "panel-left" : "panel-left-close"} stroke={NAV_STROKE} />
+            </button>
           </div>
-          <div className="ll-tabs">
-            {ANALYSIS_TABS.map((t) => (
-              <span key={t} className={"ll-tab" + (t === activeTab ? " active" : "")}>
-                {t}
-              </span>
-            ))}
+          {/* keyed so a nav swap (workspace → study) crossfades */}
+          <div key={nav.key} className="ll-nav ll-scene-fade">
+            {nav.nodes.map((n, i) => <NavRow key={i} node={n} on={isOn(n)} activeSub={activeSub} />)}
           </div>
-        </>
-      )}
-      {/* Builder and analysis both put content in the inset stroked card
-          (site-wide consistency); "bare" surfaces stay full-bleed. */}
-      <div className="ll-body" style={variant === "bare" ? { background: T.appBg } : undefined}>
-        {variant === "bare" ? children : <div className="ll-content-card">{children}</div>}
+          <div className="ll-side-foot">
+            <div className="ll-row">
+              <span className="ll-iconbtn" style={{ color: "inherit" }}><I name="moon" stroke={NAV_STROKE} /></span>
+              <span className="lbl" style={{ flex: "none" }}>Dark Mode</span>
+              <span className="ll-toggle" />
+            </div>
+            <div className="ll-row">
+              <span className="ll-iconbtn" style={{ color: "inherit" }}><I name="megaphone" stroke={NAV_STROKE} /></span>
+              <span className="lbl">Whats new</span>
+              <span className="ll-iconbtn end"><I name="chevron-right" stroke={NAV_STROKE} /></span>
+            </div>
+            <div className="ll-row" style={{ gap: 8, paddingLeft: 4, color: T.ink }}>
+              <OrgMark />
+              <span className="lbl" style={{ fontSize: 12, lineHeight: "16px", letterSpacing: -0.24 }}>Omni Corporation</span>
+              <span className="ll-iconbtn end"><I name="chevrons-up-down" stroke={NAV_STROKE} /></span>
+            </div>
+          </div>
+          <div className="ll-account">
+            <div className="row">
+              <span className="av">B</span>
+              <span className="lbl" style={{ flex: 1, transition: "opacity .2s", opacity: collapsed ? 0 : 1 }}>Brannon Wellington</span>
+              <span className="ll-iconbtn sm" style={{ opacity: collapsed ? 0 : 1 }}><I name="ellipsis-vertical" stroke={NAV_STROKE} /></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="ll-main">
+        <div className="ll-top">
+          {title && (
+            <span className="ttl"><span>{title}</span><I name="chevron-down" size={14} stroke={NAV_STROKE} style={{ flexShrink: 0 }} /></span>
+          )}
+          {crumb && crumb.length > 0 && (
+            <div className="crumb">
+              {crumb.length === 1
+                ? crumb[0]
+                : crumb.map((c, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && " / "}
+                      <span className={i === crumb.length - 1 ? "cur" : undefined}>{c}</span>
+                    </React.Fragment>
+                  ))}
+            </div>
+          )}
+          {actions && <div className="acts">{actions}</div>}
+        </div>
+        <div className="ll-view">{children}</div>
       </div>
       {cursor && <Cursor {...cursor} />}
     </div>

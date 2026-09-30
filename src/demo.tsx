@@ -75,7 +75,7 @@ function Demo(): JSX.Element {
           <div>
             <div className="demo-label">Full scene · pinned top-left 40/40, masked · concentric circles</div>
             <SceneCanvas content="design-study" fit="pinned" anchor="top-left"
-              insetX={40} insetY={40} zoom={0.55} canvasHeight={300} pattern="circles" patternSpacing={36} radius={16}
+              insetX={40} insetY={40} zoom={0.46} canvasHeight={300} pattern="circles" patternSpacing={36} radius={16}
               segStart={8500} segEnd={16000} loopPause={4} />
           </div>
           <div>

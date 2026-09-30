@@ -10,7 +10,7 @@
 import * as React from "react"
 import { addPropertyControls, ControlType } from "framer"
 import {
-  T, PatternLayer, PatternType, ensureCss,
+  T, PatternLayer, PatternType, ensureCss, ShellCollapse, APP_W, APP_H,
 } from "./ListenKit"
 import { REGISTRY, SEQUENCES, byKey, sequenceByKey, RegistryEntry, Step } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
@@ -388,15 +388,23 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[] }): JSX.Elem
 export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   ensureCss()
   const merged = mergePreset(props)
+  // one sidebar collapse state per canvas, so a visitor's click survives loop
+  // restarts and step changes (each remounts the scene)
+  const collapse = React.useState(false)
 
-  if (merged.layout === "multi-step") return <MultiStep {...merged} steps={props.steps} />
   return (
-    <Single {...merged}
-      debugHold={props.debugHold}
-      debugPlayFrom={props.debugPlayFrom}
-      debugOnTime={props.debugOnTime}
-      debugCanvasRef={props.debugCanvasRef}
-    />
+    <ShellCollapse.Provider value={collapse}>
+      {merged.layout === "multi-step" ? (
+        <MultiStep {...merged} steps={props.steps} />
+      ) : (
+        <Single {...merged}
+          debugHold={props.debugHold}
+          debugPlayFrom={props.debugPlayFrom}
+          debugOnTime={props.debugOnTime}
+          debugCanvasRef={props.debugCanvasRef}
+        />
+      )}
+    </ShellCollapse.Provider>
   )
 }
 
@@ -429,10 +437,10 @@ addPropertyControls(SceneCanvas, {
   // single content — one unified list (scenes + fragments) plus custom crop
   content: { type: ControlType.Enum, title: "Content", options: [...REGISTRY.map((e) => e.key), "custom"], optionTitles: [...REGISTRY.map((e) => e.title), "Custom crop…"], defaultValue: "design-study", hidden: isMulti },
   customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), optionTitles: REGISTRY.map((e) => e.title), hidden: (p) => isMulti(p) || p.content !== "custom" },
-  cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isMulti(p) || p.content !== "custom" },
-  cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: 640, hidden: (p) => isMulti(p) || p.content !== "custom" },
-  cropW: { type: ControlType.Number, title: "Crop W (0=full)", defaultValue: 0, min: 0, max: 1120, hidden: (p) => isMulti(p) || p.content !== "custom" },
-  cropH: { type: ControlType.Number, title: "Crop H", defaultValue: 0, min: 0, max: 640, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: APP_W, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: APP_H, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropW: { type: ControlType.Number, title: "Crop W (0=full)", defaultValue: 0, min: 0, max: APP_W, hidden: (p) => isMulti(p) || p.content !== "custom" },
+  cropH: { type: ControlType.Number, title: "Crop H", defaultValue: 0, min: 0, max: APP_H, hidden: (p) => isMulti(p) || p.content !== "custom" },
   // single playback (multi-step steps always play whole, then advance)
   loop: { type: ControlType.Boolean, title: "Loop", defaultValue: true, hidden: isMulti },
   loopPause: { type: ControlType.Number, title: "Loop pause (s)", defaultValue: 3, min: 0, max: 20, step: 0.5, hidden: isMulti },

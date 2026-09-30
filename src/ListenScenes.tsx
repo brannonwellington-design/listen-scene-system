@@ -6,9 +6,10 @@
 // All full scenes are authored in the fixed 1120x640 design space.
 import * as React from "react"
 import {
-  T, ProductFrame, Chip, Caret, Donut, Waveform, DotSpinner, EmotionTag,
-  EMOTIONS, Logo, Cursor, useScene, useCursor, ensureCss,
-  BrowserWindow, PhoneShell, FRAME_W, FRAME_H,
+  T, BareFrame, Chip, Caret, Donut, Waveform, DotSpinner, EmotionTag,
+  EMOTIONS, Cursor, useScene, useCursor, ensureCss,
+  BrowserWindow, PhoneShell, FRAME_W, FRAME_H, APP_W,
+  AppShell, workspaceNav, studyEditNav, studyNav, chatNav,
 } from "./ListenKit"
 import { I } from "./ListenIcons"
 
@@ -34,6 +35,17 @@ const AI_CPS = 110
 const MARKER_MS = 450
 
 // ---------------------------------------------------------------- helpers ---
+/** study editor top bar, right side (live app) */
+const EDITOR_ACTIONS = (
+  <>
+    <span className="meta">Just saved</span>
+    <span className="ll-tbtn">Share <I name="link" size={14} /></span>
+    <span className="ll-tbtn dark">Review <I name="arrow-right" size={14} /></span>
+  </>
+)
+/** app-shell scenes start the cursor just below the frame */
+const APP_CURSOR_START = { x: APP_W / 2, y: 880 }
+
 function ChatShell(props: { step: string; placeholder: string; busy?: boolean; children: React.ReactNode }): JSX.Element {
   return (
     <div style={{ width: SIDE, borderRight: `1px solid ${T.appBorder}`, background: T.appPanelAlt, display: "flex", flexDirection: "column", fontSize: 13, lineHeight: 1.5 }}>
@@ -86,7 +98,7 @@ function ChipQuestion(props: { title: string; options: string[]; hovered: number
       {props.options.map((o, i) => {
         const last = i === props.options.length - 1
         return (
-          <div key={o} style={{
+          <div key={o} data-cursor={"opt-" + i} style={{
             display: "flex", alignItems: "center", gap: 10, padding: "5px 8px", borderRadius: 8, marginTop: 2,
             background: i === props.picked ? T.brandSoft : i === props.hovered ? T.fill : "transparent",
             transition: "background-color .15s ease",
@@ -169,10 +181,6 @@ const Divider = (): JSX.Element => <div style={{ borderTop: `1px solid ${T.appBo
 // -------------------------------------------------------- shared-element ----
 type Rect = { x: number; y: number; w: number; h: number }
 
-/** the chat bubble's resting rect in design space — flight target while the
- *  layout is still settling; a runtime measure corrects the landing */
-const BUBBLE_TO: Rect = { x: 106, y: 91, w: 236, h: 56 }
-
 /** FLIP overlay: the entry input card flying into the chat bubble.
  *  Mounts at `from`; adding `to` transitions position/size/style. */
 function MorphCard(props: { from: Rect; to?: Rect; text: string }): JSX.Element {
@@ -213,16 +221,6 @@ const TEMPLATES: Array<[string, string, string, boolean?]> = [
   ["PRODUCT FEEDBACK", "How can AI interviews preserve depth while scaling research?", "Explore what makes automated interviews feel genuinely insightful."],
 ]
 
-const SIDEBAR_NAV: Array<[string, string, boolean?]> = [
-  ["notepad-text", "Studies"],
-  ["sparkles", "Research Library", true],
-  ["layers", "Workspace"],
-  ["chart-column", "Usage & Billing"],
-  ["user", "Account"],
-  ["mail", "Emails"],
-  ["shield", "Admin"],
-]
-
 export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [phase, setPhase] = React.useState<"entry" | "editor">("entry")
@@ -237,7 +235,7 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
     const rb = root.getBoundingClientRect()
     const r = el.getBoundingClientRect()
     if (!rb.width || !r.width) return null
-    const s = rb.width / 1120
+    const s = rb.width / root.offsetWidth
     return { x: (r.x - rb.x) / s, y: (r.y - rb.y) / s, w: r.width / s, h: r.height / s }
   }
   const [goal, setGoal] = React.useState("")
@@ -251,8 +249,7 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
   const [bullets, setBullets] = React.useState(0)
   const [recap, setRecap] = React.useState("")
   const [nextBtn, setNextBtn] = React.useState(false)
-  const cur = useCursor()
-  const OPT = (i: number) => ({ x: 184, y: 346 + i * 31 }) // bottom-anchored chip-question rows
+  const cur = useCursor(APP_CURSOR_START)
 
   useScene(active, async (p) => {
     setPhase("entry"); setEntryFade(false); setMorph(null); setGoal(""); setQuestion(0)
@@ -269,14 +266,12 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
       setMorph({ from, text: GOAL_TEXT })
       setEntryFade(true)
       await p.sleep(60)
-      // fly into the rail in the same breath as the sidebar collapse,
-      // targeting the bubble's known design-space rect
+      // the editor mounts (its bubble hidden under the flight), then the card
+      // flies onto the bubble's measured rect while the nav crossfades
       setPhase("editor")
-      setMorph((m) => m && { ...m, to: BUBBLE_TO })
-      await p.sleep(700)
-      // pixel-perfect handoff: correct onto the real bubble, then reveal it
-      const exact = measure(bubbleRef.current)
-      if (exact) { setMorph((m) => m && { ...m, to: exact }); await p.sleep(160) }
+      await p.sleep(40)
+      const to = measure(bubbleRef.current)
+      if (to) { setMorph((m) => m && { ...m, to }); await p.sleep(760) }
       setMorph(null)
     } else {
       setPhase("editor")
@@ -287,14 +282,14 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
     setThinking(false)
     setQuestion(1)
     // cursor picks option 3 ("Evaluate ad clarity and appeal")
-    cur.show(OPT(2).x, OPT(2).y + 160); await p.sleep(300)
-    cur.move(OPT(2).x, OPT(2).y); await p.sleep(550)
+    cur.show("opt-2", 0, 160); await p.sleep(300)
+    cur.move("opt-2"); await p.sleep(550)
     setHovered(2); await p.sleep(250)
     cur.click(1); await p.sleep(200); setHovered(-1); setPicked(2)
     await p.sleep(500)
     setQuestion(2); setPicked(-1)
     // option 2 ("Chief officers at 1,000+ employee companies")
-    cur.move(OPT(1).x, OPT(1).y); await p.sleep(550)
+    cur.move("opt-1"); await p.sleep(550)
     setHovered(1); await p.sleep(250)
     cur.click(2); await p.sleep(200); setHovered(-1); setPicked(1)
     await p.sleep(450)
@@ -317,67 +312,17 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
     await p.sleep(2400)
   }, onDone, runKey, hold, playFrom, onTime)
 
-  // -- unified scaffold: the off-white surround, top bar, and white card all
-  // persist across entry → editor, so the morph never blanks or "reloads".
+  // -- one persistent shell across entry → editor: the workspace nav
+  // crossfades to the study nav and the content swaps under the same top bar,
+  // so the morph never blanks or "reloads"
   const isEditor = phase === "editor"
-  const settle = "cubic-bezier(.22, 1, .36, 1)"
-  const collapse = `.68s ${settle}` // matched to the morph flight
   return (
     <div ref={rootRef} className="ll" style={{ position: "relative", width: "100%", height: "100%" }}>
-      <div className="ll-frame">
-        {/* persistent top bar: entry breadcrumb ⇄ editor chrome, crossfaded */}
-        <div className="ll-topbar" style={{ position: "relative" }}>
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", padding: "0 16px", opacity: isEditor ? 0 : 1, transition: "opacity .35s ease" }}>
-            <span className="ll-500" style={{ width: 204, flexShrink: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: T.ink }}>
-              <Logo />
-              Brannon's Personal
-              <I name="chevrons-up-down" size={11} style={{ color: T.inkFaint }} />
-            </span>
-            <I name="panel-left-close" size={15} style={{ color: T.inkSoft }} />
-            <span style={{ position: "absolute", left: 0, right: 0, textAlign: "center", fontSize: 13 }}>
-              <span style={{ color: T.inkSoft }}>Brannon's Personal / </span><span className="ll-500">Create</span>
-            </span>
-          </div>
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", gap: 12, padding: "0 16px", opacity: isEditor ? 1 : 0, transition: "opacity .35s ease" }}>
-            <Logo />
-            <span style={{ color: T.inkFaint }}>/</span>
-            <span style={{ fontSize: 14 }}>{docTitle}</span>
-            <I name="chevrons-up-down" size={13} style={{ color: T.inkSoft }} />
-            <span style={{ position: "absolute", left: 0, right: 0, textAlign: "center", fontSize: 14 }}>
-              <span className="ll-500">Create</span>
-              <span style={{ color: T.inkFaint }}>  ›  </span>
-              <span style={{ color: T.inkFaint }}>Review</span>
-            </span>
-            <span style={{ flex: 1 }} />
-            <span style={{ color: T.inkSoft, fontSize: 13 }}>Just saved</span>
-          </div>
-        </div>
-        <div className="ll-body">
-          {/* entry workspace sidebar collapses as the editor takes over */}
-          <div style={{ width: isEditor ? 0 : 212, opacity: isEditor ? 0 : 1, overflow: "hidden", flexShrink: 0, transition: `width ${collapse}, opacity .35s ease` }}>
-          <div style={{ width: 212, height: "100%", boxSizing: "border-box", padding: "8px 10px 12px", fontSize: 12.5, color: T.inkSoft, display: "flex", flexDirection: "column", gap: 1 }}>
-            {SIDEBAR_NAV.map(([icon, n, isNew]) => (
-              <div key={n} style={{ padding: "5px 6px", display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap" }}>
-                <I name={icon} size={13} />
-                {n}
-                {isNew && <span className="ll-chip blue" style={{ height: 16, fontSize: 9, padding: "0 6px" }}>New</span>}
-                {isNew && <I name="chevron-down" size={10} style={{ marginLeft: "auto", transform: "rotate(-90deg)" }} />}
-              </div>
-            ))}
-            <span style={{ flex: 1 }} />
-            <div style={{ padding: "5px 6px", display: "flex", alignItems: "center", gap: 8 }}><I name="users" size={13} /> Listen Twins</div>
-            <div style={{ borderTop: `1px solid ${T.appBorder}`, marginTop: 8, paddingTop: 10, display: "flex", alignItems: "center", gap: 8, padding: "10px 6px 2px" }}>
-              <span className="ll-avatar" style={{ background: T.fill, color: T.inkSoft, width: 24, height: 24, fontSize: 10 }}>BW</span>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ color: T.ink, fontSize: 12 }}>Brannon Wellington</div>
-                <div style={{ fontSize: 10, color: T.inkFaint }}>brannon@listenlabs.ai</div>
-              </div>
-              <I name="log-out" size={12} style={{ marginLeft: "auto", flexShrink: 0 }} />
-            </div>
-          </div>
-          </div>
-          {/* persistent white content card: entry content ⇄ editor content */}
-          <div className="ll-content-card" style={{ marginLeft: isEditor ? 8 : 0, transition: `margin-left ${collapse}` }}>
+      <AppShell cursor={cur.state}
+        nav={isEditor ? studyEditNav("Study Guide") : workspaceNav("Studies")}
+        title={isEditor ? docTitle : undefined}
+        crumb={isEditor ? ["Study Guide"] : ["Omni Corporation", "Create"]}
+        actions={isEditor ? EDITOR_ACTIONS : undefined}>
             {!isEditor ? (
             <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 56 }}>
               <div style={{ width: 540, opacity: entryFade ? 0 : 1, transition: "opacity .3s ease" }}>
@@ -481,10 +426,7 @@ export function SceneDesignStudy({ active, onDone, runKey = 0, hold, playFrom, o
       </div>
             </div>
             )}
-          </div>
-        </div>
-        <Cursor {...cur.state} />
-      </div>
+      </AppShell>
       {morph && <MorphCard {...morph} />}
     </div>
   )
@@ -517,11 +459,7 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
   const [screener, setScreener] = React.useState(false)
   const [adjust, setAdjust] = React.useState("")
   const [suggestions, setSuggestions] = React.useState(false)
-  const cur = useCursor()
-  // click targets measured from the rendered DOM (design px): the first
-  // source button's centre, and the two-line four-country chip option
-  const SRC_BTN = { x: 184, y: 192 }
-  const COUNTRY_OPT = { x: 184, y: 375 }
+  const cur = useCursor(APP_CURSOR_START)
   const ADJUST = "Happy with this, or want to adjust anything (e.g. include SVPs, different sample size)?"
 
   const MSG = "Great! Now let's determine how you'll find participants for your research. Which option do you want to go for?"
@@ -533,8 +471,8 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
     await p.sleep(700)
     await p.type(setAiMsg, MSG, AI_CPS)
     await p.sleep(400)
-    cur.show(SRC_BTN.x, SRC_BTN.y + 180); await p.sleep(300)
-    cur.move(SRC_BTN.x, SRC_BTN.y); await p.sleep(550)
+    cur.show("src-0", 0, 180); await p.sleep(300)
+    cur.move("src-0"); await p.sleep(550)
     setSrcHover(0); await p.sleep(250)
     cur.click(1); await p.sleep(200)
     setSrcHover(-1); setSrcPicked(true); setAudStage(1)
@@ -543,7 +481,7 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
     setMarkers([["history", "Updated participant source"]])
     await p.sleep(600)
     setStep(3); setMarkers([]); setCountry(1)
-    cur.move(COUNTRY_OPT.x, COUNTRY_OPT.y); await p.sleep(550)
+    cur.move("opt-1"); await p.sleep(550)
     setCHover(1); await p.sleep(250)
     cur.click(2); await p.sleep(200); setCHover(-1); setCPicked(1)
     await p.sleep(450)
@@ -565,8 +503,8 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
     await p.sleep(2600)
   }, onDone, runKey, hold, playFrom, onTime)
 
-  const srcBtn = (icon: string, label: string, sub: string, hovered: boolean): JSX.Element => (
-    <div style={{
+  const srcBtn = (icon: string, label: string, sub: string, hovered: boolean, target: string): JSX.Element => (
+    <div data-cursor={target} style={{
       background: hovered ? "#E7E7E7" : T.fill, borderRadius: 10, padding: "9px 12px", fontSize: 12.5,
       display: "flex", gap: 9, alignItems: "flex-start", transition: "background-color .15s ease",
     }}>
@@ -579,7 +517,8 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
   )
 
   return (
-    <ProductFrame title={STUDY_TITLE} variant="builder" cursor={cur.state}>
+    <AppShell cursor={cur.state} nav={studyEditNav("Study Guide")}
+      title={STUDY_TITLE} crumb={["Study Guide"]} actions={EDITOR_ACTIONS}>
       <ChatShell
         step={step === 2 ? "Step 2 / 5 · Choose participant source" : "Step 3 / 5 · Find your audience"}
         placeholder={step === 2 ? "Choose participant source" : "Suggest changes to the screening questions..."}
@@ -588,8 +527,8 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
         {aiMsg && !srcPicked && <div style={{ color: T.body }}>{aiMsg}{aiMsg.length < MSG.length && <Caret />}</div>}
         {aiMsg.length >= MSG.length && !srcPicked && (
           <>
-            {srcBtn("users", "Listen finds participants for me", "Use our network of 50M+ global participants", srcHover === 0)}
-            {srcBtn("link", "I'll bring my own participants", "Share a link via Email or in-app message", srcHover === 1)}
+            {srcBtn("users", "Listen finds participants for me", "Use our network of 50M+ global participants", srcHover === 0, "src-0")}
+            {srcBtn("link", "I'll bring my own participants", "Share a link via Email or in-app message", srcHover === 1, "src-1")}
           </>
         )}
         {srcPicked && (
@@ -695,7 +634,7 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
           )}
         </div>
       </div>
-    </ProductFrame>
+    </AppShell>
   )
 }
 
@@ -859,7 +798,7 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
   const barBtn: React.CSSProperties = { height: 24, padding: "0 9px", borderRadius: 6, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }
 
   return (
-    <ProductFrame variant="bare" cursor={cur.state}>
+    <BareFrame cursor={cur.state}>
       <div style={{ flex: 1, position: "relative" }}>
         {/* header: Skip · settings */}
         <div style={{ position: "absolute", top: 12, right: 16, display: "flex", alignItems: "center", gap: 14, fontSize: 12.5, color: T.ink }}>
@@ -922,7 +861,7 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
           <span>24/7 · 120+ languages</span>
         </div>
       </div>
-    </ProductFrame>
+    </BareFrame>
   )
 }
 
@@ -941,6 +880,16 @@ const REPORT_STATS: Array<[string, string]> = [["11", "interviews analysed"], ["
 // verbatim, general-population Billboard Ad Test respondent 8, Q6
 const REPORT_QUOTE = "I would say that this ad makes me very curious to learn more, and I think if I saw this, I would definitely Google just to find out more about it"
 const REPORT_SCROLL = 352 // px the report document scrolls to reveal the visuals
+
+// the Billboard Ad Test's reports list (study sidebar, Report expanded)
+const BILLBOARD_REPORTS = [{ title: "Listen Labs Report", meta: "Jul 8 · Listen Labs" }]
+const REPORT_ACTIONS = (
+  <>
+    <span className="ll-tbtn">Share <I name="link" size={14} /></span>
+    <span className="ll-tbtn plain">Edit <I name="file-pen-line" size={14} /></span>
+    <span className="ll-tbtn plain">New Report <I name="plus" size={14} /></span>
+  </>
+)
 
 export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
@@ -972,40 +921,15 @@ export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom
   const maxCount = Math.max(...CURIOSITY.map((c) => c[1]))
 
   return (
-    <ProductFrame title="Listen Labs Billboard Ad Test" variant="analysis" activeTab="Report">
-      {/* reports sidebar */}
-      <div style={{ width: 252, borderRight: `1px solid ${T.appBorder}`, padding: "16px 12px", fontSize: 13, display: "flex", flexDirection: "column", gap: 2 }}>
-        <div className="ll-500" style={{ padding: "0 8px 10px", fontSize: 13, display: "flex", alignItems: "center" }}>Reports <span style={{ flex: 1 }} /><I name="panel-left-close" size={14} style={{ color: T.inkSoft }} /></div>
-        <div style={{ padding: "6px 8px", display: "flex", alignItems: "flex-start", gap: 0 }}>
-          <div style={{ flex: 1 }}>
-            Create new report
-            <div style={{ fontSize: 11, color: T.inkSoft, marginTop: 2 }}>Start with a blank report</div>
-          </div>
-          <I name="plus" size={14} style={{ color: T.inkSoft, marginTop: 2 }} />
-        </div>
-        <div style={{ padding: "6px 8px", display: "flex", alignItems: "flex-start" }}>
-          <div style={{ flex: 1 }}>
-            Ask AI to make a report
-            <div style={{ fontSize: 11, color: T.inkSoft, marginTop: 2 }}>Creates a new AI report from your prompt</div>
-          </div>
-          <I name="sparkles" size={14} style={{ color: T.inkSoft, marginTop: 2 }} />
-        </div>
-        <div style={{ padding: "14px 8px 4px", fontSize: 11, color: T.inkSoft }}>Autogenerated</div>
-        <div style={{ padding: "6px 8px", background: T.fill, borderRadius: 8 }}>
-          Listen Labs Report
-          <div style={{ fontSize: 11, color: T.inkSoft, marginTop: 2 }}>Jul 8 · Generated by Listen Labs</div>
-        </div>
-      </div>
-      {/* report document */}
+    <AppShell nav={studyNav("Report", BILLBOARD_REPORTS)} activeSub="Listen Labs Report"
+      title="Listen Labs Billboard Ad Test" crumb={["Report", "Listen Labs Report"]} actions={REPORT_ACTIONS}>
+      {/* report document, centered like the live report view */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <div style={{ display: "flex", gap: 16, padding: "12px 32px", fontSize: 13, color: T.inkSoft, justifyContent: "flex-end", alignItems: "center" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Share <I name="link" size={13} /></span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Edit <I name="square-pen" size={13} /></span>
-          <Chip kind="blue">New</Chip>
+        <div style={{ display: "flex", gap: 14, padding: "12px 16px 0", color: T.inkSoft, justifyContent: "flex-end" }}>
           <I name="download" size={14} /><I name="ellipsis" size={14} />
         </div>
         <div className="ll-doc-fade" style={{ flex: 1, position: "relative" }}>
-          <div style={{ padding: "16px 88px 0", transform: `translateY(${scrolled ? -REPORT_SCROLL : 0}px)`, transition: "transform 1s cubic-bezier(.22,1,.36,1)" }}>
+          <div style={{ width: 660, margin: "0 auto", padding: "16px 0 0", transform: `translateY(${scrolled ? -REPORT_SCROLL : 0}px)`, transition: "transform 1s cubic-bezier(.22,1,.36,1)" }}>
             <h1 className="ll-h1" style={{ maxWidth: 620, minHeight: 80 }}>
               {title}{title && title.length < TITLE.length && <Caret />}
             </h1>
@@ -1063,7 +987,7 @@ export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom
           </div>
         </div>
       </div>
-    </ProductFrame>
+    </AppShell>
   )
 }
 
@@ -1086,8 +1010,7 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
   const [query, setQuery] = React.useState("")
   const [thinking, setThinking] = React.useState(false)
   const [answer, setAnswer] = React.useState("")
-  const cur = useCursor()
-  const CARD4 = { x: 380, y: 424 } // suggestion card row 2, col 1
+  const cur = useCursor({ x: APP_W / 2, y: 880 })
   // grounded in the general-population Billboard Ad Test transcripts and analysis
   const ANSWER = "Across 11 interviews, the retro telephones were the biggest puzzle — people liked them but couldn't say why they were there — while the line about finding out what people think is what made it read as AI research."
 
@@ -1096,9 +1019,10 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
     await p.sleep(1100)
     setLoading(false)
     await p.sleep(700)
-    cur.show(CARD4.x + 300, CARD4.y + 120)
+    // suggestion card row 2, col 1
+    cur.show("sugg-3", 300, 120)
     await p.sleep(350)
-    cur.move(CARD4.x, CARD4.y)
+    cur.move("sugg-3")
     await p.sleep(550)
     setHovered(3)
     await p.sleep(300)
@@ -1116,7 +1040,10 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
   }, onDone, runKey, hold, playFrom, onTime)
 
   return (
-    <ProductFrame title="Listen Labs Billboard Ad Test" variant="analysis" activeTab="Chat" cursor={cur.state}>
+    <AppShell cursor={cur.state}
+      nav={chatNav("Listen Labs Billboard Ad Test", query ? [{ group: "Today", chats: [query] }] : [], query || undefined)}
+      title="Listen Labs Billboard Ad Test" crumb={["Chat", "New Chat"]}
+      actions={<span className="ll-tbtn">Share <I name="link" size={14} /></span>}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 0 24px" }}>
         <Chip kind="brand">New Feature</Chip>
         <div style={{ marginTop: 12, fontSize: 36, lineHeight: "44px", color: T.brand }}>I'm your Listen Research Agent</div>
@@ -1133,10 +1060,10 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
         <span style={{ flex: 1 }} />
         {!loading && (
           <>
-            <div className="ll-enter" style={{ fontSize: 12, color: T.inkSoft, alignSelf: "flex-start", marginLeft: 277, display: "flex", alignItems: "center", gap: 6 }}><I name="sparkles" size={12} /> Research suggestions</div>
+            <div className="ll-enter" style={{ width: 564, fontSize: 12, color: T.inkSoft, display: "flex", alignItems: "center", gap: 6 }}><I name="sparkles" size={12} /> Research suggestions</div>
             <div className="ll-enter" style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(3, 180px)", gap: 12 }}>
               {SUGGESTIONS.map(([icon, label], i) => (
-                <div key={label} className={i === picked ? "ll-ring" : undefined} style={{
+                <div key={label} data-cursor={"sugg-" + i} className={i === picked ? "ll-ring" : undefined} style={{
                   minHeight: 66, padding: "8px 11px", fontSize: 11.5, lineHeight: 1.4, color: T.body,
                   background: T.appPanelAlt, borderRadius: 8, transition: "border-color .15s ease",
                   border: `1px solid ${i === picked ? T.brand : i === hovered ? "rgba(26, 26, 26, 0.3)" : T.appBorder}`,
@@ -1159,7 +1086,7 @@ export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTi
           </div>
         </div>
       </div>
-    </ProductFrame>
+    </AppShell>
   )
 }
 
@@ -1520,13 +1447,9 @@ const CHART_H = 140
 const COL_STAG = 45
 const COL_GROW = 500
 
-// cursor targets (design-space px, verified against the rendered frame)
-const EIREP_TOGGLE = { x: 904, y: 239 }
-const EIREP_GEN = { x: 862, y: 492 }
-
 function EIToggle({ on }: { on: boolean }): JSX.Element {
   return (
-    <span style={{ width: 30, height: 17, borderRadius: 9, background: on ? T.brand : "#D4D4D4", display: "inline-flex", alignItems: "center", padding: 2, boxSizing: "border-box", transition: "background .3s" }}>
+    <span data-cursor="ei-toggle" style={{ width: 30, height: 17, borderRadius: 9, background: on ? T.brand : "#D4D4D4", display: "inline-flex", alignItems: "center", padding: 2, boxSizing: "border-box", transition: "background .3s" }}>
       <span style={{ width: 13, height: 13, borderRadius: "50%", background: "#FFF", transform: on ? "translateX(13px)" : "none", transition: "transform .3s cubic-bezier(.22,1,.36,1)" }} />
     </span>
   )
@@ -1550,7 +1473,7 @@ function EIRepDeckCard({ title, flash }: { title: string; flash?: boolean }): JS
 
 export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
-  const cur = useCursor()
+  const cur = useCursor({ x: APP_W / 2, y: 880 })
   const [gt, setGt] = React.useState(0)
   const [emotions, setEmotions] = React.useState(true)
   const [genHover, setGenHover] = React.useState(false)
@@ -1563,8 +1486,8 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
     await eiTimeline(p, (EIREP_COLS.length - 1) * COL_STAG + COL_GROW, setGt)
     await p.sleep(500)
     // the traceability beat: emotions off, beat, back on
-    cur.show(EIREP_TOGGLE.x, EIREP_TOGGLE.y + 150); await p.sleep(300)
-    cur.move(EIREP_TOGGLE.x, EIREP_TOGGLE.y); await p.sleep(550)
+    cur.show("ei-toggle", 0, 150); await p.sleep(300)
+    cur.move("ei-toggle"); await p.sleep(550)
     cur.click(1); await p.sleep(150)
     setEmotions(false)
     await p.sleep(1000)
@@ -1572,7 +1495,7 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
     setEmotions(true)
     await p.sleep(500)
     // generate a deck
-    cur.move(EIREP_GEN.x, EIREP_GEN.y); await p.sleep(600)
+    cur.move("ei-generate"); await p.sleep(600)
     setGenHover(true); await p.sleep(250)
     cur.click(3); await p.sleep(150)
     setGenHover(false); setGenBusy(true)
@@ -1584,7 +1507,9 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
   }, onDone, runKey, hold, playFrom, onTime)
 
   return (
-    <ProductFrame title="Gen Z ChatGPT Usage Study" variant="analysis" activeTab="Details" cursor={cur.state}>
+    <AppShell cursor={cur.state} nav={studyNav("Details")}
+      title="Gen Z ChatGPT Usage Study" crumb={["Details"]}
+      actions={<span className="ll-tbtn">Share <I name="link" size={14} /></span>}>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         {/* overview bar */}
         <div style={{ display: "flex", alignItems: "center", gap: 7, height: 38, padding: "0 14px", fontSize: 12.5, borderBottom: `1px solid ${T.appBorder}` }}>
@@ -1666,7 +1591,7 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
                   Create and download AI-generated slide decks based on your research data
                 </div>
               </div>
-              <button className="ll-btn ghost" style={{ height: 28, fontSize: 12, borderColor: genHover ? "rgba(26,26,26,.3)" : undefined }}>
+              <button data-cursor="ei-generate" className="ll-btn ghost" style={{ height: 28, fontSize: 12, borderColor: genHover ? "rgba(26,26,26,.3)" : undefined }}>
                 {genBusy ? <span className="ll-shimmer">Generating…</span> : <>Generate <I name="sparkles" size={13} /></>}
               </button>
             </div>
@@ -1680,7 +1605,7 @@ export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, 
           </div>
         </div>
       </div>
-    </ProductFrame>
+    </AppShell>
   )
 }
 

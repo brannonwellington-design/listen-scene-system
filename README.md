@@ -9,7 +9,7 @@ ready to paste into **Framer**.
 
 | File | Role |
 |---|---|
-| `src/ListenKit.tsx` | Shared foundation: product tokens (harvested from the live app's computed styles, 2026-08-28), product chrome (builder / analysis / bare variants), primitives (chips, donut, chat, cursor), `PatternLayer` (dot grid / line grid / concentric circles / crosshairs), the `useScene` script engine (freeze-frame + fast-forward playback), and `ScaleBox` (fixed 1120×640 design space scaled to any container — keeps scripted cursor coordinates exact at every width). |
+| `src/ListenKit.tsx` | Shared foundation: product tokens (harvested from the live app's computed styles, 2026-08-28), the product chrome — `AppShell` (collapsible sidebar + top bar, visuals from the Figma "Sidebar Navigation" mock, per-surface content from the live app, 2026-09-29) with nav presets `workspaceNav` / `studyEditNav` / `studyNav` / `chatNav`, plus `BareFrame` for chrome-less surfaces — primitives (chips, donut, chat, a target-tracking cursor), `PatternLayer` (dot grid / line grid / concentric circles / crosshairs), the `useScene` script engine (freeze-frame + fast-forward playback), and `ScaleBox` (a fixed design space scaled to any container: 1344×768 for app-shell scenes, 1120×640 for the rest — same aspect ratio). |
 | `src/ListenIcons.tsx` | The product's exact icon set (Lucide, 16px from 24-viewBox, stroke 2) with path data harvested from the live app's DOM. `<I name="sparkles" />`. |
 | `src/ListenScenes.tsx` | The scene library. Full scenes (the five How-It-Works steps plus page heroes) and small **fragments** (standalone cards). Each scene is a scripted "session": it plays a simulated moment (typing, streaming, a cursor clicking a control), then reports done. Scenes 1–2 mirror the real study-creation flow frame-by-frame from a product screen recording (`video/`), with pacing constants (`USER_CPS`, `AI_CPS`, `MARKER_MS`) measured from it. |
 | `src/ListenRegistry.tsx` | **The canonical catalog.** `REGISTRY` is one unified list of every product shot (full scenes and fragments), grouped by the page they appear on. `SEQUENCES` are ordered lists of shots with a title + body caption per step (e.g. `how-it-works`). Register content once here; SceneCanvas and the demo tooling all read from it. |
@@ -40,11 +40,17 @@ natively inside Framer. Locally they're aliased to `src/framer-stub.ts`.
 
 1. In `ListenScenes.tsx`, copy an existing scene as a starting point.
 2. Rebuild the UI from a product screenshot using the kit primitives
-   (`ProductFrame`, `Chip`, `Donut`, `ll-card`, `ll-avatar`…) inside the
-   1120×640 design space — hardcode believable demo data.
+   (`Chip`, `Donut`, `ll-card`, `ll-avatar`…). In-app surfaces go inside
+   `<AppShell nav={studyNav("Report")} title=… crumb=… actions=…>` in the
+   1344×768 design space (register with `APP_W`/`APP_H`); the sidebar and top
+   bar come for free, including the visitor-collapsible sidebar. Hardcode
+   believable demo data.
 3. Write the session in the `useScene` script: `p.type()` for typing,
-   `p.sleep()` for pacing, `cur.show/move/click()` for the cursor
-   (coordinates are design-space pixels), end with a ~2s dwell.
+   `p.sleep()` for pacing, `cur.show/move/click()` for the cursor, end with a
+   ~2s dwell. Aim the cursor at elements, not pixels: tag the target with
+   `data-cursor="gen-btn"` and call `cur.move("gen-btn")` (optional dx/dy
+   nudge). The cursor tracks the element as the layout reflows — sidebar
+   collapsed or not, and in freeze-frame mode.
 4. Register it in `ListenRegistry.tsx`'s `REGISTRY` under the page it
    belongs to (and add it as a step in a `SEQUENCES` entry if it plays in a
    multi-step). It's now a website asset.
