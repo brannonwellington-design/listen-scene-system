@@ -2,8 +2,6 @@
 // whole system can be verified in a plain browser.
 import * as React from "react"
 import { createRoot } from "react-dom/client"
-import HowItWorks from "./HowItWorks"
-import ProductShot from "./ProductShot"
 import SceneCanvas from "./SceneCanvas"
 import Workbench from "./Workbench"
 import { byKey } from "./ListenRegistry"
@@ -17,6 +15,11 @@ const DEMO_CSS = `
   @media (max-width: 640px) { .demo-page { padding: 48px 20px 96px !important; } }
 `
 
+/** a single shot with no canvas treatment (no fill, pattern, or padding) */
+function BareShot(props: { scene: string }): JSX.Element {
+  return <SceneCanvas content={props.scene} bgColor="transparent" padX={0} padY={0} />
+}
+
 function Demo(): JSX.Element {
   return (
     <div className="demo-page" style={{ background: T.pageBg, minHeight: "100vh", fontFamily: T.font, color: T.ink, padding: "80px 48px 160px" }}>
@@ -26,7 +29,7 @@ function Demo(): JSX.Element {
           How it works
         </h1>
         <div style={{ height: 48 }} />
-        <HowItWorks scrubber />
+        <SceneCanvas layout="multi-step" scrubber />
 
         <div style={{ height: 160 }} />
 
@@ -40,7 +43,7 @@ function Demo(): JSX.Element {
             </p>
           </div>
           <div>
-            <ProductShot scene="top-answer-card" />
+            <BareShot scene="top-answer-card" />
           </div>
         </div>
 
@@ -48,7 +51,7 @@ function Demo(): JSX.Element {
 
         <div className="demo-split">
           <div>
-            <ProductShot scene="live-interview-card" />
+            <BareShot scene="live-interview-card" />
           </div>
           <div>
             <h2 style={{ fontSize: 32, fontWeight: 400 }}>A real conversation</h2>
@@ -61,28 +64,28 @@ function Demo(): JSX.Element {
 
         <div style={{ height: 140 }} />
 
-        {/* SceneCanvas callout showcase: fragments, patterns, fit modes */}
-        <h2 style={{ fontSize: 32, fontWeight: 400 }}>SceneCanvas callouts</h2>
+        {/* single-layout showcase: fragments, patterns, fit modes */}
+        <h2 style={{ fontSize: 32, fontWeight: 400 }}>Single shots</h2>
         <div className="demo-grid" style={{ marginTop: 32 }}>
           <div>
-            <div className="demo-label">EI Emotional Response · responsive · dot grid</div>
-            <SceneCanvas variant="callout" content="ei-response-card" pattern="dots"
+            <div className="demo-label">EI · Feature · Research-grounded + traceable · responsive · dot grid</div>
+            <SceneCanvas content="ei-feature-traceable" pattern="dots"
               canvasHeight={300} padX={40} padY={32} radius={16} loopPause={4} />
           </div>
           <div>
             <div className="demo-label">Full scene · pinned top-left 40/40, masked · concentric circles</div>
-            <SceneCanvas variant="callout" content="design-study" fit="pinned" anchor="top-left"
+            <SceneCanvas content="design-study" fit="pinned" anchor="top-left"
               insetX={40} insetY={40} zoom={0.55} canvasHeight={300} pattern="circles" patternSpacing={36} radius={16}
               segStart={8500} segEnd={16000} loopPause={4} />
           </div>
           <div>
-            <div className="demo-label">EI Concept Comparison · crosshairs</div>
-            <SceneCanvas variant="callout" content="ei-comparison-card" pattern="crosshairs" patternSpacing={48}
+            <div className="demo-label">EI · Feature · Structured for comparison · crosshairs</div>
+            <SceneCanvas content="ei-feature-comparison" pattern="crosshairs" patternSpacing={48}
               canvasHeight={300} padX={40} padY={32} radius={16} loopPause={3} />
           </div>
           <div>
-            <div className="demo-label">EI Visual analysis · line grid</div>
-            <SceneCanvas variant="callout" content="ei-visual-card" pattern="grid" patternSpacing={28}
+            <div className="demo-label">EI · Feature · Multi-signal detection · line grid</div>
+            <SceneCanvas content="ei-feature-signals" pattern="grid" patternSpacing={28}
               canvasHeight={300} padX={44} padY={36} radius={16} loopPause={5} />
           </div>
         </div>
@@ -126,7 +129,7 @@ function Compare(props: { scene: string; refImg: string }): JSX.Element {
         {/* In diff mode both layers sit on an isolated white ground; identical
             pixels cancel to black, misalignments glow as bright edges. */}
         <div style={{ position: "relative", isolation: "isolate", background: diff ? "#FFF" : "transparent" }}>
-          <ProductShot scene={props.scene} />
+          <BareShot scene={props.scene} />
           <img
             src={`/image examples/${props.refImg}`}
             style={{
@@ -247,7 +250,7 @@ function Solo(props: { scene: string }): JSX.Element {
             )}
           </div>
         ) : (
-          <ProductShot key={runKey} scene={props.scene} />
+          <BareShot key={runKey} scene={props.scene} />
         )}
       </div>
     </div>

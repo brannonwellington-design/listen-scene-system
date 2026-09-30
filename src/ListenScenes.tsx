@@ -1308,15 +1308,15 @@ async function eiTimeline(p: { sleep: (ms: number) => Promise<void> }, total: nu
 
 // heights are DOM-measured at the settled beat (height:auto probe) so the
 // cards carry no dead space and nothing clips
-export const EI_VISUAL_W = 620
-export const EI_VISUAL_H = 422
+export const EI_SIGNALS_W = 620
+export const EI_SIGNALS_H = 422
 
 const EIV_QUOTE = "I used it to negotiate my first salary offer — I basically read its script on the call and it worked."
 const EIV_OBS_1 = "The participant's eyes light up and she leans forward as she describes the script 'actually working'. Her vocal tone lifts and speeds up through this segment."
 const EIV_OBS_2 = "Quick raise of the eyebrows and a short laugh as she recalls the recruiter agreeing on the spot."
 
 /** EI feature 1 — multi-signal Visual analysis with traceable emotion tags */
-export function FragmentEIVisual({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+export function FragmentEIFeatureSignals({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [obs1, setObs1] = React.useState("")
   const [obs2, setObs2] = React.useState("")
@@ -1339,7 +1339,7 @@ export function FragmentEIVisual({ active, onDone, runKey = 0, hold, playFrom, o
     await p.sleep(2600)
   }, onDone, runKey, hold, playFrom, onTime)
   return (
-    <div className="ll-card" style={{ width: EI_VISUAL_W, height: EI_VISUAL_H, padding: 28, borderRadius: 12, fontSize: 14, lineHeight: 1.6 }}>
+    <div className="ll-card" style={{ width: EI_SIGNALS_W, height: EI_SIGNALS_H, padding: 28, borderRadius: 12, fontSize: 14, lineHeight: 1.6 }}>
       <div style={{ fontSize: 16.5, lineHeight: 1.55, color: T.ink }}>{EIV_QUOTE}</div>
       <div style={{ display: "flex", marginTop: 14, fontSize: 12.5, color: T.inkSoft }}>
         <span>6 data points analyzed</span>
@@ -1368,8 +1368,8 @@ export function FragmentEIVisual({ active, onDone, runKey = 0, hold, playFrom, o
   )
 }
 
-export const EI_RESPONSE_W = 640
-export const EI_RESPONSE_H = 406
+export const EI_TRACEABLE_W = 640
+export const EI_TRACEABLE_H = 406
 
 const EIR_ROWS: Array<{ emotion: keyof typeof EMOTIONS; n: number }> = [
   { emotion: "anger", n: 3 },
@@ -1385,7 +1385,7 @@ const EIR_GROW = 950
 const EIR_STAG = 110
 
 /** EI feature 2 — per-question Emotional Response bars with participant counts */
-export function FragmentEIResponse({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+export function FragmentEIFeatureTraceable({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [gt, setGt] = React.useState(0) // ms into the growth timeline
   const max = Math.max(...EIR_ROWS.map((r) => r.n))
@@ -1396,7 +1396,7 @@ export function FragmentEIResponse({ active, onDone, runKey = 0, hold, playFrom,
     await p.sleep(2800)
   }, onDone, runKey, hold, playFrom, onTime)
   return (
-    <div className="ll-card" style={{ width: EI_RESPONSE_W, height: EI_RESPONSE_H, borderRadius: 12 }}>
+    <div className="ll-card" style={{ width: EI_TRACEABLE_W, height: EI_TRACEABLE_H, borderRadius: 12 }}>
       <EICardHeader title="Emotional Response" />
       <div style={{ padding: "22px 24px" }}>
         {EIR_ROWS.map((r, i) => {
@@ -1442,7 +1442,7 @@ const EIC_BAR_LAG = 220
 const EIC_GROW = 900
 
 /** EI feature 3 — Emotional Concept Comparison with stacked per-emotion bars */
-export function FragmentEIComparison({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+export function FragmentEIFeatureComparison({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [gt, setGt] = React.useState(0)
   useScene(active, async (p) => {
@@ -1548,7 +1548,7 @@ function EIRepDeckCard({ title, flash }: { title: string; flash?: boolean }): JS
   )
 }
 
-export function SceneEIReport({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+export function SceneEIHeroReport({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const cur = useCursor()
   const [gt, setGt] = React.useState(0)
@@ -1810,13 +1810,13 @@ export function SceneAIModerator({ active, onDone, runKey = 0, hold, playFrom, o
   )
 }
 
-// --------------------------------------------- EI use-case callout cards ----
+// ----------------------------------------------- EI use-case cards --------
 // The four "Use cases" cards at the bottom of /features/emotional-intelligence,
 // rebuilt as live fragments. Same language and concepts as the site; content
 // re-grounded in the Gen Z ChatGPT study. Media is stylized DOM (no photos).
 
-export const EI_UC_W = 340
-export const EI_UC_H = 300
+export const EI_USECASE_W = 340
+export const EI_USECASE_H = 300
 
 /** moderator question bubble that types in */
 function UCBubble({ text, full }: { text: string; full: string }): JSX.Element {
@@ -1861,7 +1861,7 @@ function UCBar({ label, emotion, f, e }: { label: string; emotion: keyof typeof 
 const UC_AD_Q = "What comes to mind when you see this ad?"
 
 /** Use case 1 — Creative/Ad Testing */
-export function FragmentUCAdTesting({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+export function FragmentEIUseCaseAdTesting({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [q, setQ] = React.useState("")
   const [stage, setStage] = React.useState(0)
@@ -1876,7 +1876,7 @@ export function FragmentUCAdTesting({ active, onDone, runKey = 0, hold, playFrom
     await p.sleep(2600)
   }, onDone, runKey, hold, playFrom, onTime)
   return (
-    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font, paddingTop: 20, boxSizing: "border-box" }}>
+    <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", fontFamily: T.font, paddingTop: 20, boxSizing: "border-box" }}>
       <UCBubble text={q} full={UC_AD_Q} />
       {stage >= 1 && (
         <div className="ll-enter" style={{ position: "absolute", left: 72, top: 96 }}>
@@ -1893,7 +1893,7 @@ export function FragmentUCAdTesting({ active, onDone, runKey = 0, hold, playFrom
 const UC_CMP_Q = "Which of these ads was a bigger surprise for you?"
 
 /** Use case 2 — Concept Comparison */
-export function FragmentUCComparison({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+export function FragmentEIUseCaseConcepts({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [q, setQ] = React.useState("")
   const [tiles, setTiles] = React.useState(false)
@@ -1909,7 +1909,7 @@ export function FragmentUCComparison({ active, onDone, runKey = 0, hold, playFro
     await p.sleep(2600)
   }, onDone, runKey, hold, playFrom, onTime)
   return (
-    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font, paddingTop: 16, boxSizing: "border-box" }}>
+    <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", fontFamily: T.font, paddingTop: 16, boxSizing: "border-box" }}>
       <UCBubble text={q} full={UC_CMP_Q} />
       {tiles && (
         <div style={{ position: "absolute", left: 0, right: 0, top: 92, display: "flex", gap: 12 }}>
@@ -1930,7 +1930,7 @@ export function FragmentUCComparison({ active, onDone, runKey = 0, hold, playFro
 }
 
 /** Use case 3 — Brand Research */
-export function FragmentUCBrand({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+export function FragmentEIUseCaseBrand({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [panel, setPanel] = React.useState(false)
   const [gt, setGt] = React.useState(0)
@@ -1948,7 +1948,7 @@ export function FragmentUCBrand({ active, onDone, runKey = 0, hold, playFrom, on
     { label: "Fear", emotion: "fear", f: 0.16 },
   ]
   return (
-    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", fontFamily: T.font }}>
+    <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", fontFamily: T.font }}>
       {/* the brand stimulus, as a stylized product tile — panel overlaps its
           corner only, never the label */}
       <div style={{ position: "absolute", left: 24, top: 30, width: 220, height: 220, borderRadius: 12, background: "#F5F5F5", border: `1px solid ${T.appBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
@@ -1977,7 +1977,7 @@ export function FragmentUCBrand({ active, onDone, runKey = 0, hold, playFrom, on
 }
 
 /** Use case 4 — UX Research (task-based, on mobile) */
-export function FragmentUCUX({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+export function FragmentEIUseCaseUX({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [typed, setTyped] = React.useState("")
   const [tag, setTag] = React.useState(false)
@@ -1991,7 +1991,7 @@ export function FragmentUCUX({ active, onDone, runKey = 0, hold, playFrom, onTim
     await p.sleep(2600)
   }, onDone, runKey, hold, playFrom, onTime)
   return (
-    <div style={{ width: EI_UC_W, height: EI_UC_H, position: "relative", overflow: "hidden", fontFamily: T.font }}>
+    <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", overflow: "hidden", fontFamily: T.font }}>
       {/* the task, mid-flight on a phone that bleeds off the card */}
       <PhoneShell width={172} time="2:47" statusIcons style={{ position: "absolute", left: 84, top: 12 }}>
         <div style={{ padding: "18px 14px 0" }}>

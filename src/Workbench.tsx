@@ -6,7 +6,7 @@
 import * as React from "react"
 import SceneCanvas, { CANVAS_DEFAULTS, SceneCanvasProps, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
 import { PRESETS, Preset } from "./ListenPresets"
-import { byKey, REGISTRY } from "./ListenRegistry"
+import { byKey, REGISTRY, SEQUENCES } from "./ListenRegistry"
 import { T, Logo, ScaleBox, PatternLayer, PatternType } from "./ListenKit"
 import { I } from "./ListenIcons"
 
@@ -284,9 +284,6 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
 // registry — plus "Custom crop…" for framing a rect out of any scene
 const CONTENT_OPTS: Array<[string, string]> = REGISTRY.map((e) => [e.key, e.title])
 
-// hero display only applies to the five How-It-Works stage scenes
-const isSceneContent = (content: string) => content !== "custom" && !!byKey(content).stage
-
 /** unified content select */
 function ContentSel(p: { v: string; set: (s: string) => void }): JSX.Element {
   return (
@@ -297,12 +294,12 @@ function ContentSel(p: { v: string; set: (s: string) => void }): JSX.Element {
   )
 }
 
-const HERO_KEYS: Array<keyof Cfg> = ["autoCycle", "resumeDelay", "pattern", "patternSpacing", "patternOpacity", "bgColor", "padX", "padY", "radius"]
-const CALLOUT_EXCLUDE: Array<keyof Cfg> = ["autoCycle", "resumeDelay", "scrubber", "maxWidth"]
+// props that only mean something in the other layout stay out of saved output
+const MULTI_ONLY: Array<keyof Cfg> = ["sequence", "autoCycle", "resumeDelay", "scrubber", "maxWidth"]
+const SINGLE_ONLY: Array<keyof Cfg> = ["content", "customScene", "cropX", "cropY", "cropW", "cropH", "loop", "loopPause", "segStart", "segEnd"]
 
 export default function Workbench(): JSX.Element {
-  const [display, setDisplay] = React.useState<"hero" | "callout">("hero")
-  const [cfg, setCfg] = React.useState<Cfg>({ ...CANVAS_DEFAULTS })
+  const [cfg, setCfg] = React.useState<Cfg>({ ...CANVAS_DEFAULTS, layout: "multi-step" })
   const [presetSel, setPresetSel] = React.useState("")
   const [drafts, setDrafts] = React.useState<Preset[]>(loadDrafts)
   const [saveName, setSaveName] = React.useState("")
@@ -391,23 +388,21 @@ export default function Workbench(): JSX.Element {
   }
 
   // --- preset apply / save --------------------------------------------------
-  const sceneContent = isSceneContent(cfg.content)
-  const isHero = display === "hero" && sceneContent
+  const isMulti = cfg.layout === "multi-step"
 
   const allPresets = [...PRESETS, ...drafts]
   const applyPreset = (name: string) => {
     setPresetSel(name)
     const p = allPresets.find((x) => x.name === name)
     if (!p) return
-    setDisplay((p.props as any).variant === "hero" ? "hero" : "callout")
     setCfg({ ...CANVAS_DEFAULTS, ...(p.props as Partial<Cfg>) })
     setCropEdit(false)
   }
   const changedProps = (): Partial<Cfg> => {
     const out: Partial<Cfg> = {}
     for (const k of Object.keys(CANVAS_DEFAULTS) as Array<keyof Cfg>) {
-      if (isHero && !HERO_KEYS.includes(k)) continue
-      if (!isHero && CALLOUT_EXCLUDE.includes(k)) continue
+      if (isMulti && SINGLE_ONLY.includes(k)) continue
+      if (!isMulti && MULTI_ONLY.includes(k)) continue
       if (cfg[k] !== CANVAS_DEFAULTS[k]) (out as any)[k] = cfg[k]
     }
     return out
@@ -415,17 +410,17 @@ export default function Workbench(): JSX.Element {
   const serialize = (props: Record<string, unknown>) =>
     Object.entries(props).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")
   const presetBlock = () => {
-    const props: Record<string, unknown> = isHero ? { variant: "hero", ...changedProps() } : changedProps()
+    const props: Record<string, unknown> = changedProps()
     return `  {\n    name: ${JSON.stringify(saveName || "untitled")},\n    props: { ${serialize(props)} },\n  },`
   }
   const jsxBlock = () => {
     const props = changedProps()
     const body = Object.entries(props).map(([k, v]) => typeof v === "string" ? `${k}=${JSON.stringify(v)}` : `${k}={${JSON.stringify(v)}}`).join(" ")
-    return `<SceneCanvas variant=${JSON.stringify(isHero ? "hero" : "callout")} ${body} />`
+    return `<SceneCanvas ${body} />`
   }
   const saveDraft = () => {
     if (!saveName) return
-    const props = (isHero ? { variant: "hero" as const, ...changedProps() } : changedProps()) as Partial<SceneCanvasProps>
+    const props = changedProps() as Partial<SceneCanvasProps>
     const next = [...drafts.filter((d) => d.name !== saveName), { name: saveName, props }]
     setDrafts(next)
     localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
@@ -436,8 +431,6 @@ export default function Workbench(): JSX.Element {
     setCropEdit(false)
     setPresetSel("")
     setCfg((c) => ({ ...c, content: v }))
-    // hero display only applies to full scenes; anything else is a callout
-    if (!isSceneContent(v)) setDisplay("callout")
   }
 
   const punch = (k: "segStart" | "segEnd") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })); setPresetSel("") }
@@ -454,7 +447,7 @@ export default function Workbench(): JSX.Element {
 
   const pw = previewW === "full" ? "100%" : previewW
   const bpValue = previewW === "full" ? "full" : String(previewW)
-  const sizeLabel = `${previewW === "full" ? "full width" : Math.round(previewW as number) + "px"} × ${!isHero && cfg.canvasHeight ? cfg.canvasHeight + "px" : "auto"}`
+  const sizeLabel = `${previewW === "full" ? "full width" : Math.round(previewW as number) + "px"} × ${cfg.canvasHeight ? cfg.canvasHeight + "px" : "auto"}`
 
   return (
     <div className="wb" style={{ background: T.pageBg, minHeight: "100vh" }}>
@@ -478,7 +471,7 @@ export default function Workbench(): JSX.Element {
         {/* stage */}
         <div className="wb-stage">
           <div className="wb-toolbar">
-            {!isHero && (
+            {!isMulti && (
               <span className="wb-tools">
                 {!scrubOn ? (
                   <button className="wb-btn" onClick={() => { setScrubOn(true); setPlayStart(null) }}>
@@ -507,7 +500,7 @@ export default function Workbench(): JSX.Element {
             <span style={{ flex: 1 }} />
             <Seg v={bpValue} set={(v) => setPreviewW(v === "full" ? "full" : +v)}
               options={[["375", "375"], ["768", "768"], ["1024", "1024"], ["full", "Full"]]} />
-            {!isHero && (
+            {!isMulti && (
               <button className={"wb-btn" + (cropEdit ? " accent" : "")}
                 onClick={() => (cropEdit ? setCropEdit(false) : editCropStart())}>
                 <I name="crop" size={13} /> {cropEdit ? "Done" : "Edit crop"}
@@ -519,23 +512,19 @@ export default function Workbench(): JSX.Element {
           <div style={{ position: "relative", width: pw, maxWidth: "100%", margin: "0 auto", transition: dragging ? "none" : "width .2s ease" }}>
             {dragging && <span className="wb-chip">{sizeLabel}</span>}
             <div ref={previewRef}
-              className={!isHero && scrubOn && !playing ? "ll-noanim" : undefined}
-              onMouseDown={!isHero ? onPinDown : undefined}
-              style={{ position: "relative", cursor: !isHero && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
+              className={!isMulti && scrubOn && !playing ? "ll-noanim" : undefined}
+              onMouseDown={!isMulti ? onPinDown : undefined}
+              style={{ position: "relative", cursor: !isMulti && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
             >
-              {isHero ? (
-                <SceneCanvas key={runNonce} variant="hero" scrubber maxWidth={4000}
-                  autoCycle={cfg.autoCycle} resumeDelay={cfg.resumeDelay}
-                  pattern={cfg.pattern} patternSpacing={cfg.patternSpacing} patternOpacity={cfg.patternOpacity}
-                  bgColor={cfg.bgColor} padX={cfg.padX} padY={cfg.padY} radius={cfg.radius}
-                />
+              {isMulti ? (
+                <SceneCanvas key={runNonce} {...cfg} scrubber maxWidth={4000} />
               ) : cropEdit ? (
                 <CropEditor sceneKey={cfg.customScene} holdT={t}
                   rect={{ x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }}
                   onChange={(r) => { setCfg((c) => ({ ...c, cropX: r.x, cropY: r.y, cropW: r.w, cropH: r.h })); setPresetSel("") }} />
               ) : (
                 <>
-                  <SceneCanvas key={runNonce} variant="callout" {...cfg}
+                  <SceneCanvas key={runNonce} {...cfg}
                     debugHold={scrubOn && !playing ? t : undefined}
                     debugPlayFrom={scrubOn && playing ? playStart! : undefined}
                     debugOnTime={scrubOn ? setT : undefined}
@@ -548,7 +537,7 @@ export default function Workbench(): JSX.Element {
               )}
             </div>
             <div className={"wb-grab-w" + (dragging === "w" ? " on" : "")} onMouseDown={onWidthDown} />
-            {!isHero && !cropEdit && <div className={"wb-grab-h" + (dragging === "h" ? " on" : "")} onMouseDown={onHeightDown} />}
+            {!isMulti && !cropEdit && <div className={"wb-grab-h" + (dragging === "h" ? " on" : "")} onMouseDown={onHeightDown} />}
           </div>
           <div style={{ textAlign: "center", marginTop: 26 }} className="wb-hint">
             {sizeLabel} · drag the handles to test any size
@@ -558,23 +547,21 @@ export default function Workbench(): JSX.Element {
         {/* inspector */}
         <div className="wb-panel">
           <Section title="Content" />
-          <Field label="What plays">
-            <ContentSel v={cfg.content} set={setContent} />
+          <Field label="Layout">
+            <Seg v={cfg.layout} set={(v) => { set("layout")(v as Cfg["layout"]); setCropEdit(false) }}
+              options={[["single", "Single"], ["multi-step", "Multi-step"]]} />
           </Field>
-          {sceneContent && (
-            <Field label="Display as">
-              <Seg v={display} set={(v) => { setDisplay(v as "hero" | "callout"); setCropEdit(false); setPresetSel("") }}
-                options={[["hero", "Hero (rail)"], ["callout", "Callout"]]} />
-            </Field>
-          )}
 
-          {isHero ? (
+          {isMulti ? (
             <>
+              <Field label="Sequence">
+                <Sel v={cfg.sequence} set={(v) => set("sequence")(v)}
+                  options={SEQUENCES.map((q) => q.key)} titles={SEQUENCES.map((q) => q.title)} />
+              </Field>
               <div className="wb-hint" style={{ margin: "8px 0 2px" }}>
-                The hero cycles all five stages; the rail below the canvas is
-                live — click a stage to jump, just like the site.
+                Cycles every step in one frame with its caption underneath;
+                the rail is live — click a step to jump, just like the site.
               </div>
-              <Section title="Hero" />
               <Field label="Auto-cycle">
                 <Toggle v={cfg.autoCycle} set={set("autoCycle")} />
               </Field>
@@ -585,6 +572,9 @@ export default function Workbench(): JSX.Element {
             </>
           ) : (
             <>
+              <Field label="What plays">
+                <ContentSel v={cfg.content} set={setContent} />
+              </Field>
               {cfg.content === "custom" && (
                 <>
                   <Field label="Scene">
@@ -599,36 +589,36 @@ export default function Workbench(): JSX.Element {
                   </Field>
                 </>
               )}
-
-              <Section title="Layout" />
-              <Field label="Fit">
-                <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Responsive"], ["pinned", "Pinned"]]} />
-              </Field>
-              {cfg.fit === "pinned" && (
-                <>
-                  <Field label="Anchor">
-                    <CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} />
-                  </Field>
-                  <Field label="Insets x · y">
-                    <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
-                  </Field>
-                  <Field label="Zoom">
-                    <Slider v={cfg.zoom} set={set("zoom")} min={0.4} max={2} step={0.05} fmt={(n) => n.toFixed(2)} />
-                  </Field>
-                  <Field label="When small">
-                    <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Mask"]]} />
-                  </Field>
-                  {cfg.smallBehavior === "fit" && (
-                    <Field label="Below (px)"><Num v={cfg.fitBelow} set={set("fitBelow")} wide /></Field>
-                  )}
-                </>
-              )}
-              <Field label="Canvas height">
-                <Num v={cfg.canvasHeight} set={set("canvasHeight")} wide />
-                <span className="wb-hint">0 = auto</span>
-              </Field>
             </>
           )}
+
+          <Section title="Fit" />
+          <Field label="Fit">
+            <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Responsive"], ["pinned", "Pinned"]]} />
+          </Field>
+          {cfg.fit === "pinned" && (
+            <>
+              <Field label="Anchor">
+                <CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} />
+              </Field>
+              <Field label="Insets x · y">
+                <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
+              </Field>
+              <Field label="Zoom">
+                <Slider v={cfg.zoom} set={set("zoom")} min={0.4} max={2} step={0.05} fmt={(n) => n.toFixed(2)} />
+              </Field>
+              <Field label="When small">
+                <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Mask"]]} />
+              </Field>
+              {cfg.smallBehavior === "fit" && (
+                <Field label="Below (px)"><Num v={cfg.fitBelow} set={set("fitBelow")} wide /></Field>
+              )}
+            </>
+          )}
+          <Field label="Canvas height">
+            <Num v={cfg.canvasHeight} set={set("canvasHeight")} wide />
+            <span className="wb-hint">0 = auto</span>
+          </Field>
 
           <Section title="Canvas" />
           <Field label="Pattern">
@@ -655,7 +645,7 @@ export default function Workbench(): JSX.Element {
           </Field>
           <Field label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Field>
 
-          {!isHero && (
+          {!isMulti && (
             <>
               <Section title="Playback" />
               <Field label="Loop">
