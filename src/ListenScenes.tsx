@@ -679,7 +679,9 @@ function ClipVideo({ t, playing }: { t: number; playing: boolean }): JSX.Element
     const v = ref.current
     if (!v || !ready) return
     const target = Math.min(t, INTERVIEW_CLIP.durationMs - 40) / 1000
-    if (playing) {
+    // at the tail, hold the last frame (play() on an ended video would restart it)
+    const atEnd = v.ended || target >= INTERVIEW_CLIP.durationMs / 1000 - 0.1
+    if (playing && !atEnd) {
       const drift = target - v.currentTime
       if (Math.abs(drift) > 0.3) v.currentTime = target
       v.playbackRate = Math.max(0.85, Math.min(1.15, 1 + drift * 2))
