@@ -205,7 +205,8 @@ function MorphCard(props: { from: Rect; to?: Rect; text: string }): JSX.Element 
 // hard-to-reach audience story); insights in later stages come from the
 // general-population run of the same billboard test.
 const GOAL_TEXT = "I want to understand how C-suite executives react to our billboard ad"
-const STUDY_TITLE = "Listen Labs Billboard Ad Test - C-Suite Demo"
+// shown without the source study's "Demo" suffix
+const STUDY_TITLE = "Listen Labs Billboard Ad Test - C-Suite"
 const GOAL_PARA = "Decide whether the billboard clearly communicates what Listen Labs is and resonates with C-suite executives at large enterprises, or whether the messaging needs to be revised."
 const KEY_QS = [
   "What do they think the product or service is after seeing the ad?",
@@ -640,17 +641,22 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
 
 // ================================================== 3. Interview at scale ===
 // Participant interview UI, rebuilt from a product screen recording
-// (2026-09-17): a left-aligned question column (600px, centred), a large
+// (2026-09-17) and re-measured against the live interview (2026-09-30): a
+// 4px progress bar, a left-aligned question column (552px, centred), a small
 // webcam tile bottom-right, a wide brand-blue Start Recording button that
 // becomes a Pause · timer · Submit bar while recording, then a three-dot
 // loader and the moderator's follow-up streaming in word by word. The
 // product does not transcribe live, so no text appears while recording.
 // Real page is ~1511px wide; the scene scales it by ~0.74 into 1120x640.
-const IV_COL_W = 408                 // 552px text column × 0.74
+// live px × 0.74 (1512 → 1120)
+const IV_COL_W = 408                 // 552px column
 const IV_COL_X = (FRAME_W - IV_COL_W) / 2
-const IV_BTN_H = 34
-const IV_BTN_Y = FRAME_H - 20 - IV_BTN_H / 2   // button centre, design px
-const IV_CAM = 184                   // webcam tile, 248px × 0.74
+const IV_INSET = 9                   // question text sits 12px inside the column
+const IV_BTN_H = 30                  // 40px button
+const IV_EDGE = 18                   // 24px bottom / right margins
+const IV_CAM = 89                    // 120px webcam tile on question screens
+const IV_Q_FONT = { fontSize: 17.8, lineHeight: "24.9px", letterSpacing: -0.36 } // 24/33.6, -0.48
+const IV_PROGRESS = 0.3              // progress bar fill, this far into the study
 const IV_RED = "#DC2626"
 const IV_QUESTION = "What do you think the company or service being advertised actually does? What is it offering?"
 // verbatim moderator follow-up from the general-population Billboard Ad Test, respondent 6
@@ -764,24 +770,22 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
   const [words, setWords] = React.useState(0)
   const [enabled, setEnabled] = React.useState(false)
   const cur = useCursor()
-  const START = { x: FRAME_W / 2, y: IV_BTN_Y }
   const CARD_PAD = 6, STRIP_H = 44, ROW_H = 24
   const CARD_H = CARD_PAD * 2 + STRIP_H + 5 + ROW_H
-  const SUBMIT = { x: IV_COL_X + IV_COL_W - CARD_PAD - 36, y: FRAME_H - 20 - CARD_PAD - ROW_H / 2 }
 
   useScene(active, async (p) => {
     setPhase("idle"); setRecT(0); setWords(0); setEnabled(false); cur.hide()
     await p.sleep(700)
-    cur.show(START.x - 180, START.y - 110)
+    cur.show("iv-start", -180, -110)
     await p.sleep(350)
-    cur.move(START.x, START.y)
+    cur.move("iv-start")
     await p.sleep(750)
     cur.click(1); await p.sleep(250)
     setPhase("recording"); cur.hide()
     for (let i = 1; i <= (IV_REC_SECS * 1000) / IV_TICK; i++) { await p.sleep(IV_TICK); setRecT(i * IV_TICK) }
-    cur.show(SUBMIT.x - 120, SUBMIT.y - 90)
+    cur.show("iv-submit", -120, -90)
     await p.sleep(300)
-    cur.move(SUBMIT.x, SUBMIT.y)
+    cur.move("iv-submit")
     await p.sleep(600)
     cur.click(2); await p.sleep(250)
     setPhase("loading"); cur.hide()
@@ -800,15 +804,19 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
   return (
     <BareFrame cursor={cur.state}>
       <div style={{ flex: 1, position: "relative" }}>
+        {/* progress bar */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "rgba(0, 0, 0, 0.1)" }}>
+          <div style={{ width: `${IV_PROGRESS * 100}%`, height: "100%", background: T.brand }} />
+        </div>
         {/* header: Skip · settings */}
-        <div style={{ position: "absolute", top: 12, right: 16, display: "flex", alignItems: "center", gap: 14, fontSize: 12.5, color: T.ink }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>Skip <I name="skip-forward" size={13} /></span>
+        <div style={{ position: "absolute", top: 14, right: IV_EDGE, display: "flex", alignItems: "center", gap: 12, fontSize: 9, lineHeight: "12px", color: T.ink }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "0 6px" }}>Skip <I name="skip-forward" size={10} /></span>
           <I name="settings" size={15} />
         </div>
 
         {/* question column */}
-        <div style={{ position: "absolute", left: IV_COL_X, top: 58, width: IV_COL_W }}>
-          <div style={{ fontSize: 24, lineHeight: "29px", color: T.ink, opacity: phase === "idle" || recording ? 1 : 0, transition: "opacity .3s ease" }}>
+        <div style={{ position: "absolute", left: IV_COL_X + IV_INSET, top: 65, width: IV_COL_W - IV_INSET * 2 }}>
+          <div style={{ ...IV_Q_FONT, color: T.ink, opacity: phase === "idle" || recording ? 1 : 0, transition: "opacity .3s ease" }}>
             {IV_QUESTION}
           </div>
           {phase === "loading" && (
@@ -819,7 +827,7 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
             </div>
           )}
           {phase === "reply" && (
-            <div style={{ position: "absolute", top: 0, left: 0, width: IV_COL_W, fontSize: 24, lineHeight: "29px" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, width: IV_COL_W - IV_INSET * 2, ...IV_Q_FONT }}>
               {IV_WORDS.map((w, i) => (
                 <span key={i} style={{ color: i < words ? T.ink : "#E4E4E4", opacity: i < words ? 1 : 0, transition: "color .7s ease, opacity .25s ease" }}>{w}{i < IV_WORDS.length - 1 ? " " : ""}</span>
               ))}
@@ -828,19 +836,19 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
         </div>
 
         {/* bottom control: Start Recording ⇄ Pause · timer · Submit */}
-        <div style={{ position: "absolute", left: IV_COL_X, width: IV_COL_W, bottom: 20 }}>
+        <div style={{ position: "absolute", left: IV_COL_X, width: IV_COL_W, bottom: IV_EDGE }}>
           {recording ? (
             <div className="ll-enter" style={{ height: CARD_H, borderRadius: 12, background: "#EEEEEE", padding: CARD_PAD, display: "flex", flexDirection: "column", gap: 5 }}>
               <DotStrip t={recT} w={IV_COL_W - CARD_PAD * 2} h={STRIP_H} />
               <div style={{ height: ROW_H, display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ ...barBtn, border: `1px solid ${IV_RED}`, color: IV_RED, background: T.appBg }}>Pause <I name="circle-pause" size={12} /></span>
                 <span style={{ flex: 1, textAlign: "center", color: IV_RED, fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{mm(recT)}</span>
-                <span style={{ ...barBtn, background: T.brand, color: "#FAFAFA" }}>Submit <I name="circle-stop" size={12} /></span>
+                <span data-cursor="iv-submit" style={{ ...barBtn, background: T.brand, color: "#FAFAFA" }}>Submit <I name="circle-stop" size={12} /></span>
               </div>
             </div>
           ) : (
-            <button className="ll-btn primary" style={{
-              width: "100%", height: IV_BTN_H, borderRadius: 8, justifyContent: "center", fontSize: 13.5,
+            <button data-cursor="iv-start" className="ll-btn primary" style={{
+              width: "100%", height: IV_BTN_H, borderRadius: 6, justifyContent: "center", fontSize: 11.8, letterSpacing: -0.24,
               background: phase === "idle" || enabled ? T.brand : "#ECEFFF", color: phase === "idle" || enabled ? "#FAFAFA" : T.brandFaint,
               transition: "background-color .35s ease, color .35s ease",
             }}>Start Recording</button>
@@ -848,11 +856,10 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
         </div>
 
         {/* webcam tile */}
-        <div style={{ position: "absolute", right: 18, bottom: 18, width: IV_CAM, height: IV_CAM, borderRadius: 8, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
+        <div style={{ position: "absolute", right: IV_EDGE, bottom: IV_EDGE, width: IV_CAM, height: IV_CAM, borderRadius: 6, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
-          <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 44, height: 44, fontSize: 18 }}>M</span>
-          <I name="shrink" size={13} style={{ position: "absolute", top: 8, left: 8, color: "#FFFFFF", opacity: .9 }} />
-          {recording && <span style={{ position: "absolute", top: 10, right: 10, width: 7, height: 7, borderRadius: "50%", background: IV_RED }} />}
+          <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 30, height: 30, fontSize: 13 }}>M</span>
+          {recording && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: IV_RED }} />}
         </div>
 
         {/* scale strip */}
