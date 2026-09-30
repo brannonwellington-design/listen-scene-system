@@ -862,9 +862,9 @@ export function AppShell(props: {
 }
 
 // -------------------------------------------------------- device shells -----
-// Real-device chrome for composed marketing shots (the AI-moderator hero
-// style): a Safari-like desktop window, and an iPhone screen authored in real
-// device points. Both are plain set dressing — the scene supplies the content.
+// Real-device chrome for composed marketing shots: a Safari-like desktop
+// window, an iPhone screen authored in real device points, and Safari's iOS
+// toolbar for it. Plain set dressing — the scene supplies the content.
 
 /** Safari-style desktop window. `progress` (0..1) fills the interview bar. */
 export function BrowserWindow(props: { progress?: number; children: React.ReactNode; style?: React.CSSProperties }): JSX.Element {

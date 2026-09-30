@@ -38,10 +38,6 @@ export const PRESETS: Preset[] = [
     name: "EI hero report · dots",
     props: { content: "ei-hero-report", canvasHeight: 400, pattern: "dots", radius: 16, loopPause: 4 },
   },
-  {
-    name: "AI moderator · circles",
-    props: { content: "ai-moderator", canvasHeight: 400, pattern: "circles", patternSpacing: 36, radius: 16, loopPause: 4 },
-  },
   // --- fragments --------------------------------------------------------------
   {
     name: "Top answer · grid",
