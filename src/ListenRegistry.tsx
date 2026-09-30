@@ -7,7 +7,7 @@
 //               under the frame in a multi-step layout
 import {
   SceneDesignStudy, SceneReachPeople, SceneInterviewScale,
-  SceneDeliverResults, SceneCompound, SceneEIHeroReport, SceneAIModerator,
+  SceneDeliverResults, SceneCompound, SceneEIHeroReport,
   FragmentTopAnswer, TOP_ANSWER_W, TOP_ANSWER_H,
   FragmentLiveInterview, LIVE_INTERVIEW_W, LIVE_INTERVIEW_H,
   FragmentEmotionQuote, EMOTION_QUOTE_W, EMOTION_QUOTE_H,
@@ -47,9 +47,6 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "ei-usecase-concepts", title: "EI · Use case · Concept comparison", Scene: FragmentEIUseCaseConcepts, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
   { key: "ei-usecase-brand", title: "EI · Use case · Brand research", Scene: FragmentEIUseCaseBrand, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
   { key: "ei-usecase-ux", title: "EI · Use case · UX research", Scene: FragmentEIUseCaseUX, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
-
-  // --- /features/ai-moderator -----------------------------------------------
-  { key: "ai-moderator", title: "AI Moderator · desktop + mobile", Scene: SceneAIModerator, w: FRAME_W, h: FRAME_H, kind: "scene" },
 
   // --- general fragments ----------------------------------------------------
   { key: "top-answer-card", title: "Top Answer card", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
