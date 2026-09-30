@@ -967,6 +967,52 @@ export function PhoneShell(props: {
   )
 }
 
+/** An iPhone screen as a screen capture (no bezel), authored in real device
+ *  points (393×852) and scaled as one piece, so the status bar, type, and
+ *  controls keep true iOS proportions at any width. Children lay out in
+ *  points below the 54pt status bar. */
+export function IPhoneScreen(props: {
+  width: number
+  time?: string
+  battery?: number
+  /** rounded screen corners in points (55 on device; smaller reads as a crop) */
+  radius?: number
+  children: React.ReactNode
+  style?: React.CSSProperties
+}): JSX.Element {
+  const { width, time = "9:41", battery = 81, radius = 55, children, style } = props
+  const s = width / 393
+  return (
+    <div style={{ width, height: 852 * s, position: "relative", ...style }}>
+      <div style={{
+        width: 393, height: 852, transform: `scale(${s})`, transformOrigin: "top left",
+        background: "#FFF", borderRadius: radius, overflow: "hidden", boxShadow: `0 0 0 ${1 / s}px ${T.appBorder}`,
+        display: "flex", flexDirection: "column", fontFamily: T.font, color: "#000",
+      }}>
+        {/* iOS status bar: time · island · signal, wifi, battery */}
+        <div style={{ height: 54, flexShrink: 0, position: "relative", display: "flex", alignItems: "center", padding: "4px 32px 0 48px" }}>
+          <span style={{ fontSize: 17, fontWeight: 600, letterSpacing: -0.4 }}>{time}</span>
+          <span style={{ position: "absolute", left: "50%", top: 11, transform: "translateX(-50%)", width: 126, height: 37, borderRadius: 19, background: "#000" }} />
+          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 2 }}>
+              {[4, 6.5, 9, 11.5].map((h) => <span key={h} style={{ width: 3, height: h, borderRadius: 1, background: "#000" }} />)}
+            </span>
+            <svg width="17" height="12" viewBox="0 0 14 10"><path d="M7 9.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8ZM2.1 5.2a7 7 0 0 1 9.8 0l-1.5 1.5a4.9 4.9 0 0 0-6.8 0Zm-2-2a9.8 9.8 0 0 1 13.8 0l-1.4 1.4a7.8 7.8 0 0 0-11 0Z" fill="#000" /></svg>
+            <span style={{ position: "relative", width: 27, height: 13, borderRadius: 4, background: "#000", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "#FFF", letterSpacing: -0.2 }}>{battery}</span>
+              <span style={{ position: "absolute", right: -3, top: 4.5, width: 1.5, height: 4, borderRadius: 1, background: "#000", opacity: 0.4 }} />
+            </span>
+          </span>
+        </div>
+        <div style={{ flex: 1, position: "relative", minHeight: 0 }}>{children}</div>
+        <div style={{ height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ width: 134, height: 5, borderRadius: 3, background: "#000" }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ------------------------------------------------------------ primitives ----
 export function Chip(props: { kind?: "live" | "brand" | "blue"; children: React.ReactNode }): JSX.Element {
   return (
