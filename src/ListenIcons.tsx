@@ -8,6 +8,7 @@ type El =
   | ["p", string]
   | ["c", number, number, number]
   | ["r", number, number, number, number, number]
+  | ["f", number, number, number] // filled dot
 
 const ICONS: Record<string, El[]> = {
   "chevrons-up-down": [["p", "m7 15 5 5 5-5"], ["p", "m7 9 5-5 5 5"]],
@@ -94,6 +95,8 @@ const ICONS: Record<string, El[]> = {
   film: [["r", 3, 3, 18, 18, 2], ["p", "M7 3v18"], ["p", "M3 7.5h4"], ["p", "M3 12h18"], ["p", "M3 16.5h4"], ["p", "M17 3v18"], ["p", "M17 7.5h4"], ["p", "M17 16.5h4"]],
   "file-pen-line": [["p", "M14.364 13.634a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506l4.013-4.009a1 1 0 0 0-3.004-3.004z"], ["p", "M14.487 7.858A1 1 0 0 1 14 7V2"], ["p", "M20 19.645V20a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l2.516 2.516"], ["p", "M8 18h1"]],
   "arrow-right": [["p", "M5 12h14"], ["p", "m12 5 7 7-7 7"]],
+  // the Agent mark (live chat page): seven dots on a hex
+  "agent-hex": [["f", 12, 3.6, 1.4], ["f", 19, 7.8, 1.4], ["f", 19, 16.2, 1.4], ["f", 12, 20.4, 1.4], ["f", 5, 16.2, 1.4], ["f", 5, 7.8, 1.4], ["f", 12, 12, 1.4]],
 }
 
 export function I(props: { name: keyof typeof ICONS | string; size?: number; stroke?: number; style?: React.CSSProperties }): JSX.Element {
@@ -108,6 +111,7 @@ export function I(props: { name: keyof typeof ICONS | string; size?: number; str
       {els.map((e, i) => {
         if (e[0] === "p") return <path key={i} d={e[1] as string} />
         if (e[0] === "c") return <circle key={i} cx={e[1]} cy={e[2]} r={e[3]} />
+        if (e[0] === "f") return <circle key={i} cx={e[1]} cy={e[2]} r={e[3]} fill="currentColor" stroke="none" />
         return <rect key={i} x={e[1]} y={e[2]} width={e[3]} height={e[4]} rx={e[5]} />
       })}
     </svg>
