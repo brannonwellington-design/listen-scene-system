@@ -1874,9 +1874,9 @@ export const EI_USECASE_W = 340
 export const EI_USECASE_H = 300
 
 /** moderator question bubble that types in */
-function UCBubble({ text, full }: { text: string; full: string }): JSX.Element {
+function UCBubble({ text, full, oneLine }: { text: string; full: string; oneLine?: boolean }): JSX.Element {
   return (
-    <div style={{ display: "inline-block", maxWidth: 250, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 14, borderBottomLeftRadius: 4, padding: "9px 13px", fontSize: 12.5, lineHeight: 1.5, minHeight: 56, boxSizing: "border-box" }}>
+    <div style={{ display: "inline-block", maxWidth: oneLine ? "none" : 250, whiteSpace: oneLine ? "nowrap" : undefined, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 14, borderBottomLeftRadius: 4, padding: "9px 13px", fontSize: 12.5, lineHeight: 1.5, minHeight: oneLine ? 0 : 56, boxSizing: "border-box" }}>
       {text}{text.length > 0 && text.length < full.length && <Caret />}
     </div>
   )
@@ -1914,60 +1914,20 @@ function UCBar({ label, emotion, f, e }: { label: string; emotion: keyof typeof 
 }
 
 const UC_AD_Q = "What comes to mind when you see this ad?"
-// verbatim, general-population Billboard Ad Test, gut reaction to the billboard
-// (https://listenlabs.ai/response/26d943a1-6667-53be-9f86-b1495f3836c5?message=8)
-const UC_AD_QUOTE = "Most ads are like in your face. This is very like, the colors are good and it kind of draws the eye without being like overbearing."
-const UC_AD_MOMENT = "the colors are good"       // the phrase the emotion lands on
+// the creative under test: the "It's fine." Listen Labs ad (tested in the UK
+// LED Truck Ad Copy Test). Relative to the site root; in Framer, upload
+// media/ad-its-fine.jpg as an asset and paste its URL here.
+const UC_AD_IMG = "media/ad-its-fine.jpg"
+// verbatim, UK LED Truck Ad Copy Test, participant 463, on this line
+// (https://listenlabs.ai/response/d75d9924-bef2-4997-97a5-03e53cf2f83f?message=20)
+const UC_AD_WHO = "Participant 463"
+const UC_AD_QUOTE = "I think people say it's fine when they don't mean it. So yeah, this is a little bit more true and real, if you wanna call it that."
+const UC_AD_MOMENT = "true and real"             // the phrase the emotion lands on
 const UC_AD_MOMENT_AT = UC_AD_QUOTE.indexOf(UC_AD_MOMENT)
-const BB_BLUE = "#1F3FD1"
-const BB_GREEN = "#1E9A57"
-const BB_CREAM = "#F9F4EB"
 
-/** a figure on a corded phone — the billboard's vintage-phone motif */
-function BBFigure({ flip }: { flip?: boolean }): JSX.Element {
-  return (
-    <svg width="34" height="44" viewBox="0 0 34 44" style={{ transform: flip ? "scaleX(-1)" : undefined, flexShrink: 0 }}>
-      <circle cx="15" cy="12" r="8" fill={BB_CREAM} />
-      <path d="M2 44c0-10 6-17 13-17s13 7 13 17z" fill={BB_CREAM} />
-      {/* handset at the ear, coiled cord trailing down */}
-      <rect x="21" y="5" width="6" height="15" rx="3" fill="#111" />
-      <path d="M25 20c3 2-3 4 0 6s-3 4 0 6-3 4 0 6" fill="none" stroke="#111" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-/** the Listen Labs billboard: blue and green halves, two figures on corded
- *  phones facing each other, one tagline each (stylized, no photos) */
-function UCBillboard(): JSX.Element {
-  const panel: React.CSSProperties = { flex: 1, padding: "9px 10px", display: "flex", flexDirection: "column", justifyContent: "space-between", color: BB_CREAM, minWidth: 0 }
-  return (
-    <div>
-      <div style={{ width: 252, height: 100, borderRadius: 6, overflow: "hidden", display: "flex", boxShadow: "0 1px 2px rgba(0,0,0,.08)" }}>
-        <div style={{ ...panel, background: BB_BLUE }}>
-          <div className="ll-500" style={{ fontSize: 10.5, lineHeight: 1.25 }}>AI-powered customer understanding</div>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 8, opacity: 0.85 }}>listenlabs.ai</span>
-            <BBFigure />
-          </div>
-        </div>
-        <div style={{ ...panel, background: BB_GREEN }}>
-          <div className="ll-500" style={{ fontSize: 9, lineHeight: 1.3 }}>Find out what people think, why they think it, and what to do about it</div>
-          <div style={{ display: "flex", alignItems: "flex-end" }}>
-            <BBFigure flip />
-          </div>
-        </div>
-      </div>
-      {/* posts: it reads as a billboard, not a slide */}
-      <div style={{ display: "flex", justifyContent: "space-around", padding: "0 60px" }}>
-        {[0, 1].map((i) => <span key={i} style={{ width: 4, height: 10, background: "#CFC7B6" }} />)}
-      </div>
-    </div>
-  )
-}
-
-/** Use case 1 — Creative/Ad Testing: a participant reviews the Listen Labs
- *  billboard, their spoken feedback transcribes in, and the emotion is
- *  tracked to the exact phrase it rose on. */
+/** Use case 1 — Creative/Ad Testing: a participant reviews the ad, their
+ *  spoken feedback transcribes in, and the emotion is tracked to the exact
+ *  phrase it rose on. */
 export function FragmentEIUseCaseAdTesting({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [q, setQ] = React.useState("")
@@ -1976,11 +1936,11 @@ export function FragmentEIUseCaseAdTesting({ active, onDone, runKey = 0, hold, p
   const [tag, setTag] = React.useState(false)
   useScene(active, async (p) => {
     setQ(""); setAd(false); setSaid(""); setTag(false)
+    await p.sleep(400)
+    setAd(true)
     await p.sleep(500)
     await p.type(setQ, UC_AD_Q, AI_CPS)
-    await p.sleep(300)
-    setAd(true)
-    await p.sleep(700)
+    await p.sleep(600)
     // the answer, transcribed as it's spoken; the emotion lands on the moment
     await p.type((t) => {
       setSaid(t)
@@ -1990,19 +1950,24 @@ export function FragmentEIUseCaseAdTesting({ active, onDone, runKey = 0, hold, p
   }, onDone, runKey, hold, playFrom, onTime)
 
   const lit = tag && said.length >= UC_AD_MOMENT_AT + UC_AD_MOMENT.length
+  // hairline pill shared by the timestamp and the emotion chip
+  const pill: React.CSSProperties = { display: "inline-flex", alignItems: "center", background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 16 }
   return (
-    <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", fontFamily: T.font, paddingTop: 12, boxSizing: "border-box" }}>
-      <UCBubble text={q} full={UC_AD_Q} />
+    <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", fontFamily: T.font }}>
+      {/* the creative, with the moderator's question overlapping its corner */}
       {ad && (
-        <div className="ll-enter" style={{ position: "absolute", left: 44, top: 80 }}>
-          <UCBillboard />
-        </div>
+        <img className="ll-enter" src={UC_AD_IMG} alt="" draggable={false}
+          style={{ position: "absolute", left: 60, top: 42, width: 264, height: 165, objectFit: "cover", borderRadius: 10, border: `1px solid ${T.appBorder}`, boxSizing: "border-box" }} />
       )}
+      <div style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }}>
+        {/* one line, so it only clips the image's top edge, never the headline */}
+        {q && <UCBubble text={q} full={UC_AD_Q} oneLine />}
+      </div>
       {said && (
-        <div className="ll-enter" style={{ position: "absolute", left: 16, right: 16, top: 204, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 12, padding: "9px 12px", fontSize: 11.5, lineHeight: 1.5, color: T.body }}>
+        <div className="ll-enter" style={{ position: "absolute", left: 16, right: 16, top: 214, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 12, padding: "9px 12px", fontSize: 11.5, lineHeight: 1.5, color: T.body }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.inkSoft, marginBottom: 3 }}>
             <span className="ll-avatar" style={{ width: 16, height: 16, fontSize: 8 }}>P</span>
-            Participant · first reaction
+            {UC_AD_WHO}
           </div>
           {lit ? (
             <>
@@ -2014,11 +1979,11 @@ export function FragmentEIUseCaseAdTesting({ active, onDone, runKey = 0, hold, p
           {said.length < UC_AD_QUOTE.length && <Caret />}
         </div>
       )}
-      {/* the tracked emotion, pinned to the card where the phrase landed */}
-      <div style={{ position: "absolute", right: 10, top: 190, display: "flex", alignItems: "center", gap: 6, minHeight: 28 }}>
+      {/* the tracked emotion and when it happened, riding the card's top edge */}
+      <div style={{ position: "absolute", right: 10, top: 200, display: "flex", alignItems: "center", gap: 6, minHeight: 28, zIndex: 1 }}>
         {tag && (
           <>
-            <span className="ll-enter" style={{ fontSize: 10, color: T.inkSoft, background: "#FFF", borderRadius: 6, padding: "1px 5px" }}>0:14</span>
+            <span className="ll-enter" style={{ ...pill, height: 30, padding: "0 10px", fontSize: 10.5, color: T.inkSoft, fontVariantNumeric: "tabular-nums" }}>0:14</span>
             <UCChip emotion="happiness" />
           </>
         )}

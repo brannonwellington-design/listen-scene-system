@@ -98,6 +98,9 @@ beat lasts exactly as long as the trimmed clip. `--placeholder` generates a
 synthetic stand-in; `INTERVIEW_CLIP.placeholder` says which one is live. In
 Framer, upload the MP4 as an asset and set `INTERVIEW_CLIP.src` to its URL.
 
+The same goes for `media/ad-its-fine.jpg` (the Creative/Ad Testing card's
+ad): upload it to Framer and set `UC_AD_IMG` in `ListenScenes.tsx` to its URL.
+
 ## Local development
 
 ```bash
