@@ -46,35 +46,37 @@ const LIGHT = {
 }
 type Tok = keyof typeof LIGHT
 
-// neutral dark ramp: sidebar darkest, content a step up, cards a step above
+// dark values from the live app's `.dark` theme (listenlabs.ai stylesheet,
+// 2026-09-30): surface-primary/secondary/tertiary/quatenary/highlight,
+// content-primary/tertiary, surface-brand-primary, inverse surfaces
 const DARK: Record<Tok, string> = {
-  appBg: "#202020",
-  chromeBg: "#262626",
-  appPanelAlt: "#1E1E1E",
-  fill: "#2A2A2A",
-  hoverFill: "#333333",
-  track: "#444444",
-  appBorder: "#2F2F2F",
-  ink: "#EDEDED",
-  inkSoft: "rgba(237, 237, 237, 0.6)",
-  inkFaint: "rgba(237, 237, 237, 0.38)",
-  body: "rgba(255, 255, 255, 0.86)",
-  brand: "#4F6BFF",
-  brandSoft: "rgba(79, 107, 255, 0.2)",
-  brandFaint: "rgba(79, 107, 255, 0.45)",
-  positive: "#4ADE80",
-  positiveSoft: "rgba(74, 222, 128, 0.14)",
-  dark: "#EDEDED",
-  darkSoft: "#3A3A3A",
-  onDark: "#141414",
+  appBg: "#292929",         // surface-highlight (cards)
+  chromeBg: "#242424",
+  appPanelAlt: "#121212",   // surface-primary
+  fill: "#1F1F1F",          // surface-secondary
+  hoverFill: "#2E2E2E",     // surface-tertiary
+  track: "#3D3D3D",         // surface-quatenary
+  appBorder: "#2E2E2E",     // surface-tertiary
+  ink: "#F5F5F5",           // content-primary
+  inkSoft: "rgba(245, 245, 245, 0.55)",
+  inkFaint: "rgba(245, 245, 245, 0.38)",
+  body: "rgba(255, 255, 255, 0.88)",
+  brand: "#3D5DFF",         // surface-brand-primary
+  brandSoft: "rgba(61, 93, 255, 0.2)",
+  brandFaint: "rgba(61, 93, 255, 0.45)",
+  positive: "#54D47E",      // content-positive
+  positiveSoft: "rgba(84, 212, 126, 0.14)",
+  dark: "#E6E6E6",          // surface-inverse-primary
+  darkSoft: "#FAFAFA",      // primary (buttons invert)
+  onDark: "#1A1A1A",        // content-inverse-primary
   shadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
-  navBg: "#141414",
-  navLine: "#2A2A2A",
-  surface: "#1A1A1A",
-  inkSecondary: "#9A9A9A",
+  navBg: "#1F1F1F",         // surface-secondary: sidebar sits a step above content
+  navLine: "#3D3D3D",       // surface-quatenary
+  surface: "#121212",       // surface-primary
+  inkSecondary: "#B8B8B8",  // content-tertiary
   hover: "rgba(255, 255, 255, 0.07)",
-  tbtnBg: "#2A2A2A",
-  tbtnInk: "#EDEDED",
+  tbtnBg: "#27272A",        // secondary
+  tbtnInk: "#FAFAFA",
 }
 
 const tokens = Object.fromEntries(
@@ -180,6 +182,9 @@ const CSS = `
 @keyframes ll-spin { to{transform:rotate(360deg)} }
 
 .ll-scene-fade { animation:ll-scene .5s ease both; }
+/* bars that grow from zero to their width on mount */
+.ll-grow { animation:ll-grow .9s cubic-bezier(.22,1,.36,1) both; transform-origin:left center; }
+@keyframes ll-grow { from{transform:scaleX(0)} to{transform:none} }
 
 /* -- app shell: sidebar + top bar (Figma mock, live-app content) -- */
 .ll-app { display:flex; width:100%; height:100%; position:relative; overflow:hidden;
@@ -206,6 +211,7 @@ button.ll-iconbtn:hover { background:${T.hover}; }
   color:${T.inkSecondary}; white-space:nowrap; flex-shrink:0; transition:color .15s, background-color .15s; }
 .ll-row:hover { color:${T.ink}; }
 .ll-row.on { color:${T.ink}; }
+.ll-row.chat.on { background:${T.navLine}; }  /* live: the open chat is highlighted */
 .ll-row .lbl { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; transition:opacity .2s; }
 .ll-row .end { margin-left:auto; }
 .ll-app.collapsed .ll-row .lbl, .ll-app.collapsed .ll-row .end,
@@ -244,7 +250,7 @@ button.ll-iconbtn:hover { background:${T.hover}; }
 .ll-top .meta { color:${T.inkSoft}; }
 .ll-tbtn { height:32px; padding:0 8px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;
   background:${T.tbtnBg}; color:${T.tbtnInk}; flex-shrink:0; }
-.ll-tbtn.dark { background:${T.darkSoft}; color:#FAFAFA; }
+.ll-tbtn.dark { background:${T.darkSoft}; color:${T.onDark}; }
 .ll-tbtn.plain { background:transparent; color:${T.body}; }
 .ll-view { flex:1; min-height:0; display:flex; position:relative; overflow:hidden; }
 @keyframes ll-scene { from{opacity:0} to{opacity:1} }
@@ -264,7 +270,7 @@ button.ll-iconbtn:hover { background:${T.hover}; }
 
 @media (prefers-reduced-motion:reduce) {
   .ll-chip .dot, .ll-caret, .ll-wave span { animation:none; }
-  .ll-enter, .ll-scene-fade { animation-duration:.01s; }
+  .ll-enter, .ll-scene-fade, .ll-grow { animation-duration:.01s; }
   .ll-cursor { transition:none; }
 }
 `
@@ -723,7 +729,7 @@ function NavRow(props: { node: NavNode; on: boolean; activeSub?: string }): JSX.
   }
   if (node.type === "chat") {
     return (
-      <div className={"ll-row" + (on ? " on" : "")} style={{ color: T.ink, paddingLeft: 4 }}>
+      <div className={"ll-row chat" + (on ? " on" : "")} style={{ color: T.ink, paddingLeft: 4 }}>
         <span className="ll-iconbtn sm" style={{ color: T.inkSecondary }}><I name="message-circle" stroke={NAV_STROKE} /></span>
         <span className="lbl">{node.label}</span>
       </div>
@@ -759,12 +765,14 @@ export function AppShell(props: {
   title?: string
   /** top bar, center: breadcrumb parts; the last one is the current page */
   crumb?: string[]
+  /** the current page is a switcher (chat picker): chevron after it */
+  crumbMenu?: boolean
   /** top bar, right: meta text + buttons (use .ll-tbtn) */
   actions?: React.ReactNode
   children: React.ReactNode
   cursor?: CursorState
 }): JSX.Element {
-  const { nav, activeSub, title, crumb, actions, children, cursor } = props
+  const { nav, activeSub, title, crumb, crumbMenu, actions, children, cursor } = props
   const own = useShellPrefs()
   const { collapsed, setCollapsed, dark, setDark } = React.useContext(ShellPrefs) ?? own
   const toggle = (e: React.MouseEvent) => { e.stopPropagation(); setCollapsed(!collapsed) }
@@ -838,6 +846,7 @@ export function AppShell(props: {
                       <span className={i === crumb.length - 1 ? "cur" : undefined}>{c}</span>
                     </React.Fragment>
                   ))}
+              {crumbMenu && <I name="chevron-down" size={14} stroke={NAV_STROKE} style={{ marginLeft: 4, verticalAlign: -2, color: T.ink }} />}
             </div>
           )}
           {actions && <div className="acts">{actions}</div>}

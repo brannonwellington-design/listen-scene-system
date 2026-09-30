@@ -992,100 +992,174 @@ export function SceneDeliverResults({ active, onDone, runKey = 0, hold, playFrom
 }
 
 // ============================================== 5. Compound your learnings ==
-// Research Agent suggestions for the Billboard Ad Test workspace
-const SUGGESTIONS = [
-  ["lightbulb", "Brainstorm topics for further research"],
-  ["presentation", "Create slides that summarize the main findings"],
-  ["circle-alert", "Show me unexpected findings and outlier opinions"],
-  ["circle-help", "What confused people most about the billboard?"],
-  ["chart-column", "Which line made the service clearest to people?"],
-  ["table", "Create a table of quotes about the retro telephones"],
+// The study's Agent chat, rebuilt from the live app (2026-09-30): an empty
+// state with six suggestion cards, then a conversation — the question as a
+// pill, a collapsed "Analyzed the responses" step, and a streamed answer
+// with an inline chart. Answer grounded in the general-population Billboard
+// Ad Test analysis (same data as the report scene).
+
+// live suggestion cards, verbatim
+const AGENT_CARDS: Array<[string, string]> = [
+  ["sparkles", "What are the key takeaways from this study?"],
+  ["notebook-pen", "Write an executive summary memo"],
+  ["presentation", "Build a presentation with the key insights"],
+  ["quote", "Find compelling quotes from the interviews"],
+  ["video", "Create a highlight reel from the most compelling moments"],
+  ["users", "How do different segments compare in their responses?"],
 ]
+const AGENT_Q = AGENT_CARDS[0][1]
+
+type Rich = Array<string | { b: string }>
+const ANS_1: Rich = [
+  "Across 11 interviews, the billboard ", { b: "earns attention but not understanding" },
+  ". People liked the blue-and-green palette and the retro phones, but few could say what Listen Labs does at billboard speed.",
+]
+const ANS_H = "Curiosity is the real win"
+const ANS_2: Rich = [
+  { b: "6 of 11" }, " were curious enough to look Listen Labs up, and 4 showed clear enthusiasm. The line about finding out what people think is what made it read as AI research.",
+]
+const richLen = (r: Rich) => r.reduce((n, x) => n + (typeof x === "string" ? x : x.b).length, 0)
+const richText = (r: Rich) => r.map((x) => (typeof x === "string" ? x : x.b)).join("")
+
+/** the first `n` characters of a rich run, bold spans kept */
+function RichSlice({ parts, n }: { parts: Rich; n: number }): JSX.Element {
+  let left = n
+  return (
+    <>
+      {parts.map((x, i) => {
+        if (left <= 0) return null
+        const t = typeof x === "string" ? x : x.b
+        const shown = t.slice(0, left)
+        left -= t.length
+        return typeof x === "string" ? <React.Fragment key={i}>{shown}</React.Fragment> : <strong key={i} className="ll-500" style={{ color: T.ink }}>{shown}</strong>
+      })}
+    </>
+  )
+}
+
+/** live chat composer */
+function AgentComposer(): JSX.Element {
+  return (
+    <div style={{ width: 728, background: T.appBg, border: `1px solid ${T.appBorder}`, borderRadius: 16, padding: 8, flexShrink: 0 }}>
+      <div style={{ padding: 8, height: 44, color: T.inkSoft }}>Ask Agent...</div>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span className="ll-iconbtn" style={{ color: T.inkSoft }}><I name="plus" size={16} /></span>
+        <span className="ll-iconbtn" style={{ background: T.fill, color: T.ink }}><I name="arrow-up" size={16} /></span>
+      </div>
+    </div>
+  )
+}
 
 export function SceneCompound({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
-  const [loading, setLoading] = React.useState(true)
-  const [picked, setPicked] = React.useState(-1)
   const [hovered, setHovered] = React.useState(-1)
-  const [query, setQuery] = React.useState("")
+  const [asked, setAsked] = React.useState(false)
   const [thinking, setThinking] = React.useState(false)
-  const [answer, setAnswer] = React.useState("")
-  const cur = useCursor({ x: APP_W / 2, y: 880 })
-  // grounded in the general-population Billboard Ad Test transcripts and analysis
-  const ANSWER = "Across 11 interviews, the retro telephones were the biggest puzzle — people liked them but couldn't say why they were there — while the line about finding out what people think is what made it read as AI research."
+  const [n1, setN1] = React.useState(0)
+  const [showH, setShowH] = React.useState(false)
+  const [n2, setN2] = React.useState(0)
+  const [chart, setChart] = React.useState(false)
+  const cur = useCursor(APP_CURSOR_START)
 
   useScene(active, async (p) => {
-    setLoading(true); setPicked(-1); setHovered(-1); setQuery(""); setThinking(false); setAnswer(""); cur.hide()
-    await p.sleep(1100)
-    setLoading(false)
-    await p.sleep(700)
-    // suggestion card row 2, col 1
-    cur.show("sugg-3", 300, 120)
+    setHovered(-1); setAsked(false); setThinking(false); setN1(0); setShowH(false); setN2(0); setChart(false); cur.hide()
+    await p.sleep(1000)
+    cur.show("agent-card-0", 260, 140)
     await p.sleep(350)
-    cur.move("sugg-3")
+    cur.move("agent-card-0")
     await p.sleep(550)
-    setHovered(3)
+    setHovered(0)
     await p.sleep(300)
     cur.click(1); await p.sleep(250)
-    setHovered(-1); setPicked(3)
-    await p.sleep(400)
+    setHovered(-1); setAsked(true)
     cur.hide()
-    setQuery(SUGGESTIONS[3][1])
-    await p.sleep(500)
+    await p.sleep(300)
     setThinking(true)
     await p.sleep(1400)
     setThinking(false)
-    await p.type(setAnswer, ANSWER, 65)
-    await p.sleep(2400)
+    await p.type((t) => setN1(t.length), richText(ANS_1), AI_CPS)
+    await p.sleep(300)
+    setShowH(true)
+    await p.sleep(250)
+    await p.type((t) => setN2(t.length), richText(ANS_2), AI_CPS)
+    await p.sleep(300)
+    setChart(true)
+    await p.sleep(3000)
   }, onDone, runKey, hold, playFrom, onTime)
 
+  const total = CURIOSITY.reduce((n, c) => n + c[1], 0)
   return (
     <AppShell cursor={cur.state}
-      nav={chatNav("Listen Labs Billboard Ad Test", query ? [{ group: "Today", chats: [query] }] : [], query || undefined)}
-      title="Listen Labs Billboard Ad Test" crumb={["Chat", "New Chat"]}
+      nav={chatNav("Listen Labs Billboard Ad Test", asked ? [{ group: "Today", chats: [AGENT_Q] }] : [], asked ? AGENT_Q : undefined)}
+      title="Listen Labs Billboard Ad Test" crumb={["Chat", asked ? AGENT_Q : "New Chat"]} crumbMenu
       actions={<span className="ll-tbtn">Share <I name="link" size={14} /></span>}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 0 24px" }}>
-        <Chip kind="brand">New Feature</Chip>
-        <div style={{ marginTop: 12, fontSize: 36, lineHeight: "44px", color: T.brand }}>I'm your Listen Research Agent</div>
-        <div style={{ marginTop: 2, fontSize: 21, color: T.brand, opacity: 0.55 }}>What can I help you discover?</div>
-        {(thinking || answer) && (
-          <div className="ll-card ll-enter" style={{ marginTop: 22, width: 566, padding: "12px 16px", fontSize: 13.5, lineHeight: 1.6, color: T.body }}>
-            <div style={{ fontSize: 11, color: T.brand, marginBottom: 5, display: "flex", alignItems: "center", gap: 5 }}><I name="sparkles" size={12} /> Research Agent</div>
-            {thinking
-              ? <span className="ll-shimmer">Reading interviews…</span>
-              : <>{answer}{answer.length < ANSWER.length && <Caret />}</>}
-          </div>
-        )}
-        {loading && <span style={{ marginTop: 56 }}><DotSpinner size={30} /></span>}
-        <span style={{ flex: 1 }} />
-        {!loading && (
-          <>
-            <div className="ll-enter" style={{ width: 564, fontSize: 12, color: T.inkSoft, display: "flex", alignItems: "center", gap: 6 }}><I name="sparkles" size={12} /> Research suggestions</div>
-            <div className="ll-enter" style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(3, 180px)", gap: 12 }}>
-              {SUGGESTIONS.map(([icon, label], i) => (
-                <div key={label} data-cursor={"sugg-" + i} className={i === picked ? "ll-ring" : undefined} style={{
-                  minHeight: 66, padding: "8px 11px", fontSize: 11.5, lineHeight: 1.4, color: T.body,
-                  background: T.appPanelAlt, borderRadius: 8, transition: "border-color .15s ease",
-                  border: `1px solid ${i === picked ? T.brand : i === hovered ? T.inkFaint : T.appBorder}`,
+      {!asked ? (
+        // empty state: centered column
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 728 }}>
+            <I name="agent-hex" size={24} style={{ color: T.brand }} />
+            <div style={{ fontSize: 20, lineHeight: "28px", marginTop: 6 }}>Agent</div>
+            <div style={{ marginTop: 8, color: T.inkSoft }}>
+              I can help you understand this study's interviews, pull out quotes and themes, and turn them into memos and presentations. Start with a suggestion or ask below.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 16 }}>
+              {AGENT_CARDS.map(([icon, label], i) => (
+                <div key={label} data-cursor={"agent-card-" + i} style={{
+                  height: 102, padding: 16, borderRadius: 16, display: "flex", flexDirection: "column", justifyContent: "space-between",
+                  background: i === hovered ? T.hoverFill : T.fill, border: `1px solid ${T.appBorder}`, transition: "background-color .15s ease",
                 }}>
-                  <I name={icon} size={13} style={{ color: T.inkSoft, marginBottom: 3, display: "block" }} />
-                  {label}
+                  <I name={icon} size={16} />
+                  <span>{label}</span>
                 </div>
               ))}
             </div>
-          </>
-        )}
-        <div style={{ marginTop: 12, width: 564, background: T.appBg, border: `1px solid ${T.appBorder}`, borderRadius: 8, boxShadow: T.shadow }}>
-          <div style={{ padding: "10px 12px", fontSize: 13, color: query ? T.ink : T.inkFaint }}>
-            {query || "Ask a question..."}
-          </div>
-          <div style={{ display: "flex", padding: "0 8px 8px" }}>
-            <span style={{ width: 24, height: 24, borderRadius: 6, border: `1px solid ${T.appBorder}`, display: "inline-flex", alignItems: "center", justifyContent: "center", color: T.inkSoft }}><I name="plus" size={13} /></span>
-            <span style={{ flex: 1 }} />
-            <span style={{ width: 24, height: 24, borderRadius: 12, background: query ? T.brand : T.fill, color: query ? "#FAFAFA" : T.inkSoft, display: "inline-flex", alignItems: "center", justifyContent: "center" }}><I name="arrow-up" size={13} /></span>
+            <div style={{ marginTop: 12 }}><AgentComposer /></div>
           </div>
         </div>
-      </div>
+      ) : (
+        // conversation: answer column, composer pinned to the bottom
+        <div className="ll-scene-fade" style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
+          <div className="ll-doc-fade" style={{ flex: 1, width: 632, paddingTop: 16, fontSize: 16, lineHeight: "25px" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <span style={{ background: T.fill, borderRadius: 16, padding: "6px 12px", lineHeight: "24px", color: T.body }}>{AGENT_Q}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 20, fontSize: 12, lineHeight: "16px", color: T.inkSoft }}>
+              <I name="chevron-right" size={12} />
+              <span className={thinking ? "ll-shimmer" : undefined}>{thinking ? "Analyzing the responses…" : "Analyzed the responses"}</span>
+            </div>
+            {n1 > 0 && (
+              <p style={{ marginTop: 16, color: T.ink }}>
+                <RichSlice parts={ANS_1} n={n1} />{n1 < richLen(ANS_1) && <Caret />}
+              </p>
+            )}
+            {showH && <div className="ll-500 ll-enter" style={{ fontSize: 20, lineHeight: "32px", marginTop: 24 }}>{ANS_H}</div>}
+            {n2 > 0 && (
+              <p style={{ marginTop: 8, color: T.ink }}>
+                <RichSlice parts={ANS_2} n={n2} />{n2 < richLen(ANS_2) && <Caret />}
+              </p>
+            )}
+            {chart && (
+              <div className="ll-enter" style={{ marginTop: 24, fontSize: 14 }}>
+                <div style={{ lineHeight: "21px" }}>Curiosity after seeing the billboard</div>
+                <div style={{ lineHeight: "17.5px", color: T.inkSecondary, marginTop: 4 }}>Q6: stated curiosity to learn more or visit the website</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+                  {CURIOSITY.map(([label, n]) => (
+                    <div key={label}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, lineHeight: "16px", color: T.inkSecondary }}>
+                        <span>{label}</span><span>{Math.round((n / total) * 100)} %</span>
+                      </div>
+                      <div style={{ marginTop: 4, height: 12, borderRadius: 2, background: T.fill, overflow: "hidden" }}>
+                        <div className="ll-grow" style={{ height: "100%", borderRadius: 2, background: T.brand, width: `${(n / total) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ padding: "8px 0 16px" }}><AgentComposer /></div>
+        </div>
+      )}
     </AppShell>
   )
 }
