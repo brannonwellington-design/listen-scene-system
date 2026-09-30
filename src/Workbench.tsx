@@ -7,7 +7,7 @@ import * as React from "react"
 import SceneCanvas, { CANVAS_DEFAULTS, SceneCanvasProps, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
 import { PRESETS, Preset } from "./ListenPresets"
 import { byKey, REGISTRY, SEQUENCES } from "./ListenRegistry"
-import { T, Logo, ScaleBox, PatternLayer, PatternType } from "./ListenKit"
+import { T, Logo, ScaleBox, PatternLayer, PatternType, APP_W } from "./ListenKit"
 import { I } from "./ListenIcons"
 
 type Cfg = typeof CANVAS_DEFAULTS
@@ -52,7 +52,7 @@ const WB_CSS = `
   .wb-title { display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 500; margin-right: 6px; }
   .wb-main { display: flex; align-items: stretch; }
   .wb-stage { flex: 1; min-width: 0; padding: 24px 32px 72px; }
-  .wb-panel { width: 336px; flex-shrink: 0; background: #FFF; border-left: 1px solid #E7E1D6;
+  .wb-panel { width: 344px; flex-shrink: 0; background: #FFF; border-left: 1px solid #E7E1D6;
     padding: 8px 20px 28px; overflow-y: auto; height: calc(100vh - 57px); position: sticky; top: 0; }
   .wb-panel::-webkit-scrollbar { width: 8px; }
   .wb-panel::-webkit-scrollbar-thumb { background: #E7E1D6; border-radius: 4px; }
@@ -61,7 +61,36 @@ const WB_CSS = `
     border: 1px solid #E7E1D6; border-radius: 12px; padding: 4px; }
   .wb-tools .wb-slider { margin: 0 6px; }
   .wb-tools .wb-time { margin-right: 4px; }
-  .wb-section { font-size: 11px; font-weight: 500; color: ${T.inkFaint}; text-transform: uppercase; margin: 22px 0 8px; }
+  .wb-group { margin: 0 -20px; border-top: 1px solid #EEE8DD; }
+  .wb-group-body { padding: 0 20px 14px; }
+  .wb-section { display: flex; align-items: center; gap: 8px; width: 100%; font: 500 13px ${T.font}; color: ${T.ink};
+    padding: 13px 20px; background: none; border: none; cursor: pointer; text-align: left; }
+  .wb-group.open .wb-section { padding-bottom: 6px; }
+  .wb-section:hover { background: #FCFBF8; }
+  .wb-section:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(0, 33, 204, 0.35); }
+  .wb-summary { font-weight: 400; font-size: 12px; color: ${T.inkFaint}; min-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .wb-fold-all { display: flex; justify-content: flex-end; margin: 6px 0 2px; }
+  .wb-fold-all button { border: none; background: none; font: 11.5px ${T.font}; color: ${T.inkSoft}; cursor: pointer; padding: 2px 0; }
+  .wb-fold-all button:hover { color: ${T.ink}; }
+  .wb-num { width: 18px; height: 18px; border-radius: 5px; background: #F0EBDF; color: ${T.inkSoft};
+    font-size: 11px; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+  .wb-sub { margin: 2px 0 4px; padding-left: 10px; border-left: 2px solid #EEE8DD; }
+  .wb-unit { font-size: 12px; color: ${T.inkFaint}; margin-left: -2px; }
+  .wb-preset { margin: 8px -20px 0; padding: 12px 20px 14px; background: #FCFBF8; border-bottom: 1px solid #EEE8DD;
+    display: flex; flex-direction: column; gap: 8px; }
+  .wb-preset-row { display: flex; align-items: center; gap: 8px; }
+  .wb-preset-row .wb-select { flex: 1; }
+  .wb-dot { font-size: 11px; color: ${T.brand}; background: rgba(0, 33, 204, 0.08); border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+  .wb-menu { position: absolute; top: 32px; left: 0; z-index: 20; background: #FFF; border: 1px solid #DDD6C8; border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.1); padding: 4px; display: flex; flex-direction: column; min-width: 160px; }
+  .wb-menu button { text-align: left; border: none; background: none; font: 12.5px ${T.font}; color: ${T.ink};
+    padding: 7px 10px; border-radius: 7px; cursor: pointer; }
+  .wb-menu button:hover { background: #F6F2E9; }
+  .wb-iconbtn { width: 26px; height: 26px; border-radius: 7px; border: 1px solid #DDD6C8; background: #FFF; color: ${T.inkSoft};
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .wb-iconbtn:disabled { opacity: .4; cursor: default; }
+  .wb-btn:disabled { opacity: .45; cursor: default; }
   .wb-field { display: grid; grid-template-columns: 104px 1fr; align-items: center; min-height: 34px; gap: 8px; }
   .wb-label { font-size: 12.5px; color: ${T.inkSoft}; }
   .wb-ctl { display: flex; align-items: center; gap: 6px; justify-content: flex-end; min-width: 0; }
@@ -132,7 +161,31 @@ const WB_CSS = `
 `
 
 // -------------------------------------------------------------- UI pieces ---
-const Section = (p: { title: string }) => <div className="wb-section">{p.title}</div>
+/** a numbered, foldable rail section; folded, it shows a one-line summary */
+const Section = (p: { n: number; title: string; open: boolean; onToggle: () => void; summary: string; children: React.ReactNode }) => (
+  <div className={"wb-group" + (p.open ? " open" : "")}>
+    <button className="wb-section" onClick={p.onToggle} aria-expanded={p.open}>
+      <span className="wb-num">{p.n}</span>
+      <span>{p.title}</span>
+      {!p.open && <span className="wb-summary">{p.summary}</span>}
+      <I name="chevron-down" size={13} style={{ marginLeft: "auto", flexShrink: 0, color: T.inkFaint, transform: p.open ? "none" : "rotate(-90deg)", transition: "transform .15s ease" }} />
+    </button>
+    {p.open && <div className="wb-group-body">{p.children}</div>}
+  </div>
+)
+
+type FoldKey = "content" | "playback" | "state" | "framing" | "canvas"
+const FOLD_KEY = "llWorkbenchFold"
+const FOLD_ALL: Record<FoldKey, boolean> = { content: true, playback: true, state: true, framing: true, canvas: true }
+const loadFold = (): Record<FoldKey, boolean> => {
+  try { return { ...FOLD_ALL, ...JSON.parse(localStorage.getItem(FOLD_KEY) ?? "{}") } } catch { return { ...FOLD_ALL } }
+}
+
+/** a ms value edited in seconds (0 shows empty) */
+const Secs = (p: { v: number; set: (ms: number) => void }) => (
+  <input type="number" className="wb-input" step={0.1} min={0} max={25} placeholder="–"
+    value={p.v ? +(p.v / 1000).toFixed(1) : ""} onChange={(e) => p.set(Math.round(+e.target.value * 10) * 100)} />
+)
 
 const Field = (p: { label: string; children: React.ReactNode }) => (
   <div className="wb-field">
@@ -195,12 +248,31 @@ const PatternPick = (p: { v: PatternType; set: (t: PatternType) => void }) => (
   </span>
 )
 
-function CopyBtn(p: { label: string; text: () => string }): JSX.Element {
-  const [done, setDone] = React.useState(false)
+/** Export ▾ — copy the current composition as a preset block or as JSX */
+function ExportMenu(p: { items: Array<[string, () => string]> }): JSX.Element {
+  const [open, setOpen] = React.useState(false)
+  const [done, setDone] = React.useState("")
+  const ref = React.useRef<HTMLSpanElement>(null)
+  React.useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    window.addEventListener("mousedown", close)
+    return () => window.removeEventListener("mousedown", close)
+  }, [open])
   return (
-    <button className="wb-btn" onClick={() => { navigator.clipboard?.writeText(p.text()); setDone(true); setTimeout(() => setDone(false), 1400) }}>
-      {done ? "Copied ✓" : p.label}
-    </button>
+    <span ref={ref} style={{ position: "relative" }}>
+      <button className="wb-btn" onClick={() => setOpen(!open)}>{done ? "Copied ✓" : "Export"} <I name="chevron-down" size={12} /></button>
+      {open && (
+        <span className="wb-menu">
+          {p.items.map(([label, text]) => (
+            <button key={label} onClick={() => {
+              navigator.clipboard?.writeText(text()); setOpen(false); setDone(label)
+              setTimeout(() => setDone(""), 1400)
+            }}>{label}</button>
+          ))}
+        </span>
+      )}
+    </span>
   )
 }
 
@@ -303,6 +375,16 @@ export default function Workbench(): JSX.Element {
   const [presetSel, setPresetSel] = React.useState("")
   const [drafts, setDrafts] = React.useState<Preset[]>(loadDrafts)
   const [saveName, setSaveName] = React.useState("")
+  const [saving, setSaving] = React.useState(false)
+  // which rail sections are open — a per-browser convenience
+  const [fold, setFold] = React.useState<Record<FoldKey, boolean>>(loadFold)
+  const saveFold = (f: Record<FoldKey, boolean>) => {
+    setFold(f)
+    try { localStorage.setItem(FOLD_KEY, JSON.stringify(f)) } catch { /* storage unavailable */ }
+  }
+  const toggleFold = (k: FoldKey) => saveFold({ ...fold, [k]: !fold[k] })
+  const allOpen = Object.values(fold).every(Boolean)
+  const toggleAll = () => saveFold(Object.fromEntries(Object.keys(FOLD_ALL).map((k) => [k, !allOpen])) as Record<FoldKey, boolean>)
   const [previewW, setPreviewW] = React.useState<number | "full">("full")
   const [cropEdit, setCropEdit] = React.useState(false)
   const [dragging, setDragging] = React.useState<"" | "w" | "h" | "pin">("")
@@ -317,7 +399,7 @@ export default function Workbench(): JSX.Element {
 
   React.useEffect(() => { if (t >= 25000 && playing) setPlayStart(null) }, [t, playing])
 
-  const set = <K extends keyof Cfg>(k: K) => (v: Cfg[K]) => { setCfg((c) => ({ ...c, [k]: v })); setPresetSel("") }
+  const set = <K extends keyof Cfg>(k: K) => (v: Cfg[K]) => setCfg((c) => ({ ...c, [k]: v }))
 
   const entry = cfg.content === "custom" ? byKey(cfg.customScene) : byKey(cfg.content)
   const rect: Rect = cfg.content === "custom" && cfg.cropW > 0
@@ -348,7 +430,6 @@ export default function Workbench(): JSX.Element {
         const insetX = h === "center" ? 0 : Math.round(Math.max(0, h === "left" ? left : cb.width - left - shotW))
         const insetY = v === "center" ? 0 : Math.round(Math.max(0, v === "top" ? top : cb.height - top - shotH))
         setCfg((c) => ({ ...c, anchor, insetX, insetY }))
-        setPresetSel("")
       },
       onEnd: () => setDragging(""),
     })
@@ -360,7 +441,6 @@ export default function Workbench(): JSX.Element {
       if (cfg.fit !== "pinned" || cropEdit) return
       e.preventDefault()
       setCfg((c) => ({ ...c, zoom: Math.round(Math.max(0.4, Math.min(2, c.zoom * (1 - e.deltaY * 0.0012))) * 100) / 100 }))
-      setPresetSel("")
     }
     el.addEventListener("wheel", onWheel, { passive: false })
     return () => el.removeEventListener("wheel", onWheel)
@@ -382,7 +462,7 @@ export default function Workbench(): JSX.Element {
     setDragging("h")
     startDrag(e, {
       cursor: "ns-resize",
-      onMove: (_dx, dy) => { setCfg((c) => ({ ...c, canvasHeight: Math.max(160, Math.min(1200, Math.round(h0 + dy))) })); setPresetSel("") },
+      onMove: (_dx, dy) => { setCfg((c) => ({ ...c, canvasHeight: Math.max(160, Math.min(1200, Math.round(h0 + dy))) })) },
       onEnd: () => setDragging(""),
     })
   }
@@ -391,6 +471,28 @@ export default function Workbench(): JSX.Element {
   const isMulti = cfg.layout === "multi-step"
 
   const allPresets = [...PRESETS, ...drafts]
+  // a loaded preset stays selected while you tweak; the rail flags drift
+  const loaded = allPresets.find((x) => x.name === presetSel)
+  const loadedCfg = loaded ? ({ ...CANVAS_DEFAULTS, ...(loaded.props as Partial<Cfg>) } as Cfg) : null
+  const edited = !!loadedCfg && (Object.keys(CANVAS_DEFAULTS) as Array<keyof Cfg>).some((k) => cfg[k] !== loadedCfg[k])
+  // scene state only means something for scenes inside the app shell
+  const shellShot = isMulti || entry.w === APP_W
+
+  // one-line summaries for folded sections
+  const secs = (ms: number) => +(ms / 1000).toFixed(1) + "s"
+  const summary: Record<FoldKey, string> = {
+    content: isMulti
+      ? "Multi-step · " + (SEQUENCES.find((q) => q.key === cfg.sequence)?.title ?? cfg.sequence)
+      : "Single · " + (cfg.content === "custom" ? "Crop of " + byKey(cfg.customScene).title : byKey(cfg.content).title),
+    playback: isMulti
+      ? (cfg.autoCycle ? "Auto-advance · " + cfg.resumeDelay + "s pause" : "Manual")
+      : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.segEnd ? " · " + secs(cfg.segStart) + "–" + secs(cfg.segEnd) : ""),
+    state: (cfg.startCollapsed ? "Collapsed" : "Open") + " · " + (cfg.startTheme === "dark" ? "Dark" : "Light"),
+    framing: (cfg.fit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%" : "Scale to fit")
+      + " · " + (cfg.canvasHeight ? cfg.canvasHeight + "px" : "Auto"),
+    canvas: (cfg.pattern === "none" ? "No pattern" : cfg.pattern[0].toUpperCase() + cfg.pattern.slice(1))
+      + " · " + cfg.bgColor.toUpperCase() + (cfg.radius ? " · r" + cfg.radius : ""),
+  }
   const applyPreset = (name: string) => {
     setPresetSel(name)
     const p = allPresets.find((x) => x.name === name)
@@ -425,15 +527,15 @@ export default function Workbench(): JSX.Element {
     setDrafts(next)
     localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
     setPresetSel(saveName)
+    setSaving(false)
   }
 
   const setContent = (v: string) => {
     setCropEdit(false)
-    setPresetSel("")
     setCfg((c) => ({ ...c, content: v }))
   }
 
-  const punch = (k: "segStart" | "segEnd") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })); setPresetSel("") }
+  const punch = (k: "segStart" | "segEnd") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })) }
 
   const editCropStart = () => {
     setCfg((c) => ({
@@ -442,7 +544,6 @@ export default function Workbench(): JSX.Element {
     }))
     if (!scrubOn) { setScrubOn(true); setPlayStart(null) }
     setCropEdit(true)
-    setPresetSel("")
   }
 
   const pw = previewW === "full" ? "100%" : previewW
@@ -456,15 +557,6 @@ export default function Workbench(): JSX.Element {
       {/* header */}
       <div className="wb-header">
         <span className="wb-title"><Logo /> Scene Workbench</span>
-        <Sel v={presetSel} set={applyPreset} width={210}
-          options={["", ...allPresets.map((p) => p.name)]}
-          titles={["Load a preset…", ...allPresets.map((p) => p.name)]} />
-        <span style={{ flex: 1 }} />
-        <input className="wb-input text" style={{ width: 170 }} placeholder="Preset name…" value={saveName}
-          onChange={(e) => setSaveName(e.target.value)} />
-        <button className="wb-btn primary" onClick={saveDraft}>Save draft</button>
-        <CopyBtn label="Copy preset TS" text={presetBlock} />
-        <CopyBtn label="Copy JSX" text={jsxBlock} />
       </div>
 
       <div className="wb-main">
@@ -521,7 +613,7 @@ export default function Workbench(): JSX.Element {
               ) : cropEdit ? (
                 <CropEditor sceneKey={cfg.customScene} holdT={t}
                   rect={{ x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }}
-                  onChange={(r) => { setCfg((c) => ({ ...c, cropX: r.x, cropY: r.y, cropW: r.w, cropH: r.h })); setPresetSel("") }} />
+                  onChange={(r) => { setCfg((c) => ({ ...c, cropX: r.x, cropY: r.y, cropW: r.w, cropH: r.h })) }} />
               ) : (
                 <>
                   <SceneCanvas key={runNonce} {...cfg}
@@ -544,130 +636,153 @@ export default function Workbench(): JSX.Element {
           </div>
         </div>
 
-        {/* inspector */}
+        {/* inspector: preset, then the five steps of building a shot */}
         <div className="wb-panel">
-          <Section title="Content" />
-          <Field label="Layout">
-            <Seg v={cfg.layout} set={(v) => { set("layout")(v as Cfg["layout"]); setCropEdit(false) }}
-              options={[["single", "Single"], ["multi-step", "Multi-step"]]} />
-          </Field>
+          <div className="wb-preset">
+            <div className="wb-preset-row">
+              <Sel v={presetSel} set={applyPreset} width={9999}
+                options={["", ...allPresets.map((p) => p.name)]}
+                titles={["No preset", ...allPresets.map((p) => p.name)]} />
+              {edited && <span className="wb-dot" title="Changed since this preset was loaded">edited</span>}
+            </div>
+            {saving ? (
+              <div className="wb-preset-row">
+                <input className="wb-input text" style={{ flex: 1, width: "auto" }} placeholder="Preset name…" autoFocus
+                  value={saveName} onChange={(e) => setSaveName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveDraft(); if (e.key === "Escape") setSaving(false) }} />
+                <button className="wb-btn primary" onClick={saveDraft} disabled={!saveName}>Save</button>
+                <button className="wb-btn" onClick={() => setSaving(false)}>Cancel</button>
+              </div>
+            ) : (
+              <div className="wb-preset-row">
+                <button className="wb-btn primary" onClick={() => { setSaveName(presetSel); setSaving(true) }}>Save as…</button>
+                <ExportMenu items={[["Copy preset TS", presetBlock], ["Copy JSX", jsxBlock]]} />
+              </div>
+            )}
+            <div className="wb-hint">Drafts save in this browser. Export → paste into <code>ListenPresets.tsx</code> to ship.</div>
+          </div>
 
-          {isMulti ? (
-            <>
+          <div className="wb-fold-all">
+            <button onClick={toggleAll}>{allOpen ? "Collapse all" : "Expand all"}</button>
+          </div>
+          <Section n={1} title="Content" open={fold.content} onToggle={() => toggleFold("content")} summary={summary.content}>
+            <Field label="Layout">
+              <Seg v={cfg.layout} set={(v) => { set("layout")(v as Cfg["layout"]); setCropEdit(false) }}
+                options={[["single", "Single"], ["multi-step", "Multi-step"]]} />
+            </Field>
+            {isMulti ? (
               <Field label="Sequence">
                 <Sel v={cfg.sequence} set={(v) => set("sequence")(v)}
                   options={SEQUENCES.map((q) => q.key)} titles={SEQUENCES.map((q) => q.title)} />
               </Field>
-              <div className="wb-hint" style={{ margin: "8px 0 2px" }}>
-                Cycles every step in one frame with its caption underneath;
-                the rail is live — click a step to jump, just like the site.
+            ) : (
+              <>
+                <Field label="Shot">
+                  <ContentSel v={cfg.content} set={setContent} />
+                </Field>
+                {cfg.content === "custom" && (
+                  <div className="wb-sub">
+                    <Field label="From scene">
+                      <Sel v={cfg.customScene} set={(v) => set("customScene")(v)}
+                        options={REGISTRY.map((e) => e.key)} titles={REGISTRY.map((e) => e.title)} />
+                    </Field>
+                    <Field label="Crop x · y">
+                      <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
+                    </Field>
+                    <Field label="Crop w · h">
+                      <Num v={cfg.cropW} set={set("cropW")} /><Num v={cfg.cropH} set={set("cropH")} />
+                    </Field>
+                  </div>
+                )}
+              </>
+            )}
+
+          </Section>
+          <Section n={2} title="Playback" open={fold.playback} onToggle={() => toggleFold("playback")} summary={summary.playback}>
+            {isMulti ? (
+              <>
+                <Field label="Auto-advance"><Toggle v={cfg.autoCycle} set={set("autoCycle")} /></Field>
+                <Field label="Pause after click">
+                  <Num v={cfg.resumeDelay} set={set("resumeDelay")} min={4} max={60} /><span className="wb-unit">s</span>
+                </Field>
+              </>
+            ) : (
+              <>
+                <Field label="Loop">
+                  <Toggle v={cfg.loop} set={set("loop")} />
+                  <span className="wb-label" style={{ marginLeft: 6 }}>pause</span>
+                  <Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} /><span className="wb-unit">s</span>
+                </Field>
+                <Field label="Segment">
+                  <Secs v={cfg.segStart} set={set("segStart")} />
+                  <span className="wb-label">→</span>
+                  <Secs v={cfg.segEnd} set={set("segEnd")} />
+                  <button className="wb-iconbtn" title="Play the whole session" disabled={!cfg.segStart && !cfg.segEnd}
+                    onClick={() => setCfg((c) => ({ ...c, segStart: 0, segEnd: 0 }))}><I name="rotate-cw" size={12} /></button>
+                </Field>
+                <div className="wb-hint">Set In / Out from the playhead while scrubbing. Empty = whole session.</div>
+              </>
+            )}
+
+          </Section>
+          <Section n={3} title="Scene state" open={fold.state} onToggle={() => toggleFold("state")} summary={summary.state}>
+            <Field label="Sidebar">
+              <Seg v={cfg.startCollapsed ? "collapsed" : "open"} set={(v) => set("startCollapsed")(v === "collapsed")}
+                options={[["open", "Open"], ["collapsed", "Collapsed"]]} />
+            </Field>
+            <Field label="Theme">
+              <Seg v={cfg.startTheme} set={(v) => set("startTheme")(v as Cfg["startTheme"])}
+                options={[["light", "Light"], ["dark", "Dark"]]} />
+            </Field>
+            {!shellShot && <div className="wb-hint">Applies to app scenes; this shot has no product chrome.</div>}
+
+          </Section>
+          <Section n={4} title="Framing" open={fold.framing} onToggle={() => toggleFold("framing")} summary={summary.framing}>
+            <Field label="Mode">
+              <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"]]} />
+            </Field>
+            {cfg.fit === "pinned" && (
+              <div className="wb-sub">
+                <Field label="Anchor"><CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} /></Field>
+                <Field label="Insets x · y">
+                  <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
+                </Field>
+                <Field label="Zoom">
+                  <Slider v={cfg.zoom} set={set("zoom")} min={0.3} max={2} step={0.05} fmt={(n) => Math.round(n * 100) + "%"} />
+                </Field>
+                <Field label="Below">
+                  <Num v={cfg.fitBelow} set={set("fitBelow")} wide /><span className="wb-unit">px</span>
+                  <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Pin"]]} />
+                </Field>
               </div>
-              <Field label="Auto-cycle">
-                <Toggle v={cfg.autoCycle} set={set("autoCycle")} />
-              </Field>
-              <Field label="Resume after">
-                <Num v={cfg.resumeDelay} set={set("resumeDelay")} min={4} max={60} />
-                <span className="wb-hint">sec</span>
-              </Field>
-            </>
-          ) : (
-            <>
-              <Field label="What plays">
-                <ContentSel v={cfg.content} set={setContent} />
-              </Field>
-              {cfg.content === "custom" && (
-                <>
-                  <Field label="Scene">
-                    <Sel v={cfg.customScene} set={(v) => set("customScene")(v)}
-                      options={REGISTRY.map((e) => e.key)} titles={REGISTRY.map((e) => e.title)} />
-                  </Field>
-                  <Field label="Crop x · y">
-                    <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
-                  </Field>
-                  <Field label="Crop w · h">
-                    <Num v={cfg.cropW} set={set("cropW")} /><Num v={cfg.cropH} set={set("cropH")} />
-                  </Field>
-                </>
-              )}
-            </>
-          )}
+            )}
+            <Field label="Height">
+              <Seg v={cfg.canvasHeight ? "fixed" : "auto"}
+                set={(v) => set("canvasHeight")(v === "auto" ? 0 : Math.round(canvasRef.current?.getBoundingClientRect().height || 400))}
+                options={[["auto", "Auto"], ["fixed", "Fixed"]]} />
+              {cfg.canvasHeight > 0 && <><Num v={cfg.canvasHeight} set={set("canvasHeight")} wide /><span className="wb-unit">px</span></>}
+            </Field>
 
-          <Section title="Fit" />
-          <Field label="Fit">
-            <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Responsive"], ["pinned", "Pinned"]]} />
-          </Field>
-          {cfg.fit === "pinned" && (
-            <>
-              <Field label="Anchor">
-                <CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} />
-              </Field>
-              <Field label="Insets x · y">
-                <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
-              </Field>
-              <Field label="Zoom">
-                <Slider v={cfg.zoom} set={set("zoom")} min={0.4} max={2} step={0.05} fmt={(n) => n.toFixed(2)} />
-              </Field>
-              <Field label="When small">
-                <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Mask"]]} />
-              </Field>
-              {cfg.smallBehavior === "fit" && (
-                <Field label="Below (px)"><Num v={cfg.fitBelow} set={set("fitBelow")} wide /></Field>
-              )}
-            </>
-          )}
-          <Field label="Canvas height">
-            <Num v={cfg.canvasHeight} set={set("canvasHeight")} wide />
-            <span className="wb-hint">0 = auto</span>
-          </Field>
-
-          <Section title="Canvas" />
-          <Field label="Pattern">
-            <PatternPick v={cfg.pattern} set={(v) => set("pattern")(v)} />
-          </Field>
-          {cfg.pattern !== "none" && (
-            <>
-              <Field label="Spacing">
-                <Slider v={cfg.patternSpacing} set={set("patternSpacing")} min={8} max={120} step={4} />
-              </Field>
-              <Field label="Opacity">
-                <Slider v={cfg.patternOpacity} set={set("patternOpacity")} min={0.05} max={1} step={0.05} fmt={(n) => n.toFixed(2)} />
-              </Field>
-            </>
-          )}
-          <Field label="Fill">
-            <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(cfg.bgColor) ? cfg.bgColor : "#EEE8DD"}
-              onChange={(e) => set("bgColor")(e.target.value)}
-              style={{ width: 28, height: 28, border: "1px solid #DDD6C8", borderRadius: 8, background: "none", padding: 2, cursor: "pointer" }} />
-            <input className="wb-input wide text" value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} />
-          </Field>
-          <Field label="Padding x · y">
-            <Num v={cfg.padX} set={set("padX")} /><Num v={cfg.padY} set={set("padY")} />
-          </Field>
-          <Field label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Field>
-
-          {!isMulti && (
-            <>
-              <Section title="Playback" />
-              <Field label="Loop">
-                <Toggle v={cfg.loop} set={set("loop")} />
-                <span className="wb-label">pause</span>
-                <Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} />
-              </Field>
-              <Field label="Segment in · out">
-                <Num v={cfg.segStart} set={set("segStart")} step={100} wide />
-                <Num v={cfg.segEnd} set={set("segEnd")} step={100} wide />
-              </Field>
-              <div className="wb-hint" style={{ marginTop: 6 }}>
-                Scrub to a beat and use In / Out to set the loop window. 0 · 0 plays the whole session.
+          </Section>
+          <Section n={5} title="Canvas" open={fold.canvas} onToggle={() => toggleFold("canvas")} summary={summary.canvas}>
+            <Field label="Fill">
+              <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(cfg.bgColor) ? cfg.bgColor : "#EEE8DD"}
+                onChange={(e) => set("bgColor")(e.target.value)}
+                style={{ width: 28, height: 28, border: "1px solid #DDD6C8", borderRadius: 8, background: "none", padding: 2, cursor: "pointer" }} />
+              <input className="wb-input wide text" value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} />
+            </Field>
+            <Field label="Pattern"><PatternPick v={cfg.pattern} set={(v) => set("pattern")(v)} /></Field>
+            {cfg.pattern !== "none" && (
+              <div className="wb-sub">
+                <Field label="Spacing"><Slider v={cfg.patternSpacing} set={set("patternSpacing")} min={8} max={120} step={4} /></Field>
+                <Field label="Opacity"><Slider v={cfg.patternOpacity} set={set("patternOpacity")} min={0.05} max={1} step={0.05} fmt={(n) => Math.round(n * 100) + "%"} /></Field>
               </div>
-            </>
-          )}
-
-          <div className="wb-hint" style={{ marginTop: 22, borderTop: "1px solid #EEE8DD", paddingTop: 12 }}>
-            <strong style={{ fontWeight: 500, color: T.inkSoft }}>Saving:</strong> drafts live in this browser and
-            appear in the preset menu. Copy preset TS into <code>ListenPresets.tsx</code> to make a composition
-            permanent — it then shows up in SceneCanvas's Preset dropdown in Framer.
-          </div>
+            )}
+            <Field label="Padding x · y">
+              <Num v={cfg.padX} set={set("padX")} /><Num v={cfg.padY} set={set("padY")} />
+            </Field>
+            <Field label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Field>
+          </Section>
         </div>
       </div>
     </div>
