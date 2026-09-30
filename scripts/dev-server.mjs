@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url"
 const PORT = Number(process.env.PORT) || 4173
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..")
-const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".mp4": "video/mp4" }
+const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".mp4": "video/mp4", ".jpg": "image/jpeg", ".png": "image/png" }
 
 createServer(async (req, res) => {
   const pathname = decodeURIComponent(req.url.split("?")[0])

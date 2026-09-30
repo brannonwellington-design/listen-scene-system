@@ -1874,9 +1874,9 @@ export const EI_USECASE_W = 340
 export const EI_USECASE_H = 300
 
 /** moderator question bubble that types in */
-function UCBubble({ text, full }: { text: string; full: string }): JSX.Element {
+function UCBubble({ text, full, oneLine }: { text: string; full: string; oneLine?: boolean }): JSX.Element {
   return (
-    <div style={{ display: "inline-block", maxWidth: 250, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 14, borderBottomLeftRadius: 4, padding: "9px 13px", fontSize: 12.5, lineHeight: 1.5, minHeight: 56, boxSizing: "border-box" }}>
+    <div style={{ display: "inline-block", maxWidth: oneLine ? "none" : 250, whiteSpace: oneLine ? "nowrap" : undefined, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 14, borderBottomLeftRadius: 4, padding: "9px 13px", fontSize: 12.5, lineHeight: 1.5, minHeight: oneLine ? 0 : 56, boxSizing: "border-box" }}>
       {text}{text.length > 0 && text.length < full.length && <Caret />}
     </div>
   )
@@ -1914,32 +1914,79 @@ function UCBar({ label, emotion, f, e }: { label: string; emotion: keyof typeof 
 }
 
 const UC_AD_Q = "What comes to mind when you see this ad?"
+// the creative under test: the "It's fine." Listen Labs ad (tested in the UK
+// LED Truck Ad Copy Test). Relative to the site root; in Framer, upload
+// media/ad-its-fine.jpg as an asset and paste its URL here.
+const UC_AD_IMG = "media/ad-its-fine.jpg"
+// verbatim, UK LED Truck Ad Copy Test, participant 463, on this line
+// (https://listenlabs.ai/response/d75d9924-bef2-4997-97a5-03e53cf2f83f?message=20)
+const UC_AD_WHO = "Participant 463"
+const UC_AD_QUOTE = "I think people say it's fine when they don't mean it. So yeah, this is a little bit more true and real, if you wanna call it that."
+const UC_AD_MOMENT = "true and real"             // the phrase the emotion lands on
+const UC_AD_MOMENT_AT = UC_AD_QUOTE.indexOf(UC_AD_MOMENT)
 
-/** Use case 1 — Creative/Ad Testing */
+/** Use case 1 — Creative/Ad Testing: a participant reviews the ad, their
+ *  spoken feedback transcribes in, and the emotion is tracked to the exact
+ *  phrase it rose on. */
 export function FragmentEIUseCaseAdTesting({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const [q, setQ] = React.useState("")
-  const [stage, setStage] = React.useState(0)
+  const [ad, setAd] = React.useState(false)
+  const [said, setSaid] = React.useState("")
+  const [tag, setTag] = React.useState(false)
   useScene(active, async (p) => {
-    setQ(""); setStage(0)
+    setQ(""); setAd(false); setSaid(""); setTag(false)
+    await p.sleep(400)
+    setAd(true)
     await p.sleep(500)
     await p.type(setQ, UC_AD_Q, AI_CPS)
-    await p.sleep(350)
-    setStage(1)
-    await p.sleep(800)
-    setStage(2)
-    await p.sleep(2600)
+    await p.sleep(600)
+    // the answer, transcribed as it's spoken; the emotion lands on the moment
+    await p.type((t) => {
+      setSaid(t)
+      if (t.length >= UC_AD_MOMENT_AT + UC_AD_MOMENT.length) setTag(true)
+    }, UC_AD_QUOTE, 60)
+    await p.sleep(2200)
   }, onDone, runKey, hold, playFrom, onTime)
+
+  const lit = tag && said.length >= UC_AD_MOMENT_AT + UC_AD_MOMENT.length
+  // hairline pill shared by the timestamp and the emotion chip
+  const pill: React.CSSProperties = { display: "inline-flex", alignItems: "center", background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 16 }
   return (
-    <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", fontFamily: T.font, paddingTop: 20, boxSizing: "border-box" }}>
-      <UCBubble text={q} full={UC_AD_Q} />
-      {stage >= 1 && (
-        <div className="ll-enter" style={{ position: "absolute", left: 72, top: 96 }}>
-          <UCAdTile bg={T.brand} headline="Your 2am study buddy." caption="Concept A · Study Buddy" w={196} h={172} />
+    <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", fontFamily: T.font }}>
+      {/* the creative, with the moderator's question overlapping its corner */}
+      {ad && (
+        <img className="ll-enter" src={UC_AD_IMG} alt="" draggable={false}
+          style={{ position: "absolute", left: 60, top: 42, width: 264, height: 165, objectFit: "cover", borderRadius: 10, border: `1px solid ${T.appBorder}`, boxSizing: "border-box" }} />
+      )}
+      <div style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }}>
+        {/* one line, so it only clips the image's top edge, never the headline */}
+        {q && <UCBubble text={q} full={UC_AD_Q} oneLine />}
+      </div>
+      {said && (
+        <div className="ll-enter" style={{ position: "absolute", left: 16, right: 16, top: 214, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 12, padding: "9px 12px", fontSize: 11.5, lineHeight: 1.5, color: T.body }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: T.inkSoft, marginBottom: 3 }}>
+            <span className="ll-avatar" style={{ width: 16, height: 16, fontSize: 8 }}>P</span>
+            {UC_AD_WHO}
+          </div>
+          {lit ? (
+            <>
+              {said.slice(0, UC_AD_MOMENT_AT)}
+              <span style={{ background: EMOTIONS.happiness.bg, borderRadius: 3, padding: "0 1px" }}>{UC_AD_MOMENT}</span>
+              {said.slice(UC_AD_MOMENT_AT + UC_AD_MOMENT.length)}
+            </>
+          ) : said}
+          {said.length < UC_AD_QUOTE.length && <Caret />}
         </div>
       )}
-      <div style={{ position: "absolute", left: 48, top: 252, minHeight: 28 }}>
-        {stage >= 2 && <UCChip emotion="happiness" />}
+      {/* the tracked emotion and when it happened, riding the card's top edge */}
+      <div style={{ position: "absolute", right: 10, top: 200, display: "flex", alignItems: "center", gap: 6, minHeight: 28, zIndex: 1 }}>
+        {tag && (
+          <>
+            <span className="ll-enter" style={{ ...pill, height: 30, padding: "0 10px", fontSize: 10.5, color: T.inkSoft, fontVariantNumeric: "tabular-nums" }}>0:14</span>
+            <UCChip emotion="happiness" />
+          </>
+        )}
       </div>
     </div>
   )
