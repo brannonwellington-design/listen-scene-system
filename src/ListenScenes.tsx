@@ -8,7 +8,7 @@ import * as React from "react"
 import {
   T, BareFrame, Chip, Caret, Donut, Waveform, DotSpinner, EmotionTag,
   EMOTIONS, Cursor, useScene, useCursor, ensureCss,
-  BrowserWindow, PhoneShell, IPhoneScreen, FRAME_W, FRAME_H, APP_W,
+  BrowserWindow, IPhoneScreen, SafariBar, FRAME_W, FRAME_H, APP_W,
   AppShell, workspaceNav, studyEditNav, studyNav, chatNav,
 } from "./ListenKit"
 import { I } from "./ListenIcons"
@@ -1804,11 +1804,6 @@ export function SceneAIModerator({ active, onDone, runKey = 0, hold, playFrom, o
   const sec = AIM_TIMER_BASE + Math.floor(vt / 1000)
   const recSec = recStart != null ? Math.floor((vt - recStart) / 1000) : null
 
-  const phoneQ = (text: string, full: string) => (
-    <div style={{ padding: "0 18px", marginTop: 104, fontSize: 13.5, lineHeight: 1.55, color: T.ink }}>
-      {text}{text.length > 0 && text.length < full.length && <Caret />}
-    </div>
-  )
   const readAloudPill = (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: T.body }}>
       <span style={{ width: 12, height: 12, border: `1.5px solid ${T.appBorder}`, borderRadius: 3 }} />
@@ -1848,17 +1843,27 @@ export function SceneAIModerator({ active, onDone, runKey = 0, hold, playFrom, o
         </div>
       </BrowserWindow>
 
-      {/* the same interview, on mobile — true device aspect (height derives
-          from width inside PhoneShell) */}
-      <PhoneShell width={258} progress={0.3} statusIcons moreButton style={{ position: "absolute", left: 838, top: 40 }}>
-        <div style={{ padding: "12px 18px 0" }}>{readAloudPill}</div>
-        {phoneQ(p2, AIM_P2)}
-        <div style={{ position: "absolute", left: 12, right: 12, bottom: 12, height: 40, borderRadius: 8, background: recSec != null ? "#FFF" : T.ink, border: recSec != null ? "1.5px solid #E5484D" : "1.5px solid transparent", color: recSec != null ? "#E5484D" : "#FAFAFA", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: 12.5, transform: pressed ? "scale(.96)" : "none", transition: "transform .15s, background .25s, color .25s, border .25s", fontVariantNumeric: "tabular-nums" }}>
+      {/* the same interview, on mobile — an iPhone screen in real device
+          points (IPhoneScreen), Safari's toolbar pinned at the bottom */}
+      <IPhoneScreen width={258} time="12:16" footer={<SafariBar host="listenlabs.ai" more />} style={{ position: "absolute", left: 838, top: 40 }}>
+        <div style={{ height: 6, background: T.brandFaint }}>
+          <div style={{ width: "30%", height: "100%", background: T.brand }} />
+        </div>
+        <div style={{ padding: "18px 27px 0" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 9, fontSize: 17, color: T.body }}>
+            <span style={{ width: 18, height: 18, border: `2px solid ${T.appBorder}`, borderRadius: 5 }} />
+            Read aloud <I name="audio-lines" size={17} style={{ color: T.inkSoft }} />
+          </span>
+        </div>
+        <div style={{ padding: "0 27px", marginTop: 150, fontSize: 20.5, lineHeight: 1.55, color: T.ink }}>
+          {p2}{p2.length > 0 && p2.length < AIM_P2.length && <Caret />}
+        </div>
+        <div style={{ position: "absolute", left: 18, right: 18, bottom: 18, height: 61, borderRadius: 12, background: recSec != null ? "#FFF" : T.ink, border: recSec != null ? "2px solid #E5484D" : "2px solid transparent", color: recSec != null ? "#E5484D" : "#FAFAFA", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 19, transform: pressed ? "scale(.96)" : "none", transition: "transform .15s, background .25s, color .25s, border .25s", fontVariantNumeric: "tabular-nums" }}>
           {recSec != null ? (
-            <><span className="ll-dim-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "#E5484D" }} />Recording {fmtRec(recSec)}</>
+            <><span className="ll-dim-pulse" style={{ width: 12, height: 12, borderRadius: "50%", background: "#E5484D" }} />Recording {fmtRec(recSec)}</>
           ) : "Start recording"}
         </div>
-      </PhoneShell>
+      </IPhoneScreen>
 
       <Cursor {...cur.state} />
     </div>
@@ -2033,7 +2038,7 @@ export function FragmentEIUseCaseBrand({ active, onDone, runKey = 0, hold, playF
 
 /** Use case 4 — UX Research (task-based, on mobile). Framed like the live
  *  card: a flat iPhone screen capture ~75% of the card wide, bleeding off the
- *  bottom, over two ghost cards. The participant's task, from the Gen Z
+ *  bottom. The participant's task, from the Gen Z
  *  ChatGPT study: ask an AI assistant to plan a first-apartment budget. */
 const UX_PROMPT = "Help me plan a budget for my first apartment"
 const UX_ANSWER = "Here's a starting point for $2,400 a month after tax:"
@@ -2067,10 +2072,6 @@ export function FragmentEIUseCaseUX({ active, onDone, runKey = 0, hold, playFrom
   const max = Math.max(...UX_ROWS.map((r) => r[1]))
   return (
     <div style={{ width: EI_USECASE_W, height: EI_USECASE_H, position: "relative", overflow: "hidden", fontFamily: T.font }}>
-      {/* ghost cards stacked behind the screen */}
-      {[[24, 18], [12, 30]].map(([inset, top]) => (
-        <div key={top} style={{ position: "absolute", left: left + inset, right: left + inset, top, height: 60, borderRadius: 10, background: "#F4F4F4", border: `1px solid ${T.appBorder}` }} />
-      ))}
       <IPhoneScreen width={UX_SCREEN_W} time="2:47" radius={24} style={{ position: "absolute", left, top: 42 }}>
         {/* app content, in iOS points */}
         <div style={{ height: 44, display: "flex", alignItems: "center", padding: "0 16px", fontSize: 17 }}>

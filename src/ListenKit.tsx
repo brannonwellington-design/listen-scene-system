@@ -863,8 +863,8 @@ export function AppShell(props: {
 
 // -------------------------------------------------------- device shells -----
 // Real-device chrome for composed marketing shots (the AI-moderator hero
-// style): a Safari-like desktop window and an iPhone shell. Both are plain
-// set dressing — the scene supplies the screen content.
+// style): a Safari-like desktop window, and an iPhone screen authored in real
+// device points. Both are plain set dressing — the scene supplies the content.
 
 /** Safari-style desktop window. `progress` (0..1) fills the interview bar. */
 export function BrowserWindow(props: { progress?: number; children: React.ReactNode; style?: React.CSSProperties }): JSX.Element {
@@ -900,73 +900,6 @@ export function BrowserWindow(props: { progress?: number; children: React.ReactN
   )
 }
 
-/** iPhone shell with status bar, interview progress, and Safari bottom bar.
- *  Height derives from width at the real device ratio (393×852 pt) unless
- *  overridden — so phone mocks always keep true iPhone proportions. */
-export function PhoneShell(props: {
-  width: number
-  height?: number
-  progress?: number
-  time?: string
-  /** show signal/wifi/battery (hidden when another phone overlaps that side) */
-  statusIcons?: boolean
-  /** show the ⋯ button in the Safari bar */
-  moreButton?: boolean
-  children: React.ReactNode
-  style?: React.CSSProperties
-}): JSX.Element {
-  const { width, progress, time = "12:16", statusIcons, moreButton, children, style } = props
-  const height = props.height ?? Math.round((width * 852) / 393)
-  return (
-    <div style={{ width, height, background: "#FFF", border: `1px solid ${T.appBorder}`, borderRadius: 28, overflow: "hidden", display: "flex", flexDirection: "column", ...style }}>
-      <div style={{ height: 34, position: "relative", display: "flex", alignItems: "center", padding: "0 16px", flexShrink: 0 }}>
-        <span className="ll-500" style={{ fontSize: 11 }}>{time}</span>
-        <span style={{ position: "absolute", left: "50%", top: 8, transform: "translateX(-50%)", width: 56, height: 17, borderRadius: 9, background: "#0A0A0A" }} />
-        {statusIcons && (
-          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            {/* signal · wifi · battery, drawn tiny */}
-            <span style={{ display: "inline-flex", alignItems: "flex-end", gap: 1 }}>
-              {[3, 5, 7, 9].map((h) => <span key={h} style={{ width: 2, height: h, borderRadius: 1, background: T.ink }} />)}
-            </span>
-            <svg width="12" height="9" viewBox="0 0 14 10"><path d="M7 9.5a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8ZM2.1 5.2a7 7 0 0 1 9.8 0l-1.5 1.5a4.9 4.9 0 0 0-6.8 0Zm-2-2a9.8 9.8 0 0 1 13.8 0l-1.4 1.4a7.8 7.8 0 0 0-11 0Z" style={{ fill: T.ink }} /></svg>
-            <span style={{ width: 18, height: 9, border: `1px solid ${T.ink}`, borderRadius: 2.5, padding: 1, display: "inline-flex" }}>
-              <span style={{ width: "75%", background: T.ink, borderRadius: 1 }} />
-            </span>
-          </span>
-        )}
-      </div>
-      {progress != null && (
-        <div style={{ height: 4, background: T.brandFaint, flexShrink: 0 }}>
-          <div style={{ width: `${progress * 100}%`, height: "100%", background: T.brand }} />
-        </div>
-      )}
-      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>{children}</div>
-      <div style={{ height: 46, borderTop: "1px solid #EEE", display: "flex", alignItems: "center", gap: 10, padding: "0 14px", flexShrink: 0 }}>
-        <I name="chevron-left" size={16} style={{ color: "#B9B9B9" }} />
-        <span style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12 }}>
-          <I name="video" size={14} style={{ color: "#22C55E" }} />
-          <span className="ll-500">listenlabs.ai</span>
-        </span>
-        {moreButton ? (
-          <>
-            <I name="rotate-cw" size={13} style={{ color: T.inkSoft }} />
-            <span style={{ width: 24, height: 24, borderRadius: 12, border: "1px solid #E3E3E3", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              <I name="ellipsis" size={12} style={{ color: T.inkSoft }} />
-            </span>
-          </>
-        ) : (
-          <I name="rotate-cw" size={13} style={{ color: T.inkSoft }} />
-        )}
-      </div>
-      {/* home-indicator zone (also lets the phone bleed past a frame edge
-          while the Safari bar stays fully visible) */}
-      <div style={{ height: 26, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ width: width * 0.36, height: 4, borderRadius: 2, background: "#0A0A0A", opacity: 0.9 }} />
-      </div>
-    </div>
-  )
-}
-
 /** An iPhone screen as a screen capture (no bezel), authored in real device
  *  points (393×852) and scaled as one piece, so the status bar, type, and
  *  controls keep true iOS proportions at any width. Children lay out in
@@ -977,10 +910,12 @@ export function IPhoneScreen(props: {
   battery?: number
   /** rounded screen corners in points (55 on device; smaller reads as a crop) */
   radius?: number
+  /** pinned above the home indicator, in points (e.g. a Safari toolbar) */
+  footer?: React.ReactNode
   children: React.ReactNode
   style?: React.CSSProperties
 }): JSX.Element {
-  const { width, time = "9:41", battery = 81, radius = 55, children, style } = props
+  const { width, time = "9:41", battery = 81, radius = 55, footer, children, style } = props
   const s = width / 393
   return (
     <div style={{ width, height: 852 * s, position: "relative", ...style }}>
@@ -1005,10 +940,30 @@ export function IPhoneScreen(props: {
           </span>
         </div>
         <div style={{ flex: 1, position: "relative", minHeight: 0 }}>{children}</div>
+        {footer}
         <div style={{ height: 34, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <span style={{ width: 134, height: 5, borderRadius: 3, background: "#000" }} />
         </div>
       </div>
+    </div>
+  )
+}
+
+/** iOS Safari's compact bottom toolbar, in points, for IPhoneScreen's footer */
+export function SafariBar(props: { host: string; more?: boolean }): JSX.Element {
+  return (
+    <div style={{ height: 70, borderTop: "1px solid #EEE", display: "flex", alignItems: "center", gap: 15, padding: "0 21px", flexShrink: 0 }}>
+      <I name="chevron-left" size={24} style={{ color: "#B9B9B9" }} />
+      <span style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 9, fontSize: 18 }}>
+        <I name="video" size={21} style={{ color: "#22C55E" }} />
+        <span style={{ fontWeight: 500 }}>{props.host}</span>
+      </span>
+      <I name="rotate-cw" size={20} style={{ color: T.inkSoft }} />
+      {props.more && (
+        <span style={{ width: 37, height: 37, borderRadius: 19, border: "1.5px solid #E3E3E3", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <I name="ellipsis" size={18} style={{ color: T.inkSoft }} />
+        </span>
+      )}
     </div>
   )
 }
