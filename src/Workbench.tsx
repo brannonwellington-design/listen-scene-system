@@ -61,8 +61,18 @@ const WB_CSS = `
     border: 1px solid #E7E1D6; border-radius: 12px; padding: 4px; }
   .wb-tools .wb-slider { margin: 0 6px; }
   .wb-tools .wb-time { margin-right: 4px; }
-  .wb-section { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: ${T.ink};
-    margin: 18px -20px 6px; padding: 16px 20px 0; border-top: 1px solid #EEE8DD; }
+  .wb-group { margin: 0 -20px; border-top: 1px solid #EEE8DD; }
+  .wb-group-body { padding: 0 20px 14px; }
+  .wb-section { display: flex; align-items: center; gap: 8px; width: 100%; font: 500 13px ${T.font}; color: ${T.ink};
+    padding: 13px 20px; background: none; border: none; cursor: pointer; text-align: left; }
+  .wb-group.open .wb-section { padding-bottom: 6px; }
+  .wb-section:hover { background: #FCFBF8; }
+  .wb-section:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(0, 33, 204, 0.35); }
+  .wb-summary { font-weight: 400; font-size: 12px; color: ${T.inkFaint}; min-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .wb-fold-all { display: flex; justify-content: flex-end; margin: 6px 0 2px; }
+  .wb-fold-all button { border: none; background: none; font: 11.5px ${T.font}; color: ${T.inkSoft}; cursor: pointer; padding: 2px 0; }
+  .wb-fold-all button:hover { color: ${T.ink}; }
   .wb-num { width: 18px; height: 18px; border-radius: 5px; background: #F0EBDF; color: ${T.inkSoft};
     font-size: 11px; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
   .wb-sub { margin: 2px 0 4px; padding-left: 10px; border-left: 2px solid #EEE8DD; }
@@ -151,9 +161,25 @@ const WB_CSS = `
 `
 
 // -------------------------------------------------------------- UI pieces ---
-const Section = (p: { n: number; title: string }) => (
-  <div className="wb-section"><span className="wb-num">{p.n}</span>{p.title}</div>
+/** a numbered, foldable rail section; folded, it shows a one-line summary */
+const Section = (p: { n: number; title: string; open: boolean; onToggle: () => void; summary: string; children: React.ReactNode }) => (
+  <div className={"wb-group" + (p.open ? " open" : "")}>
+    <button className="wb-section" onClick={p.onToggle} aria-expanded={p.open}>
+      <span className="wb-num">{p.n}</span>
+      <span>{p.title}</span>
+      {!p.open && <span className="wb-summary">{p.summary}</span>}
+      <I name="chevron-down" size={13} style={{ marginLeft: "auto", flexShrink: 0, color: T.inkFaint, transform: p.open ? "none" : "rotate(-90deg)", transition: "transform .15s ease" }} />
+    </button>
+    {p.open && <div className="wb-group-body">{p.children}</div>}
+  </div>
 )
+
+type FoldKey = "content" | "playback" | "state" | "framing" | "canvas"
+const FOLD_KEY = "llWorkbenchFold"
+const FOLD_ALL: Record<FoldKey, boolean> = { content: true, playback: true, state: true, framing: true, canvas: true }
+const loadFold = (): Record<FoldKey, boolean> => {
+  try { return { ...FOLD_ALL, ...JSON.parse(localStorage.getItem(FOLD_KEY) ?? "{}") } } catch { return { ...FOLD_ALL } }
+}
 
 /** a ms value edited in seconds (0 shows empty) */
 const Secs = (p: { v: number; set: (ms: number) => void }) => (
@@ -350,6 +376,15 @@ export default function Workbench(): JSX.Element {
   const [drafts, setDrafts] = React.useState<Preset[]>(loadDrafts)
   const [saveName, setSaveName] = React.useState("")
   const [saving, setSaving] = React.useState(false)
+  // which rail sections are open — a per-browser convenience
+  const [fold, setFold] = React.useState<Record<FoldKey, boolean>>(loadFold)
+  const saveFold = (f: Record<FoldKey, boolean>) => {
+    setFold(f)
+    try { localStorage.setItem(FOLD_KEY, JSON.stringify(f)) } catch { /* storage unavailable */ }
+  }
+  const toggleFold = (k: FoldKey) => saveFold({ ...fold, [k]: !fold[k] })
+  const allOpen = Object.values(fold).every(Boolean)
+  const toggleAll = () => saveFold(Object.fromEntries(Object.keys(FOLD_ALL).map((k) => [k, !allOpen])) as Record<FoldKey, boolean>)
   const [previewW, setPreviewW] = React.useState<number | "full">("full")
   const [cropEdit, setCropEdit] = React.useState(false)
   const [dragging, setDragging] = React.useState<"" | "w" | "h" | "pin">("")
@@ -442,6 +477,22 @@ export default function Workbench(): JSX.Element {
   const edited = !!loadedCfg && (Object.keys(CANVAS_DEFAULTS) as Array<keyof Cfg>).some((k) => cfg[k] !== loadedCfg[k])
   // scene state only means something for scenes inside the app shell
   const shellShot = isMulti || entry.w === APP_W
+
+  // one-line summaries for folded sections
+  const secs = (ms: number) => +(ms / 1000).toFixed(1) + "s"
+  const summary: Record<FoldKey, string> = {
+    content: isMulti
+      ? "Multi-step · " + (SEQUENCES.find((q) => q.key === cfg.sequence)?.title ?? cfg.sequence)
+      : "Single · " + (cfg.content === "custom" ? "Crop of " + byKey(cfg.customScene).title : byKey(cfg.content).title),
+    playback: isMulti
+      ? (cfg.autoCycle ? "Auto-advance · " + cfg.resumeDelay + "s pause" : "Manual")
+      : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.segEnd ? " · " + secs(cfg.segStart) + "–" + secs(cfg.segEnd) : ""),
+    state: (cfg.startCollapsed ? "Collapsed" : "Open") + " · " + (cfg.startTheme === "dark" ? "Dark" : "Light"),
+    framing: (cfg.fit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%" : "Scale to fit")
+      + " · " + (cfg.canvasHeight ? cfg.canvasHeight + "px" : "Auto"),
+    canvas: (cfg.pattern === "none" ? "No pattern" : cfg.pattern[0].toUpperCase() + cfg.pattern.slice(1))
+      + " · " + cfg.bgColor.toUpperCase() + (cfg.radius ? " · r" + cfg.radius : ""),
+  }
   const applyPreset = (name: string) => {
     setPresetSel(name)
     const p = allPresets.find((x) => x.name === name)
@@ -611,119 +662,127 @@ export default function Workbench(): JSX.Element {
             <div className="wb-hint">Drafts save in this browser. Export → paste into <code>ListenPresets.tsx</code> to ship.</div>
           </div>
 
-          <Section n={1} title="Content" />
-          <Field label="Layout">
-            <Seg v={cfg.layout} set={(v) => { set("layout")(v as Cfg["layout"]); setCropEdit(false) }}
-              options={[["single", "Single"], ["multi-step", "Multi-step"]]} />
-          </Field>
-          {isMulti ? (
-            <Field label="Sequence">
-              <Sel v={cfg.sequence} set={(v) => set("sequence")(v)}
-                options={SEQUENCES.map((q) => q.key)} titles={SEQUENCES.map((q) => q.title)} />
+          <div className="wb-fold-all">
+            <button onClick={toggleAll}>{allOpen ? "Collapse all" : "Expand all"}</button>
+          </div>
+          <Section n={1} title="Content" open={fold.content} onToggle={() => toggleFold("content")} summary={summary.content}>
+            <Field label="Layout">
+              <Seg v={cfg.layout} set={(v) => { set("layout")(v as Cfg["layout"]); setCropEdit(false) }}
+                options={[["single", "Single"], ["multi-step", "Multi-step"]]} />
             </Field>
-          ) : (
-            <>
-              <Field label="Shot">
-                <ContentSel v={cfg.content} set={setContent} />
+            {isMulti ? (
+              <Field label="Sequence">
+                <Sel v={cfg.sequence} set={(v) => set("sequence")(v)}
+                  options={SEQUENCES.map((q) => q.key)} titles={SEQUENCES.map((q) => q.title)} />
               </Field>
-              {cfg.content === "custom" && (
-                <div className="wb-sub">
-                  <Field label="From scene">
-                    <Sel v={cfg.customScene} set={(v) => set("customScene")(v)}
-                      options={REGISTRY.map((e) => e.key)} titles={REGISTRY.map((e) => e.title)} />
-                  </Field>
-                  <Field label="Crop x · y">
-                    <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
-                  </Field>
-                  <Field label="Crop w · h">
-                    <Num v={cfg.cropW} set={set("cropW")} /><Num v={cfg.cropH} set={set("cropH")} />
-                  </Field>
-                </div>
-              )}
-            </>
-          )}
+            ) : (
+              <>
+                <Field label="Shot">
+                  <ContentSel v={cfg.content} set={setContent} />
+                </Field>
+                {cfg.content === "custom" && (
+                  <div className="wb-sub">
+                    <Field label="From scene">
+                      <Sel v={cfg.customScene} set={(v) => set("customScene")(v)}
+                        options={REGISTRY.map((e) => e.key)} titles={REGISTRY.map((e) => e.title)} />
+                    </Field>
+                    <Field label="Crop x · y">
+                      <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
+                    </Field>
+                    <Field label="Crop w · h">
+                      <Num v={cfg.cropW} set={set("cropW")} /><Num v={cfg.cropH} set={set("cropH")} />
+                    </Field>
+                  </div>
+                )}
+              </>
+            )}
 
-          <Section n={2} title="Playback" />
-          {isMulti ? (
-            <>
-              <Field label="Auto-advance"><Toggle v={cfg.autoCycle} set={set("autoCycle")} /></Field>
-              <Field label="Pause after click">
-                <Num v={cfg.resumeDelay} set={set("resumeDelay")} min={4} max={60} /><span className="wb-unit">s</span>
-              </Field>
-            </>
-          ) : (
-            <>
-              <Field label="Loop">
-                <Toggle v={cfg.loop} set={set("loop")} />
-                <span className="wb-label" style={{ marginLeft: 6 }}>pause</span>
-                <Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} /><span className="wb-unit">s</span>
-              </Field>
-              <Field label="Segment">
-                <Secs v={cfg.segStart} set={set("segStart")} />
-                <span className="wb-label">→</span>
-                <Secs v={cfg.segEnd} set={set("segEnd")} />
-                <button className="wb-iconbtn" title="Play the whole session" disabled={!cfg.segStart && !cfg.segEnd}
-                  onClick={() => setCfg((c) => ({ ...c, segStart: 0, segEnd: 0 }))}><I name="rotate-cw" size={12} /></button>
-              </Field>
-              <div className="wb-hint">Set In / Out from the playhead while scrubbing. Empty = whole session.</div>
-            </>
-          )}
+          </Section>
+          <Section n={2} title="Playback" open={fold.playback} onToggle={() => toggleFold("playback")} summary={summary.playback}>
+            {isMulti ? (
+              <>
+                <Field label="Auto-advance"><Toggle v={cfg.autoCycle} set={set("autoCycle")} /></Field>
+                <Field label="Pause after click">
+                  <Num v={cfg.resumeDelay} set={set("resumeDelay")} min={4} max={60} /><span className="wb-unit">s</span>
+                </Field>
+              </>
+            ) : (
+              <>
+                <Field label="Loop">
+                  <Toggle v={cfg.loop} set={set("loop")} />
+                  <span className="wb-label" style={{ marginLeft: 6 }}>pause</span>
+                  <Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} /><span className="wb-unit">s</span>
+                </Field>
+                <Field label="Segment">
+                  <Secs v={cfg.segStart} set={set("segStart")} />
+                  <span className="wb-label">→</span>
+                  <Secs v={cfg.segEnd} set={set("segEnd")} />
+                  <button className="wb-iconbtn" title="Play the whole session" disabled={!cfg.segStart && !cfg.segEnd}
+                    onClick={() => setCfg((c) => ({ ...c, segStart: 0, segEnd: 0 }))}><I name="rotate-cw" size={12} /></button>
+                </Field>
+                <div className="wb-hint">Set In / Out from the playhead while scrubbing. Empty = whole session.</div>
+              </>
+            )}
 
-          <Section n={3} title="Scene state" />
-          <Field label="Sidebar">
-            <Seg v={cfg.startCollapsed ? "collapsed" : "open"} set={(v) => set("startCollapsed")(v === "collapsed")}
-              options={[["open", "Open"], ["collapsed", "Collapsed"]]} />
-          </Field>
-          <Field label="Theme">
-            <Seg v={cfg.startTheme} set={(v) => set("startTheme")(v as Cfg["startTheme"])}
-              options={[["light", "Light"], ["dark", "Dark"]]} />
-          </Field>
-          {!shellShot && <div className="wb-hint">Applies to app scenes; this shot has no product chrome.</div>}
+          </Section>
+          <Section n={3} title="Scene state" open={fold.state} onToggle={() => toggleFold("state")} summary={summary.state}>
+            <Field label="Sidebar">
+              <Seg v={cfg.startCollapsed ? "collapsed" : "open"} set={(v) => set("startCollapsed")(v === "collapsed")}
+                options={[["open", "Open"], ["collapsed", "Collapsed"]]} />
+            </Field>
+            <Field label="Theme">
+              <Seg v={cfg.startTheme} set={(v) => set("startTheme")(v as Cfg["startTheme"])}
+                options={[["light", "Light"], ["dark", "Dark"]]} />
+            </Field>
+            {!shellShot && <div className="wb-hint">Applies to app scenes; this shot has no product chrome.</div>}
 
-          <Section n={4} title="Framing" />
-          <Field label="Mode">
-            <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"]]} />
-          </Field>
-          {cfg.fit === "pinned" && (
-            <div className="wb-sub">
-              <Field label="Anchor"><CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} /></Field>
-              <Field label="Insets x · y">
-                <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
-              </Field>
-              <Field label="Zoom">
-                <Slider v={cfg.zoom} set={set("zoom")} min={0.3} max={2} step={0.05} fmt={(n) => Math.round(n * 100) + "%"} />
-              </Field>
-              <Field label="Below">
-                <Num v={cfg.fitBelow} set={set("fitBelow")} wide /><span className="wb-unit">px</span>
-                <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Pin"]]} />
-              </Field>
-            </div>
-          )}
-          <Field label="Height">
-            <Seg v={cfg.canvasHeight ? "fixed" : "auto"}
-              set={(v) => set("canvasHeight")(v === "auto" ? 0 : Math.round(canvasRef.current?.getBoundingClientRect().height || 400))}
-              options={[["auto", "Auto"], ["fixed", "Fixed"]]} />
-            {cfg.canvasHeight > 0 && <><Num v={cfg.canvasHeight} set={set("canvasHeight")} wide /><span className="wb-unit">px</span></>}
-          </Field>
+          </Section>
+          <Section n={4} title="Framing" open={fold.framing} onToggle={() => toggleFold("framing")} summary={summary.framing}>
+            <Field label="Mode">
+              <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"]]} />
+            </Field>
+            {cfg.fit === "pinned" && (
+              <div className="wb-sub">
+                <Field label="Anchor"><CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} /></Field>
+                <Field label="Insets x · y">
+                  <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
+                </Field>
+                <Field label="Zoom">
+                  <Slider v={cfg.zoom} set={set("zoom")} min={0.3} max={2} step={0.05} fmt={(n) => Math.round(n * 100) + "%"} />
+                </Field>
+                <Field label="Below">
+                  <Num v={cfg.fitBelow} set={set("fitBelow")} wide /><span className="wb-unit">px</span>
+                  <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Pin"]]} />
+                </Field>
+              </div>
+            )}
+            <Field label="Height">
+              <Seg v={cfg.canvasHeight ? "fixed" : "auto"}
+                set={(v) => set("canvasHeight")(v === "auto" ? 0 : Math.round(canvasRef.current?.getBoundingClientRect().height || 400))}
+                options={[["auto", "Auto"], ["fixed", "Fixed"]]} />
+              {cfg.canvasHeight > 0 && <><Num v={cfg.canvasHeight} set={set("canvasHeight")} wide /><span className="wb-unit">px</span></>}
+            </Field>
 
-          <Section n={5} title="Canvas" />
-          <Field label="Fill">
-            <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(cfg.bgColor) ? cfg.bgColor : "#EEE8DD"}
-              onChange={(e) => set("bgColor")(e.target.value)}
-              style={{ width: 28, height: 28, border: "1px solid #DDD6C8", borderRadius: 8, background: "none", padding: 2, cursor: "pointer" }} />
-            <input className="wb-input wide text" value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} />
-          </Field>
-          <Field label="Pattern"><PatternPick v={cfg.pattern} set={(v) => set("pattern")(v)} /></Field>
-          {cfg.pattern !== "none" && (
-            <div className="wb-sub">
-              <Field label="Spacing"><Slider v={cfg.patternSpacing} set={set("patternSpacing")} min={8} max={120} step={4} /></Field>
-              <Field label="Opacity"><Slider v={cfg.patternOpacity} set={set("patternOpacity")} min={0.05} max={1} step={0.05} fmt={(n) => Math.round(n * 100) + "%"} /></Field>
-            </div>
-          )}
-          <Field label="Padding x · y">
-            <Num v={cfg.padX} set={set("padX")} /><Num v={cfg.padY} set={set("padY")} />
-          </Field>
-          <Field label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Field>
+          </Section>
+          <Section n={5} title="Canvas" open={fold.canvas} onToggle={() => toggleFold("canvas")} summary={summary.canvas}>
+            <Field label="Fill">
+              <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(cfg.bgColor) ? cfg.bgColor : "#EEE8DD"}
+                onChange={(e) => set("bgColor")(e.target.value)}
+                style={{ width: 28, height: 28, border: "1px solid #DDD6C8", borderRadius: 8, background: "none", padding: 2, cursor: "pointer" }} />
+              <input className="wb-input wide text" value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} />
+            </Field>
+            <Field label="Pattern"><PatternPick v={cfg.pattern} set={(v) => set("pattern")(v)} /></Field>
+            {cfg.pattern !== "none" && (
+              <div className="wb-sub">
+                <Field label="Spacing"><Slider v={cfg.patternSpacing} set={set("patternSpacing")} min={8} max={120} step={4} /></Field>
+                <Field label="Opacity"><Slider v={cfg.patternOpacity} set={set("patternOpacity")} min={0.05} max={1} step={0.05} fmt={(n) => Math.round(n * 100) + "%"} /></Field>
+              </div>
+            )}
+            <Field label="Padding x · y">
+              <Num v={cfg.padX} set={set("padX")} /><Num v={cfg.padY} set={set("padY")} />
+            </Field>
+            <Field label="Radius"><Num v={cfg.radius} set={set("radius")} min={0} max={16} /></Field>
+          </Section>
         </div>
       </div>
     </div>
