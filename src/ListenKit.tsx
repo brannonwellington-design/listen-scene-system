@@ -102,6 +102,11 @@ export const FRAME_H = 640
 // open sidebar leaves the content about the width FRAME_W scenes had.
 export const APP_W = 1344
 export const APP_H = 768
+// Homepage Use Cases shots sit in a near-square card (it matches the list's
+// height), so they're authored as a taller app window; the card's crop then
+// shows the sidebar plus the real content and still runs off both edges.
+export const UC_W = 1120
+export const UC_H = 1160
 // open sidebar width, matched to the live app (the Figma mock shows 260);
 // rows inset 8px each side
 const NAV_W = 235

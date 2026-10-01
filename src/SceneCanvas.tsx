@@ -482,7 +482,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
     const inset = Math.max(12, Math.round(cardW * (stacked ? 16 / 370 : 48 / 684)))
     // side by side, the card matches the list's height at every width (it
     // follows the rows opening and closing); stacked, it keeps the mock's ratio
-    const card = { fit: "bleed" as const, bleedRatio: stacked ? 200 / 370 : 520 / 684, insetX: inset, insetY: inset, radius: 12, canvasHeight: stacked ? 0 : listH }
+    const card = { fit: "bleed" as const, bleedShow: byKey(steps[at].content).bleedShow ?? canvas.bleedShow, bleedRatio: stacked ? 200 / 370 : 520 / 684, insetX: inset, insetY: inset, radius: 12, canvasHeight: stacked ? 0 : listH }
     const rowGap = stacked ? 16 : 24
     const list = (
       <div ref={listRef} style={{ display: "flex", flexDirection: "column", gap: rowGap, width: "100%", maxWidth: stacked ? undefined : 448, justifySelf: "end" }}>

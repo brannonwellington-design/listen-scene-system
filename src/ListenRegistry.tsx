@@ -16,9 +16,10 @@ import {
   FragmentEIFeatureComparison, EI_COMPARISON_W, EI_COMPARISON_H,
   FragmentEIUseCaseAdTesting, FragmentEIUseCaseConcepts, FragmentEIUseCaseBrand, FragmentEIUseCaseUX,
   EI_USECASE_W, EI_USECASE_H,
+  SceneUCBrandTracking,
   SceneProps,
 } from "./ListenScenes"
-import { FRAME_W, FRAME_H, APP_W, APP_H } from "./ListenKit"
+import { FRAME_W, FRAME_H, APP_W, APP_H, UC_W, UC_H } from "./ListenKit"
 
 export type RegistryEntry = {
   key: string
@@ -27,6 +28,9 @@ export type RegistryEntry = {
   w: number
   h: number
   kind: "scene" | "fragment"
+  /** in a bleed card (the Use Cases list), how many design px show across;
+   *  set it when the shot's subject sits further right than the default */
+  bleedShow?: number
 }
 
 export const REGISTRY: RegistryEntry[] = [
@@ -47,6 +51,9 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "ei-usecase-concepts", title: "EI · Use case · Concept comparison", Scene: FragmentEIUseCaseConcepts, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
   { key: "ei-usecase-brand", title: "EI · Use case · Brand research", Scene: FragmentEIUseCaseBrand, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
   { key: "ei-usecase-ux", title: "EI · Use case · UX research", Scene: FragmentEIUseCaseUX, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+
+  // --- homepage Use Cases — one app scene per use case, in list order ---------
+  { key: "uc-brand-tracking", title: "Use case · Brand tracking & health", Scene: SceneUCBrandTracking, w: UC_W, h: UC_H, kind: "scene", bleedShow: 1060 },
 
   // --- general fragments ----------------------------------------------------
   { key: "top-answer-card", title: "Top Answer card", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
@@ -104,41 +111,51 @@ export const SEQUENCES: Sequence[] = [
     ],
   },
   {
-    // homepage refresh (Figma "Homepage Refresh" 897:4407). Shots are
-    // stand-ins from the existing scenes until each use case gets its own
+    // homepage refresh (Figma "Homepage Refresh" 897:4407). Each use case
+    // gets its own uc-* scene; until it lands, an existing scene stands in
     key: "use-cases",
     title: "Use Cases",
     style: "list",
     steps: [
       {
         content: "ei-hero-report",
-        title: "Market & Audience Understanding",
-        body: "Learn how your audience thinks and feels, and watch it change over time.",
+        title: "Consumer Attitudes & Behaviors",
+        body: "Learn how people think, feel, and behave in a particular segment.",
+      },
+      {
+        content: "uc-brand-tracking",
+        title: "Brand Tracking & Health",
+        body: "Track how people see your brand month over month, and what's driving the change.",
       },
       {
         content: "design-study",
-        title: "Concept & Prototype Testing",
-        body: "Put concepts in front of real people and hear why one wins, not just which.",
-      },
-      {
-        content: "interview-scale",
-        title: "Creative & Message Testing",
-        body: "See how people react to your ads and messaging, moment by moment, before you launch.",
-      },
-      {
-        content: "reach-people",
-        title: "B2B & Expert Audiences",
-        body: "Reach decision-makers and specialists, screened on the criteria that matter to you.",
+        title: "Product & Feature Prioritization",
+        body: "Hear which features matter most to customers, and why, before you build.",
       },
       {
         content: "compound",
-        title: "Usability Testing",
+        title: "Usability & UX Testing",
         body: "Watch people use your product, hear what they're thinking, and see where they get stuck.",
       },
       {
+        content: "reach-people",
+        title: "Churn, Retention & Activation",
+        body: "Find out why customers stay, leave, or never get started.",
+      },
+      {
+        content: "interview-scale",
+        title: "Ad & Creative Testing",
+        body: "See how people react to your ads, moment by moment, before you launch.",
+      },
+      {
         content: "deliver-results",
-        title: "Brand Tracking",
-        body: "Track how people see your brand wave over wave, and what's driving the change.",
+        title: "Pricing & Willingness-to-Pay",
+        body: "Learn what people will pay, and the value that justifies the price.",
+      },
+      {
+        content: "ei-hero-report",
+        title: "Positioning & Messaging",
+        body: "Find the words that land with your audience and the claims they believe.",
       },
     ],
   },
