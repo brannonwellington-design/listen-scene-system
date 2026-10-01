@@ -258,9 +258,13 @@ function Single(props: typeof CANVAS_DEFAULTS & {
       }}>
         <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
         {s > 0 && (
-          <div key={runKey} className="ll-scene-fade" style={{
+          // one stroke, drawn here at 1 screen px in the card's own color
+          // (the mock gives card and shot the same surface-tertiary); the
+          // app's scaled border (a blurry ~0.6px at this size) is hidden, and
+          // the radius is the app's 12, scaled with it
+          <div key={runKey} className="ll-scene-fade ll-bleed" style={{
             position: "absolute", left: insetX - 1, top: insetY - 1,
-            border: `1px solid ${T.pageLine}`, borderRadius: 8, overflow: "hidden",
+            border: `1px solid ${T.pageLine}`, borderRadius: 12 * s, overflow: "hidden",
           }}>
             <ShotUnit entry={entry} crop={crop} scale={s} sceneProps={sceneProps} />
           </div>

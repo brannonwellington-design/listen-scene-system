@@ -2361,3 +2361,129 @@ export function SceneUCConsumerAttitudes({ active, onDone, runKey = 0, hold, pla
     </AppShell>
   )
 }
+
+// ------------------------------ Use case · Product & feature prioritization -
+// Homepage refresh, Use Cases 03. "Seltzer Water Flavor Preferences"
+// (listenlabs.ai/p/kY1Nj2Jf), Details → Q12, the MaxDiff flavor ranking:
+// index vs. average (100), 300 respondents. Values are the live chart's and
+// match the study's analysis (Strawberry 148, Black Cherry 132, Mango 126,
+// Watermelon 110, Cucumber 46.7). All 20 flavors. The live page's right-hand segments rail is a legacy
+// layout and is left out.
+const FP_FLAVORS: Array<[string, number]> = [
+  ["Strawberry", 148], ["Raspberry", 142], ["Black Cherry", 132], ["Orange / Mandarin", 131],
+  ["Mango", 126], ["Blackberry", 125], ["Peach", 123], ["Pomegranate", 112], ["Watermelon", 110],
+  ["Passionfruit", 109], ["Lime", 107], ["Lemon", 103], ["Pineapple", 101], ["Cranberry", 78], ["Grapefruit", 69],
+  ["Grape", 68], ["Coconut", 64], ["Apple", 56], ["Cola", 49], ["Cucumber", 47],
+]
+const FP_HALF = 53 // index points from the 100 line to either end of the track
+const FP_ROW = 41
+const FP_TRACK = 487
+const FP_RED = "#A93224"
+
+export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor({ x: UC_W - 120, y: 1000 })
+  const [grown, setGrown] = React.useState(false)
+  const [hover, setHover] = React.useState(-1)
+
+  useScene(active, async (p) => {
+    setGrown(false); setHover(-1); cur.hide()
+    await p.sleep(500)
+    setGrown(true)
+    await p.sleep(2100)
+    // the leader, the pack anchor the study recommends, and the last place
+    cur.show("fp-r0", 140, 120); await p.sleep(250)
+    cur.move("fp-r0"); await p.sleep(700)
+    setHover(0); await p.sleep(1600)
+    cur.move("fp-r2"); await p.sleep(500)
+    setHover(2); await p.sleep(1600)
+    cur.move("fp-r19"); await p.sleep(800)
+    setHover(19); await p.sleep(1600)
+    cur.move("fp-r19", 90, 60); await p.sleep(350)
+    setHover(-1); cur.hide()
+    await p.sleep(1500)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  const px = (pts: number) => (Math.min(FP_HALF, Math.abs(pts)) / FP_HALF) * (FP_TRACK / 2)
+
+  return (
+    <AppShell cursor={cur.state} nav={studyNav("Details", [{ title: "Listen Labs Report", meta: "Jun 29 · Listen Labs" }])}
+      title="Seltzer Water Flavor Preferences" crumb={["Details"]}
+      actions={<span className="ll-tbtn">Share <I name="link" size={14} /></span>}>
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <div style={{ display: "flex", gap: 32, padding: "22px 0 0 38px" }}>
+          {/* the question, pinned beside its chart */}
+          <div style={{ width: 242, flexShrink: 0, alignSelf: "flex-start", background: T.fill, borderRadius: 10, padding: "16px 16px 18px", fontSize: 16, lineHeight: "24px", color: T.ink }}>
+            <span style={{ color: T.inkSoft }}>Q12:</span> We'd like to understand your flavor preferences for flavored seltzer
+            water. For each set of flavors, please select which one appeals to you most and which appeals to you least.
+          </div>
+          <div style={{ width: FP_TRACK + 50, flexShrink: 0 }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <div style={{ flex: 1, fontSize: 17, lineHeight: "25px", color: T.ink }}>
+                We'd like to understand your flavor preferences for flavored seltzer water. For each set of flavors, please
+                select which one appeals to you most and which appeals to you least.
+              </div>
+              <span style={{ width: 24, height: 28, borderRadius: 6, border: `1px solid ${T.appBorder}`, display: "flex", alignItems: "center", justifyContent: "center", color: T.ink, flexShrink: 0 }}>
+                <I name="ellipsis-vertical" size={14} />
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 14, fontSize: 12, color: T.inkSoft }}>
+              Index score vs. average (300 respondents). 100 = average. <I name="info" size={12} />
+              <span style={{ flex: 1 }} />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, padding: "2px 6px", borderRadius: 5, background: T.positiveSoft, color: T.positive }}>
+                High confidence <I name="info" size={10} />
+              </span>
+            </div>
+            <div style={{ position: "relative", marginTop: 6 }}>
+              {FP_FLAVORS.map(([name, v], r) => {
+                const up = v >= 100
+                const w = px(v - 100)
+                return (
+                  <div key={name} style={{ height: FP_ROW, paddingTop: 4, opacity: hover >= 0 && hover !== r ? 0.4 : 1, transition: "opacity .25s" }}>
+                    <div style={{ fontSize: 12.5, lineHeight: "17px", color: T.inkSoft }}>{name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 3 }}>
+                      <span style={{ position: "relative", width: FP_TRACK, height: 11 }}>
+                        {/* the track is two halves, split at the 100 line */}
+                        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: FP_TRACK / 2 - 1, background: T.fill, borderRadius: 3 }} />
+                        <span style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: FP_TRACK / 2 - 1, background: T.fill, borderRadius: 3 }} />
+                        <span style={{
+                          position: "absolute", top: 0, bottom: 0, width: Math.max(3, w - 1),
+                          left: up ? FP_TRACK / 2 + 1 : FP_TRACK / 2 - 1 - Math.max(3, w - 1),
+                          background: up ? T.brand : FP_RED, borderRadius: 3,
+                          transform: grown ? "none" : "scaleX(0)", transformOrigin: up ? "left center" : "right center",
+                          transition: `transform .8s cubic-bezier(.22,1,.36,1) ${r * 0.06}s`,
+                        }} />
+                        <span data-cursor={"fp-r" + r} style={{
+                          position: "absolute", top: 0, width: 10, height: 11,
+                          left: up ? FP_TRACK / 2 + w * 0.6 : FP_TRACK / 2 - w * 0.6 - 10,
+                        }} />
+                      </span>
+                      <span style={{ width: 34, textAlign: "right", fontSize: 13, color: T.inkSoft, fontVariantNumeric: "tabular-nums" }}>{v}</span>
+                    </div>
+                  </div>
+                )
+              })}
+              {hover >= 0 && (() => {
+                const v = FP_FLAVORS[hover][1]
+                const x = v >= 100 ? FP_TRACK / 2 + px(v - 100) * 0.6 : FP_TRACK / 2 - px(v - 100) * 0.6
+                const ratio = v / 100
+                return (
+                  <div key={hover} className="ll-card ll-enter" style={{
+                    position: "absolute", top: hover >= 15 ? hover * FP_ROW - 72 : hover * FP_ROW + 36, left: v >= 100 ? x - 200 : x + 18, width: 196, zIndex: 2,
+                    padding: "10px 12px", boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 12, lineHeight: "18px",
+                  }}>
+                    <div className="ll-500" style={{ marginBottom: 4 }}>{FP_FLAVORS[hover][0]}</div>
+                    <div style={{ display: "flex" }}><span style={{ color: T.inkSoft, flex: 1 }}>Index</span><span className="ll-500">{v}</span></div>
+                    <div style={{ color: T.inkSoft, marginTop: 4 }}>
+                      {v >= 100 ? `Picked best ${ratio.toFixed(1)}× as often as an average flavor` : `Picked best ${Math.round((1 - ratio) * 100)}% less often than average`}
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  )
+}
