@@ -16,7 +16,7 @@ import {
   FragmentEIFeatureComparison, EI_COMPARISON_W, EI_COMPARISON_H,
   FragmentEIUseCaseAdTesting, FragmentEIUseCaseConcepts, FragmentEIUseCaseBrand, FragmentEIUseCaseUX,
   EI_USECASE_W, EI_USECASE_H,
-  SceneUCBrandTracking, SceneUCConsumerAttitudes,
+  SceneUCBrandTracking, SceneUCConsumerAttitudes, SceneUCFeaturePriority,
   SceneProps,
 } from "./ListenScenes"
 import { FRAME_W, FRAME_H, APP_W, APP_H, UC_W, UC_H } from "./ListenKit"
@@ -55,6 +55,7 @@ export const REGISTRY: RegistryEntry[] = [
   // --- homepage Use Cases — one app scene per use case, in list order ---------
   { key: "uc-consumer-attitudes", title: "Use case · Consumer attitudes & behaviors", Scene: SceneUCConsumerAttitudes, w: UC_W, h: UC_H, kind: "scene", bleedShow: 1090 },
   { key: "uc-brand-tracking", title: "Use case · Brand tracking & health", Scene: SceneUCBrandTracking, w: UC_W, h: UC_H, kind: "scene", bleedShow: 1090 },
+  { key: "uc-feature-priority", title: "Use case · Product & feature prioritization", Scene: SceneUCFeaturePriority, w: UC_W, h: UC_H, kind: "scene", bleedShow: 1090 },
 
   // --- general fragments ----------------------------------------------------
   { key: "top-answer-card", title: "Top Answer card", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
@@ -129,7 +130,7 @@ export const SEQUENCES: Sequence[] = [
         body: "Track how people see your brand month over month, and what's driving the change.",
       },
       {
-        content: "design-study",
+        content: "uc-feature-priority",
         title: "Product & Feature Prioritization",
         body: "Hear which features matter most to customers, and why, before you build.",
       },
