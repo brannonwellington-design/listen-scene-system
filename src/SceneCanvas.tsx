@@ -250,7 +250,7 @@ function Single(props: typeof CANVAS_DEFAULTS & {
     // the larger of: `bleedShow` px across, or enough to still run off the
     // bottom when the card is tall (most of the shot's height, never all of it)
     const h = canvasHeight || availW * bleedRatio
-    const s = availW > 0 ? Math.max(0.1, (availW - insetX) / bleedShow, (h - insetY) / (rect.h * 0.92)) : 0
+    const s = availW > 0 ? Math.max(0.1, (availW - insetX) / bleedShow, (h - insetY) / (rect.h * 0.95)) : 0
     return (
       <div ref={setRefs} style={{
         ...containerStyle, height: h,
