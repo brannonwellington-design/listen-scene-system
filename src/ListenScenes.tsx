@@ -2367,17 +2367,18 @@ export function SceneUCConsumerAttitudes({ active, onDone, runKey = 0, hold, pla
 // (listenlabs.ai/p/kY1Nj2Jf), Details → Q12, the MaxDiff flavor ranking:
 // index vs. average (100), 300 respondents. Values are the live chart's and
 // match the study's analysis (Strawberry 148, Black Cherry 132, Mango 126,
-// Watermelon 110). The live page's right-hand segments rail is a legacy
+// Watermelon 110, Cucumber 46.7). All 20 flavors. The live page's right-hand segments rail is a legacy
 // layout and is left out.
 const FP_FLAVORS: Array<[string, number]> = [
   ["Strawberry", 148], ["Raspberry", 142], ["Black Cherry", 132], ["Orange / Mandarin", 131],
   ["Mango", 126], ["Blackberry", 125], ["Peach", 123], ["Pomegranate", 112], ["Watermelon", 110],
   ["Passionfruit", 109], ["Lime", 107], ["Lemon", 103], ["Pineapple", 101], ["Cranberry", 78], ["Grapefruit", 69],
+  ["Grape", 68], ["Coconut", 64], ["Apple", 56], ["Cola", 49], ["Cucumber", 47],
 ]
 const FP_HALF = 53 // index points from the 100 line to either end of the track
-const FP_ROW = 52
+const FP_ROW = 41
 const FP_TRACK = 487
-const FP_RED = "#BF2A1F"
+const FP_RED = "#A93224"
 
 export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
@@ -2390,15 +2391,15 @@ export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playF
     await p.sleep(500)
     setGrown(true)
     await p.sleep(2100)
-    // the leader, the pack anchor the study recommends, and the clearest miss
+    // the leader, the pack anchor the study recommends, and the last place
     cur.show("fp-r0", 140, 120); await p.sleep(250)
     cur.move("fp-r0"); await p.sleep(700)
     setHover(0); await p.sleep(1600)
     cur.move("fp-r2"); await p.sleep(500)
     setHover(2); await p.sleep(1600)
-    cur.move("fp-r14"); await p.sleep(700)
-    setHover(14); await p.sleep(1600)
-    cur.move("fp-r14", 90, 120); await p.sleep(350)
+    cur.move("fp-r19"); await p.sleep(800)
+    setHover(19); await p.sleep(1600)
+    cur.move("fp-r19", 90, 60); await p.sleep(350)
     setHover(-1); cur.hide()
     await p.sleep(1500)
   }, onDone, runKey, hold, playFrom, onTime)
@@ -2410,7 +2411,7 @@ export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playF
       title="Seltzer Water Flavor Preferences" crumb={["Details"]}
       actions={<span className="ll-tbtn">Share <I name="link" size={14} /></span>}>
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-        <div style={{ display: "flex", gap: 32, padding: "28px 0 0 38px" }}>
+        <div style={{ display: "flex", gap: 32, padding: "22px 0 0 38px" }}>
           {/* the question, pinned beside its chart */}
           <div style={{ width: 242, flexShrink: 0, alignSelf: "flex-start", background: T.fill, borderRadius: 10, padding: "16px 16px 18px", fontSize: 16, lineHeight: "24px", color: T.ink }}>
             <span style={{ color: T.inkSoft }}>Q12:</span> We'd like to understand your flavor preferences for flavored seltzer
@@ -2439,13 +2440,16 @@ export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playF
                 const w = px(v - 100)
                 return (
                   <div key={name} style={{ height: FP_ROW, paddingTop: 4, opacity: hover >= 0 && hover !== r ? 0.4 : 1, transition: "opacity .25s" }}>
-                    <div style={{ fontSize: 12.5, lineHeight: "18px", color: T.inkSoft }}>{name}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 4 }}>
-                      <span style={{ position: "relative", width: FP_TRACK, height: 11, background: T.fill, borderRadius: 1 }}>
+                    <div style={{ fontSize: 12.5, lineHeight: "17px", color: T.inkSoft }}>{name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 3 }}>
+                      <span style={{ position: "relative", width: FP_TRACK, height: 11 }}>
+                        {/* the track is two halves, split at the 100 line */}
+                        <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: FP_TRACK / 2 - 1, background: T.fill, borderRadius: 3 }} />
+                        <span style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: FP_TRACK / 2 - 1, background: T.fill, borderRadius: 3 }} />
                         <span style={{
-                          position: "absolute", top: 0, bottom: 0, width: Math.max(2, w),
-                          left: up ? FP_TRACK / 2 : FP_TRACK / 2 - Math.max(2, w),
-                          background: up ? T.brand : FP_RED, borderRadius: 1,
+                          position: "absolute", top: 0, bottom: 0, width: Math.max(3, w - 1),
+                          left: up ? FP_TRACK / 2 + 1 : FP_TRACK / 2 - 1 - Math.max(3, w - 1),
+                          background: up ? T.brand : FP_RED, borderRadius: 3,
                           transform: grown ? "none" : "scaleX(0)", transformOrigin: up ? "left center" : "right center",
                           transition: `transform .8s cubic-bezier(.22,1,.36,1) ${r * 0.06}s`,
                         }} />
@@ -2465,7 +2469,7 @@ export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playF
                 const ratio = v / 100
                 return (
                   <div key={hover} className="ll-card ll-enter" style={{
-                    position: "absolute", top: hover * FP_ROW + 40, left: v >= 100 ? x - 200 : x + 18, width: 196, zIndex: 2,
+                    position: "absolute", top: hover >= 15 ? hover * FP_ROW - 72 : hover * FP_ROW + 36, left: v >= 100 ? x - 200 : x + 18, width: 196, zIndex: 2,
                     padding: "10px 12px", boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 12, lineHeight: "18px",
                   }}>
                     <div className="ll-500" style={{ marginBottom: 4 }}>{FP_FLAVORS[hover][0]}</div>
@@ -2477,8 +2481,6 @@ export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playF
                 )
               })()}
             </div>
-            {/* the list carries on below */}
-            <div style={{ fontSize: 12.5, color: T.inkSoft, paddingTop: 4, WebkitMaskImage: "linear-gradient(#000, transparent)", maskImage: "linear-gradient(#000, transparent)" }}>Grape</div>
           </div>
         </div>
       </div>
