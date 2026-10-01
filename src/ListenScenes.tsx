@@ -2067,6 +2067,17 @@ function BTStat(props: { on: boolean; children: React.ReactNode }): JSX.Element 
   )
 }
 
+/** the report's section outline on the right edge; `at` is the current section */
+function BTOutline({ at }: { at: number }): JSX.Element {
+  return (
+    <div style={{ position: "absolute", right: 12, top: 300, display: "flex", flexDirection: "column", gap: 9 }}>
+      {Array.from({ length: 12 }, (_, i) => (
+        <span key={i} style={{ width: i === at ? 14 : 10, height: 1.5, background: i === at ? T.ink : T.navLine, alignSelf: "flex-end" }} />
+      ))}
+    </div>
+  )
+}
+
 export function SceneUCBrandTracking({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
   const cur = useCursor({ x: UC_W - 120, y: 1000 })
@@ -2110,12 +2121,7 @@ export function SceneUCBrandTracking({ active, onDone, runKey = 0, hold, playFro
         <div style={{ display: "flex", gap: 14, padding: "12px 16px 0", color: T.inkSoft, justifyContent: "flex-end" }}>
           <I name="download" size={14} /><I name="ellipsis" size={14} />
         </div>
-        {/* the report's section outline, right edge */}
-        <div style={{ position: "absolute", right: 12, top: 300, display: "flex", flexDirection: "column", gap: 9 }}>
-          {Array.from({ length: 12 }, (_, i) => (
-            <span key={i} style={{ width: i === 5 ? 14 : 10, height: 1.5, background: i === 5 ? T.ink : T.navLine, alignSelf: "flex-end" }} />
-          ))}
-        </div>
+        <BTOutline at={5} />
         <div className="ll-doc-fade" style={{ flex: 1, position: "relative" }}>
           <div style={{ width: BT_W, margin: "0 auto", padding: "24px 0 0" }}>
             {/* scalar */}
@@ -2207,6 +2213,147 @@ export function SceneUCBrandTracking({ active, onDone, runKey = 0, hold, playFro
               <div style={{ fontSize: 22, lineHeight: "30px", color: T.ink, marginTop: 56 }}>
                 September held satisfaction but reliability pressure increased
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  )
+}
+
+// -------------------------------- Use case · Consumer attitudes & behaviors -
+// Homepage refresh, Use Cases 01. The same ChatGPT Monthly Brand Tracker
+// report, at "September held satisfaction, but reliability pressure
+// increased": the section summary and the satisfaction-by-tool chart.
+// Segment shares are the live chart's; each tool's very + somewhat equals
+// the T2B the report prints, and the very-satisfied shares match the study
+// data (Claude 66%, ChatGPT 53%, Gemini 51%).
+const CA_LEVELS: Array<{ name: string; color: string }> = [
+  { name: "Very satisfied", color: "#0021CC" },
+  { name: "Somewhat satisfied", color: "#7D8EE6" },
+  { name: "Neither satisfied nor dissatisfied", color: "#C3CBF3" },
+  { name: "Somewhat dissatisfied", color: "#E88AA5" },
+  { name: "Very dissatisfied", color: "#EE5A79" },
+]
+const CA_TOOLS: Array<{ name: string; v: number[] }> = [
+  { name: "Claude", v: [66, 29, 3, 2, 0] },
+  { name: "ChatGPT", v: [53, 36, 7, 3, 1] },
+  { name: "Gemini", v: [51, 38, 9, 2, 0] },
+  { name: "Perplexity", v: [36, 47, 17, 0, 0] },
+  { name: "Grok", v: [44, 39, 10, 7, 0] },
+  { name: "Microsoft Copilot", v: [34, 49, 10, 5, 2] },
+  { name: "Meta AI", v: [23, 50, 20, 5, 2] },
+]
+const CA_ROW = 58
+
+export function SceneUCConsumerAttitudes({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor({ x: UC_W - 120, y: 1000 })
+  const [grown, setGrown] = React.useState(false)
+  const [hover, setHover] = React.useState(-1)
+
+  useScene(active, async (p) => {
+    setGrown(false); setHover(-1); cur.hide()
+    await p.sleep(500)
+    setGrown(true)
+    await p.sleep(2000)
+    // read the leader, then the two the summary pairs up
+    cur.show("ca-r0", 120, 140); await p.sleep(250)
+    cur.move("ca-r0"); await p.sleep(700)
+    setHover(0); await p.sleep(1700)
+    cur.move("ca-r1"); await p.sleep(500)
+    setHover(1); await p.sleep(1700)
+    cur.move("ca-r2"); await p.sleep(500)
+    setHover(2); await p.sleep(1700)
+    cur.move("ca-r2", 60, 150); await p.sleep(350)
+    setHover(-1); cur.hide()
+    await p.sleep(1600)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  return (
+    <AppShell cursor={cur.state} nav={studyNav("Report", BT_REPORTS)} activeSub="Listen Labs Report"
+      title="ChatGPT Monthly Brand Tracker" crumb={["Report", "Listen Labs Report"]} actions={REPORT_ACTIONS}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
+        <div style={{ display: "flex", gap: 14, padding: "12px 16px 0", color: T.inkSoft, justifyContent: "flex-end" }}>
+          <I name="download" size={14} /><I name="ellipsis" size={14} />
+        </div>
+        <BTOutline at={6} />
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          <div style={{ width: BT_W, margin: "0 auto", padding: "30px 0 0" }}>
+            <div style={{ fontSize: 24, lineHeight: "32px", color: T.ink, letterSpacing: -0.3 }}>
+              September held satisfaction, but reliability pressure increased
+            </div>
+            <div style={{ marginTop: 22, fontSize: 16, lineHeight: "28px", color: T.ink }}>
+              ChatGPT users remain highly satisfied, but the competitive benchmark is already higher in select
+              workflows. <BTStat on={hover === 1}>89%</BTStat> are satisfied with ChatGPT, almost identical to Gemini
+              at <BTStat on={hover === 2}>89%</BTStat>. Claude reaches <BTStat on={hover === 0}>95%</BTStat> among its
+              smaller, self-selected user base. Claude's result should not be generalized to the whole market, but it
+              confirms that a specialist can create stronger advocacy inside a narrower role.
+            </div>
+
+            <div style={{ marginTop: 48, fontSize: 15, lineHeight: "22px", color: T.ink }}>Claude leads satisfaction among its users</div>
+            <div style={{ fontSize: 13, lineHeight: "19px", color: T.inkSoft, marginTop: 6 }}>
+              Responses to Question 9, How satisfied are you overall with each AI tool? Each pie reflects only respondents
+              who said they frequently use that tool.
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 14, fontSize: 12, color: T.inkSoft }}>
+              {CA_LEVELS.map((l) => (
+                <span key={l.name} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: l.color }} />{l.name}
+                </span>
+              ))}
+            </div>
+            <div style={{ position: "relative", marginTop: 14 }}>
+              {CA_TOOLS.map((t, r) => {
+                const segs = t.v.map((v, i) => ({ v, i })).filter((s) => s.v > 0)
+                return (
+                  <div key={t.name} style={{
+                    height: CA_ROW, paddingTop: 8, opacity: hover >= 0 && hover !== r ? 0.4 : 1, transition: "opacity .25s",
+                  }}>
+                    <div style={{ display: "flex", fontSize: 14, lineHeight: "20px", color: T.body }}>
+                      <span style={{ flex: 1 }}>{t.name}</span>
+                      <span style={{ fontSize: 12.5, color: T.inkSoft, letterSpacing: 0.4, fontVariantNumeric: "tabular-nums" }}>
+                        {t.v[0] + t.v[1]} % (T2B)
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: 4, marginTop: 6, height: 13, position: "relative" }}>
+                      {segs.map((s, k) => (
+                        <span key={s.i} style={{
+                          flex: `${s.v} 1 0`, minWidth: 0, background: CA_LEVELS[s.i].color, borderRadius: 2,
+                          transform: grown ? "none" : "scaleX(0)", transformOrigin: "left center",
+                          transition: `transform .7s cubic-bezier(.22,1,.36,1) ${r * 0.09 + k * 0.06}s`,
+                        }} />
+                      ))}
+                      {/* cursor target: inside the very-satisfied run */}
+                      <span data-cursor={"ca-r" + r} style={{ position: "absolute", left: `${t.v[0] * 0.6}%`, top: 0, width: 10, height: 13 }} />
+                    </div>
+                  </div>
+                )
+              })}
+              {hover >= 0 && (
+                <div key={hover} className="ll-card ll-enter" style={{
+                  position: "absolute", left: `${CA_TOOLS[hover].v[0] * 0.6 + 4}%`, top: hover * CA_ROW + 48, width: 250,
+                  padding: "10px 12px", boxShadow: "0 4px 16px rgba(0,0,0,.08)", zIndex: 2,
+                }}>
+                  <div className="ll-500" style={{ fontSize: 12, marginBottom: 6 }}>{CA_TOOLS[hover].name}</div>
+                  {CA_LEVELS.map((l, i) => (
+                    <div key={l.name} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, lineHeight: "20px" }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: l.color }} />
+                      <span style={{ color: T.body, flex: 1 }}>{l.name}</span>
+                      <span className="ll-500" style={{ fontVariantNumeric: "tabular-nums" }}>{CA_TOOLS[hover].v[i]}%</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize: 11.5, color: T.inkSoft, marginTop: 4 }}>Base size: N=36-398</div>
+            {/* the next paragraph, fading out as the page carries on */}
+            <div style={{
+              marginTop: 56, fontSize: 16, lineHeight: "28px", color: T.ink,
+              WebkitMaskImage: "linear-gradient(#000, transparent 70%)", maskImage: "linear-gradient(#000, transparent 70%)",
+            }}>
+              ChatGPT earns praise for the same attribute that creates its greatest risk. <BTStat on={false}>49%</BTStat> of its
+              frequent users
             </div>
           </div>
         </div>
