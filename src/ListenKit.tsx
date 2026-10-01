@@ -206,6 +206,8 @@ const CSS = `
 .ll-side { width:${NAV_W}px; flex-shrink:0; display:flex; flex-direction:column; overflow:hidden;
   transition:width .36s cubic-bezier(.22,1,.36,1); }
 .ll-app.collapsed .ll-side { width:48px; }
+/* in a bleed card the wrapper draws the frame's stroke at 1 screen px */
+.ll-bleed .ll-app { border-color:transparent; }
 .ll-side-inner { width:${NAV_W}px; height:100%; display:flex; flex-direction:column; }
 .ll-side-head { height:48px; flex-shrink:0; position:relative; border-bottom:1px solid ${T.navLine}; }
 .ll-side-head .mark { position:absolute; left:16px; top:16px; width:117px; height:16px; overflow:hidden;
