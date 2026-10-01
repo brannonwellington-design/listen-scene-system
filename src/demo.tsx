@@ -41,7 +41,10 @@ function Demo(): JSX.Element {
           </p>
         </div>
         <div style={{ height: 80 }} />
-        <SceneCanvas layout="multi-step" sequence="use-cases" />
+        {/* the homepage section runs 1392 wide (24px gutters at 1440), wider than this page */}
+        <div style={{ width: "min(1392px, calc(100vw - 48px))", position: "relative", left: "50%", transform: "translateX(-50%)" }}>
+          <SceneCanvas layout="multi-step" sequence="use-cases" maxWidth={1392} />
+        </div>
 
         <div style={{ height: 160 }} />
 

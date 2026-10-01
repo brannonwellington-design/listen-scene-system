@@ -8,7 +8,7 @@ import * as React from "react"
 import {
   T, BareFrame, Chip, Caret, Donut, Waveform, DotSpinner, EmotionTag,
   EMOTIONS, useScene, useCursor, ensureCss,
-  IPhoneScreen, FRAME_W, FRAME_H, APP_W,
+  IPhoneScreen, FRAME_W, FRAME_H, APP_W, UC_W,
   AppShell, workspaceNav, studyEditNav, studyNav, chatNav,
 } from "./ListenKit"
 import { I } from "./ListenIcons"
@@ -2027,5 +2027,190 @@ export function FragmentEIUseCaseUX({ active, onDone, runKey = 0, hold, playFrom
         {tag && <UCChip emotion="happiness" />}
       </div>
     </div>
+  )
+}
+
+// ------------------------------------------- Use case · Brand tracking -----
+// Homepage refresh, Use Cases 02 "Brand Tracking & Health". The live
+// "ChatGPT Monthly Brand Tracker" report (listenlabs.ai/p/hELJfWdR, analysis →
+// report), at the September section: the default-use scalar, the wave
+// summary, and the monthly frequent-use chart. Values are the report's own,
+// read off the live chart (n≈50 a month, so every point is a 2% step) and
+// matching the figures quoted in its text.
+export const BT_MONTHS = ["Jan 2026", "Feb 2026", "Mar 2026", "Apr 2026", "May 2026", "Jun 2026", "Jul 2026", "Aug 2026", "Sep 2026"]
+const BT_SERIES: Array<{ name: string; color: string; v: number[] }> = [
+  { name: "ChatGPT", color: "#2272B4", v: [98, 90, 86, 90, 88, 88, 88, 82, 90] },
+  { name: "Claude", color: "#E3A01C", v: [10, 18, 14, 22, 34, 30, 34, 28, 24] },
+  { name: "Gemini", color: "#14A07A", v: [56, 46, 48, 52, 48, 64, 62, 60, 61] },
+  { name: "Microsoft Copilot", color: "#CF7FB0", v: [24, 40, 18, 28, 28, 32, 28, 22, 20] },
+  { name: "Grok", color: "#5DB4E4", v: [12, 12, 14, 18, 20, 20, 14, 20, 12] },
+]
+const BT_REPORTS = [
+  { title: "Early Signals Predictor", meta: "Jul 28 · Listen Labs" },
+  { title: "Listen Labs Report", meta: "Sep 30 · Listen Labs" },
+  { title: "Gemini Brand Tracker", meta: "Sep 25 · Listen Labs" },
+  { title: "Early Signals from Users", meta: "Jul 28 · Listen Labs" },
+]
+// chart geometry (design px)
+const BT_W = 720, BT_H = 330, BT_L = 44, BT_R = 12, BT_T = 10, BT_B = 34
+const btX = (i: number) => BT_L + (i * (BT_W - BT_L - BT_R)) / (BT_MONTHS.length - 1)
+const btY = (v: number) => BT_T + (1 - v / 100) * (BT_H - BT_T - BT_B)
+
+/** a value in the summary that the chart hover points back to */
+function BTStat(props: { on: boolean; children: React.ReactNode }): JSX.Element {
+  return (
+    <span style={{
+      textDecoration: "underline", textUnderlineOffset: 4, textDecorationColor: props.on ? T.brand : T.inkFaint,
+      background: props.on ? T.brandSoft : "transparent", borderRadius: 3, padding: "0 2px", margin: "0 -2px",
+      transition: "background .3s, text-decoration-color .3s",
+    }}>{props.children}</span>
+  )
+}
+
+export function SceneUCBrandTracking({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor({ x: UC_W - 120, y: 1000 })
+  const [donut, setDonut] = React.useState(false)
+  const [summary, setSummary] = React.useState(false)
+  const [chart, setChart] = React.useState(false)
+  const [drawn, setDrawn] = React.useState(false)
+  const [hover, setHover] = React.useState(-1)
+
+  useScene(active, async (p) => {
+    setDonut(false); setSummary(false); setChart(false); setDrawn(false); setHover(-1); cur.hide()
+    await p.sleep(300)
+    setDonut(true)
+    await p.sleep(600)
+    setSummary(true)
+    await p.sleep(600)
+    setChart(true)
+    await p.sleep(200)
+    setDrawn(true)
+    await p.sleep(1900)
+    // read the latest wave, then the August low the summary calls out, then June
+    cur.show("bt-m8", 60, 120); await p.sleep(250)
+    cur.move("bt-m8"); await p.sleep(700)
+    setHover(8); await p.sleep(1700)
+    cur.move("bt-m7"); await p.sleep(450)
+    setHover(7); await p.sleep(1700)
+    cur.move("bt-m5"); await p.sleep(600)
+    setHover(5); await p.sleep(1700)
+    cur.move("bt-m5", 80, 170); await p.sleep(350)
+    setHover(-1); cur.hide()
+    await p.sleep(1600)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  const tip = hover >= 0 ? [...BT_SERIES].sort((a, b) => b.v[hover] - a.v[hover]) : []
+  const tipLeft = hover >= 6
+
+  return (
+    <AppShell cursor={cur.state} nav={studyNav("Report", BT_REPORTS)} activeSub="Listen Labs Report"
+      title="ChatGPT Monthly Brand Tracker" crumb={["Report", "Listen Labs Report"]} actions={REPORT_ACTIONS}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
+        <div style={{ display: "flex", gap: 14, padding: "12px 16px 0", color: T.inkSoft, justifyContent: "flex-end" }}>
+          <I name="download" size={14} /><I name="ellipsis" size={14} />
+        </div>
+        {/* the report's section outline, right edge */}
+        <div style={{ position: "absolute", right: 12, top: 300, display: "flex", flexDirection: "column", gap: 9 }}>
+          {Array.from({ length: 12 }, (_, i) => (
+            <span key={i} style={{ width: i === 5 ? 14 : 10, height: 1.5, background: i === 5 ? T.ink : T.navLine, alignSelf: "flex-end" }} />
+          ))}
+        </div>
+        <div className="ll-doc-fade" style={{ flex: 1, position: "relative" }}>
+          <div style={{ width: BT_W, margin: "0 auto", padding: "24px 0 0" }}>
+            {/* scalar */}
+            <div className="ll-card" style={{ display: "flex", alignItems: "center", gap: 22, padding: "18px 20px", borderRadius: 14, margin: "0 -24px" }}>
+              <Donut pct={donut ? 89 : 0} size={84} stroke={9} label="89%" />
+              <div>
+                <div style={{ fontSize: 17, lineHeight: "24px", color: T.ink }}>ChatGPT holds the default</div>
+                <div style={{ fontSize: 14, lineHeight: "20px", color: T.inkSoft, marginTop: 8 }}>89% use ChatGPT multiple times per month.</div>
+              </div>
+            </div>
+            {/* wave summary */}
+            <div className={summary ? "ll-enter" : undefined} style={{ opacity: summary ? 1 : 0, marginTop: 40, fontSize: 16, lineHeight: "28px", color: T.ink }}>
+              The latest wave brought a meaningful recovery in ChatGPT activity: frequent use rose from the tracker
+              low of <BTStat on={hover === 7}>82%</BTStat> in August to <BTStat on={hover === 8}>90%</BTStat> in
+              September. In the latest wave, Gemini stood at <BTStat on={hover === 8}>61%</BTStat> and Claude
+              at <BTStat on={hover === 8}>24%</BTStat>. The rebound confirms ChatGPT's reach advantage, but it should not
+              be mistaken for a return to exclusive reliance.
+            </div>
+            {/* monthly frequent use */}
+            <div className={chart ? "ll-enter" : undefined} style={{ opacity: chart ? 1 : 0, marginTop: 44 }}>
+              <div style={{ fontSize: 15, lineHeight: "22px", color: T.ink }}>ChatGPT's habitual-use lead faces a moving field</div>
+              <div style={{ fontSize: 13, lineHeight: "19px", color: T.inkSoft, marginTop: 6 }}>
+                Share of respondents in each month who said they use each leading AI tool multiple times per month. The primary
+                axis is Question 5 AI tool selection and the monthly Always On Cohort defines each comparison group.
+              </div>
+              <div style={{ display: "flex", gap: 16, marginTop: 14, fontSize: 12, color: T.inkSoft }}>
+                {BT_SERIES.map((s) => (
+                  <span key={s.name} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: "50%", background: s.color }} />{s.name}
+                  </span>
+                ))}
+              </div>
+              <div style={{ position: "relative", marginTop: 12, width: BT_W, height: BT_H }}>
+                <svg width={BT_W} height={BT_H} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+                  {[0, 25, 50, 75, 100].map((v) => (
+                    <g key={v}>
+                      <line x1={BT_L} x2={BT_W - BT_R} y1={btY(v)} y2={btY(v)} style={{ stroke: T.appBorder }} />
+                      <text x={BT_L - 10} y={btY(v)} textAnchor="end" dominantBaseline="central" fontSize={11.5} style={{ fill: T.inkSoft }}>{v}%</text>
+                    </g>
+                  ))}
+                  {BT_MONTHS.map((m, i) => (
+                    <text key={m} x={btX(i)} y={BT_H - 8} textAnchor={i === 0 ? "start" : i === BT_MONTHS.length - 1 ? "end" : "middle"}
+                      fontSize={11.5} style={{ fill: T.inkSoft }}>{m}</text>
+                  ))}
+                  {hover >= 0 && (
+                    <line x1={btX(hover)} x2={btX(hover)} y1={BT_T} y2={BT_H - BT_B} strokeDasharray="3 3" style={{ stroke: T.inkFaint }} />
+                  )}
+                  {BT_SERIES.map((s, si) => (
+                    <g key={s.name}>
+                      <polyline fill="none" strokeWidth={2} strokeLinejoin="round" pathLength={1}
+                        points={s.v.map((v, i) => `${btX(i)},${btY(v)}`).join(" ")}
+                        strokeDasharray={1} strokeDashoffset={drawn ? 0 : 1}
+                        style={{ stroke: s.color, transition: `stroke-dashoffset 1.5s cubic-bezier(.45,0,.2,1) ${si * 0.12}s` }} />
+                      {s.v.map((v, i) => (
+                        <circle key={i} cx={btX(i)} cy={btY(v)} r={hover === i ? 4.5 : 3.2} strokeWidth={1.6}
+                          style={{
+                            fill: hover === i ? s.color : T.appBg, stroke: s.color,
+                            opacity: drawn ? 1 : 0, transition: `opacity .3s ${0.25 + si * 0.12 + (i / 8) * 1.3}s, r .2s`,
+                          }} />
+                      ))}
+                    </g>
+                  ))}
+                </svg>
+                {/* cursor targets, one per month */}
+                {BT_MONTHS.map((m, i) => (
+                  <span key={m} data-cursor={"bt-m" + i} style={{ position: "absolute", left: btX(i) - 6, top: btY(70), width: 12, height: 12 }} />
+                ))}
+                {hover >= 0 && (
+                  <div key={hover} className="ll-card ll-enter" style={{
+                    position: "absolute", top: BT_T + 4, width: 176, padding: "10px 12px", boxShadow: "0 4px 16px rgba(0,0,0,.08)",
+                    left: tipLeft ? btX(hover) - 176 - 14 : btX(hover) + 14,
+                  }}>
+                    <div className="ll-500" style={{ fontSize: 12, marginBottom: 6 }}>{BT_MONTHS[hover]}</div>
+                    {tip.map((s) => (
+                      <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, lineHeight: "20px" }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color }} />
+                        <span style={{ color: T.body, flex: 1 }}>{s.name}</span>
+                        <span className="ll-500" style={{ fontVariantNumeric: "tabular-nums" }}>{s.v[hover]}%</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: 11.5, lineHeight: "17px", color: T.inkSoft, marginTop: 4 }}>
+                Base size: N=449; Multi-select question, so monthly percentages do not sum to 100%. Tracks frequent use rather
+                than trial in the past three months.
+              </div>
+              {/* the section this anchor opens; the page carries on below */}
+              <div style={{ fontSize: 22, lineHeight: "30px", color: T.ink, marginTop: 56 }}>
+                September held satisfaction but reliability pressure increased
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
   )
 }
