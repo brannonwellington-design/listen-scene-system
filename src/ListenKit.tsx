@@ -89,6 +89,7 @@ export const T = {
   // page (Paper / light — marketing wrap around the frame; never themed)
   pageBg: "#F9F4EB",        // surface-primary
   pageContainer: "#EEE8DD", // surface-secondary — houses the product frame
+  pageLine: "#E0D9CC",      // surface-tertiary — card edges, row hairlines
   font: "'Inter', -apple-system, sans-serif",
   ...tokens,
 }
@@ -185,6 +186,13 @@ const CSS = `
 /* bars that grow from zero to their width on mount */
 .ll-grow { animation:ll-grow .9s cubic-bezier(.22,1,.36,1) both; transform-origin:left center; }
 @keyframes ll-grow { from{transform:scaleX(0)} to{transform:none} }
+/* multi-step list: the active row's hairline fills over the shot's length */
+.ll-fill { animation:ll-fill linear both; transform-origin:left center; }
+@keyframes ll-fill { from{transform:scaleX(0)} to{transform:none} }
+.ll-open { display:grid; grid-template-rows:0fr; opacity:0;
+  transition:grid-template-rows .5s cubic-bezier(.22,1,.36,1), opacity .3s; }
+.ll-open.on { grid-template-rows:1fr; opacity:1; transition-delay:0s, .12s; }
+.ll-open > * { overflow:hidden; }
 
 /* -- app shell: sidebar + top bar (Figma mock, live-app content) -- */
 .ll-app { display:flex; width:100%; height:100%; position:relative; overflow:hidden;

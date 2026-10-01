@@ -367,7 +367,7 @@ function ContentSel(p: { v: string; set: (s: string) => void }): JSX.Element {
 }
 
 // props that only mean something in the other layout stay out of saved output
-const MULTI_ONLY: Array<keyof Cfg> = ["sequence", "autoCycle", "resumeDelay", "scrubber", "maxWidth"]
+const MULTI_ONLY: Array<keyof Cfg> = ["sequence", "stepStyle", "autoCycle", "resumeDelay", "scrubber", "maxWidth"]
 const SINGLE_ONLY: Array<keyof Cfg> = ["content", "customScene", "cropX", "cropY", "cropW", "cropH", "loop", "loopPause", "segStart", "segEnd"]
 
 export default function Workbench(): JSX.Element {
@@ -387,6 +387,7 @@ export default function Workbench(): JSX.Element {
   const toggleAll = () => saveFold(Object.fromEntries(Object.keys(FOLD_ALL).map((k) => [k, !allOpen])) as Record<FoldKey, boolean>)
   const [previewW, setPreviewW] = React.useState<number | "full">("full")
   const [cropEdit, setCropEdit] = React.useState(false)
+  const [scrubSlot, setScrubSlot] = React.useState<HTMLSpanElement | null>(null)
   const [dragging, setDragging] = React.useState<"" | "w" | "h" | "pin">("")
   // transport
   const [scrubOn, setScrubOn] = React.useState(false)
@@ -478,17 +479,23 @@ export default function Workbench(): JSX.Element {
   // scene state only means something for scenes inside the app shell
   const shellShot = isMulti || entry.w === APP_W
 
+  // the list style frames its own shot (the mock's bleed card)
+  const listStyle = isMulti && (cfg.stepStyle === "auto"
+    ? SEQUENCES.find((q) => q.key === cfg.sequence)?.style === "list"
+    : cfg.stepStyle === "list")
   // one-line summaries for folded sections
   const secs = (ms: number) => +(ms / 1000).toFixed(1) + "s"
   const summary: Record<FoldKey, string> = {
     content: isMulti
-      ? "Multi-step · " + (SEQUENCES.find((q) => q.key === cfg.sequence)?.title ?? cfg.sequence)
+      ? "Multi-step · " + (SEQUENCES.find((q) => q.key === cfg.sequence)?.title ?? cfg.sequence) + " · " + (listStyle ? "List" : "Captions")
       : "Single · " + (cfg.content === "custom" ? "Crop of " + byKey(cfg.customScene).title : byKey(cfg.content).title),
     playback: isMulti
       ? (cfg.autoCycle ? "Auto-advance · " + cfg.resumeDelay + "s pause" : "Manual")
       : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.segEnd ? " · " + secs(cfg.segStart) + "–" + secs(cfg.segEnd) : ""),
     state: (cfg.startCollapsed ? "Collapsed" : "Open") + " · " + (cfg.startTheme === "dark" ? "Dark" : "Light"),
-    framing: (cfg.fit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%" : "Scale to fit")
+    framing: listStyle ? "Set by list style"
+      : (cfg.fit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%"
+        : cfg.fit === "bleed" ? "Bleed · " + cfg.bleedShow + "px across" : "Scale to fit")
       + " · " + (cfg.canvasHeight ? cfg.canvasHeight + "px" : "Auto"),
     canvas: (cfg.pattern === "none" ? "No pattern" : cfg.pattern[0].toUpperCase() + cfg.pattern.slice(1))
       + " · " + cfg.bgColor.toUpperCase() + (cfg.radius ? " · r" + cfg.radius : ""),
@@ -589,6 +596,8 @@ export default function Workbench(): JSX.Element {
                 )}
               </span>
             )}
+            {/* multi-step's scrubber lives inside SceneCanvas; it renders here */}
+            {isMulti && <span className="wb-tools" ref={setScrubSlot} />}
             <span style={{ flex: 1 }} />
             <Seg v={bpValue} set={(v) => setPreviewW(v === "full" ? "full" : +v)}
               options={[["375", "375"], ["768", "768"], ["1024", "1024"], ["full", "Full"]]} />
@@ -609,7 +618,7 @@ export default function Workbench(): JSX.Element {
               style={{ position: "relative", cursor: !isMulti && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
             >
               {isMulti ? (
-                <SceneCanvas key={runNonce} {...cfg} scrubber maxWidth={4000} />
+                <SceneCanvas key={runNonce} {...cfg} scrubber scrubberSlot={scrubSlot} maxWidth={4000} />
               ) : cropEdit ? (
                 <CropEditor sceneKey={cfg.customScene} holdT={t}
                   rect={{ x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }}
@@ -675,6 +684,12 @@ export default function Workbench(): JSX.Element {
                 <Sel v={cfg.sequence} set={(v) => set("sequence")(v)}
                   options={SEQUENCES.map((q) => q.key)} titles={SEQUENCES.map((q) => q.title)} />
               </Field>
+            ) : null}
+            {isMulti ? (
+              <Field label="Style">
+                <Seg v={cfg.stepStyle} set={(v) => set("stepStyle")(v as Cfg["stepStyle"])}
+                  options={[["auto", "Auto"], ["captions", "Captions"], ["list", "List"]]} />
+              </Field>
             ) : (
               <>
                 <Field label="Shot">
@@ -738,9 +753,21 @@ export default function Workbench(): JSX.Element {
 
           </Section>
           <Section n={4} title="Framing" open={fold.framing} onToggle={() => toggleFold("framing")} summary={summary.framing}>
+            {listStyle && <div className="wb-hint">The list style crops its shot like the mock (a bleed card, 48px inset, 16px on mobile), so these don't apply.</div>}
+            {!listStyle && <>
             <Field label="Mode">
-              <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"]]} />
+              <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"], ["bleed", "Bleed"]]} />
             </Field>
+            {cfg.fit === "bleed" && (
+              <div className="wb-sub">
+                <Field label="Insets x · y">
+                  <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
+                </Field>
+                <Field label="Show">
+                  <Num v={cfg.bleedShow} set={set("bleedShow")} wide /><span className="wb-unit">px across</span>
+                </Field>
+              </div>
+            )}
             {cfg.fit === "pinned" && (
               <div className="wb-sub">
                 <Field label="Anchor"><CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} /></Field>
@@ -762,6 +789,7 @@ export default function Workbench(): JSX.Element {
                 options={[["auto", "Auto"], ["fixed", "Fixed"]]} />
               {cfg.canvasHeight > 0 && <><Num v={cfg.canvasHeight} set={set("canvasHeight")} wide /><span className="wb-unit">px</span></>}
             </Field>
+            </>}
 
           </Section>
           <Section n={5} title="Canvas" open={fold.canvas} onToggle={() => toggleFold("canvas")} summary={summary.canvas}>

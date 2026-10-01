@@ -33,6 +33,18 @@ function Demo(): JSX.Element {
 
         <div style={{ height: 160 }} />
 
+        {/* the homepage refresh's Use Cases section: header in Framer, list + shot here */}
+        <div style={{ textAlign: "center", maxWidth: 614, margin: "0 auto" }}>
+          <h2 style={{ fontSize: 32, fontWeight: 400, color: T.brand, letterSpacing: -0.64 }}>Use Cases</h2>
+          <p style={{ marginTop: 8, fontSize: 20, lineHeight: 1.4, color: T.brandFaint, letterSpacing: -0.4 }}>
+            Designed for your research needs. From AI sentiment and adoption to concept tests and brand tracking.
+          </p>
+        </div>
+        <div style={{ height: 80 }} />
+        <SceneCanvas layout="multi-step" sequence="use-cases" />
+
+        <div style={{ height: 160 }} />
+
         {/* minor-section example: copy + a single fragment */}
         <div className="demo-split">
           <div>

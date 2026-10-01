@@ -58,15 +58,23 @@ export const byKey = (key: string): RegistryEntry =>
   REGISTRY.find((e) => e.key === key) ?? REGISTRY[0]
 
 // ------------------------------------------------------------- sequences ----
-/** one step of a multi-step layout: which shot plays, and its caption */
-export type Step = { content: string; title: string; body: string }
+/** one step of a multi-step layout: which shot plays, and its caption.
+ *  `ms` is the shot's approximate length, a first guess for the list style's
+ *  progress line until the real length is measured on the first play. */
+export type Step = { content: string; title: string; body: string; ms?: number }
 
-export type Sequence = { key: string; title: string; steps: Step[] }
+/** how a multi-step lays out its steps:
+ *   captions — the shot on top, a row of captions under it (How it works)
+ *   list     — numbered rows beside a cropped shot; stacks on mobile (Use Cases) */
+export type StepStyle = "captions" | "list"
+
+export type Sequence = { key: string; title: string; style: StepStyle; steps: Step[] }
 
 export const SEQUENCES: Sequence[] = [
   {
     key: "how-it-works",
     title: "How it works",
+    style: "captions",
     steps: [
       {
         content: "design-study",
@@ -92,6 +100,45 @@ export const SEQUENCES: Sequence[] = [
         content: "compound",
         title: "Compound your learnings",
         body: "The more you run, the richer your workspace gets. Search and build on past studies, themes, and reports, so your team keeps getting sharper.",
+      },
+    ],
+  },
+  {
+    // homepage refresh (Figma "Homepage Refresh" 897:4407). Shots are
+    // stand-ins from the existing scenes until each use case gets its own
+    key: "use-cases",
+    title: "Use Cases",
+    style: "list",
+    steps: [
+      {
+        content: "ei-hero-report",
+        title: "Market & Audience Understanding",
+        body: "Learn how your audience thinks and feels, and watch it change over time.",
+      },
+      {
+        content: "design-study",
+        title: "Concept & Prototype Testing",
+        body: "Put concepts in front of real people and hear why one wins, not just which.",
+      },
+      {
+        content: "interview-scale",
+        title: "Creative & Message Testing",
+        body: "See how people react to your ads and messaging, moment by moment, before you launch.",
+      },
+      {
+        content: "reach-people",
+        title: "B2B & Expert Audiences",
+        body: "Reach decision-makers and specialists, screened on the criteria that matter to you.",
+      },
+      {
+        content: "compound",
+        title: "Usability Testing",
+        body: "Watch people use your product, hear what they're thinking, and see where they get stuck.",
+      },
+      {
+        content: "deliver-results",
+        title: "Brand Tracking",
+        body: "Track how people see your brand wave over wave, and what's driving the change.",
       },
     ],
   },

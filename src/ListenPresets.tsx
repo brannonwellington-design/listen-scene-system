@@ -13,6 +13,11 @@ export type Preset = {
 }
 
 export const PRESETS: Preset[] = [
+  // --- multi-step ---------------------------------------------------------------
+  {
+    name: "Use Cases · list",
+    props: { layout: "multi-step", sequence: "use-cases" },
+  },
   // --- full scenes ------------------------------------------------------------
   {
     name: "Design study · dots",
