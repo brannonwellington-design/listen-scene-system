@@ -10,6 +10,7 @@
 // corner-pinned native pixels with masking + optional small-screen fallback).
 // Multi-step is literally the single layout per step, plus the rail.
 import * as React from "react"
+import { createPortal } from "react-dom"
 import { addPropertyControls, ControlType } from "framer"
 import {
   T, PatternLayer, PatternType, ensureCss, ShellPrefs, useShellPrefs, APP_W, APP_H,
@@ -97,6 +98,8 @@ export type SceneCanvasProps = {
   debugPlayFrom?: number
   debugOnTime?: (t: number) => void
   debugCanvasRef?: React.Ref<HTMLDivElement>
+  /** multi-step: render the scrubber into this element (the workbench toolbar) */
+  scrubberSlot?: HTMLElement | null
 }
 
 /** control defaults — single source for destructuring and preset merging */
@@ -244,10 +247,13 @@ function Single(props: typeof CANVAS_DEFAULTS & {
     // a card with the shot inset from its top-left corner and running off the
     // right and bottom edges; scale follows the card width, so the crop reads
     // the same at every size
-    const s = availW > 0 ? Math.max(0.1, (availW - insetX) / bleedShow) : 0
+    // the larger of: `bleedShow` px across, or enough to still run off the
+    // bottom when the card is tall (most of the shot's height, never all of it)
+    const h = canvasHeight || availW * bleedRatio
+    const s = availW > 0 ? Math.max(0.1, (availW - insetX) / bleedShow, (h - insetY) / (rect.h * 0.92)) : 0
     return (
       <div ref={setRefs} style={{
-        ...containerStyle, height: canvasHeight || availW * bleedRatio,
+        ...containerStyle, height: h,
         border: `1px solid ${T.pageLine}`,
       }}>
         <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
@@ -306,8 +312,8 @@ function Single(props: typeof CANVAS_DEFAULTS & {
 }
 
 // ------------------------------------------------------------ multi-step -----
-function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[] }): JSX.Element {
-  const { sequence, stepStyle, autoCycle, resumeDelay, scrubber, maxWidth, steps: customSteps, ...canvas } = props
+function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlot?: HTMLElement | null }): JSX.Element {
+  const { sequence, stepStyle, autoCycle, resumeDelay, scrubber, maxWidth, steps: customSteps, scrubberSlot, ...canvas } = props
   const seq = sequenceByKey(sequence)
   const steps = sequence === "custom" && customSteps?.length ? customSteps : seq.steps
   const style: StepStyle = stepStyle !== "auto" ? stepStyle : sequence === "custom" ? "captions" : seq.style
@@ -393,6 +399,17 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[] }): JSX.Elem
   }, [stepKey, steps, at, onStepDone])
   const stepMs = measured.current[steps[at].content] ?? steps[at].ms ?? 12000
 
+  const listRef = React.useRef<HTMLDivElement>(null)
+  const [listH, setListH] = React.useState(0)
+  React.useLayoutEffect(() => {
+    const el = listRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setListH(Math.round(el.offsetHeight)))
+    ro.observe(el)
+    setListH(Math.round(el.offsetHeight))
+    return () => ro.disconnect()
+  }, [style])
+
   const [width, setWidth] = React.useState(0)
   React.useLayoutEffect(() => {
     const el = rootRef.current
@@ -405,29 +422,40 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[] }): JSX.Elem
 
   const btn: React.CSSProperties = { border: `1px solid ${T.brandFaint}`, borderRadius: 6, padding: "3px 10px", background: "transparent", cursor: "pointer", font: "inherit", fontSize: 12 }
 
-  const scrubBar = scrubber ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, fontSize: 12, color: T.inkSoft }}>
-          {!scrubOn ? (
-            <button onClick={toggleScrub} style={btn}><I name="sliders-horizontal" size={12} style={{ marginRight: 5, verticalAlign: -2 }} />Scrub</button>
-          ) : (
-            <>
-              <button onClick={() => setPlayStart(scrubPlay ? null : scrubT)}
-                style={{ ...btn, width: 40, textAlign: "center", background: T.ink, color: "#F9F4EB", borderColor: T.ink }}>
-                <I name={scrubPlay ? "pause" : "play"} size={11} style={{ verticalAlign: -1 }} />
-              </button>
-              <input type="range" min={0} max={25000} step={100} value={scrubT}
-                onChange={(e) => seek(+e.target.value)} style={{ flex: 1, maxWidth: 440 }} />
-              <span style={{ fontVariantNumeric: "tabular-nums", width: 44 }}>{(scrubT / 1000).toFixed(1)}s</span>
-              {[-1000, -100, 100, 1000].map((d) => (
-                <button key={d} onClick={() => seek(Math.max(0, Math.min(25000, scrubT + d)))} style={btn}>
-                  {d > 0 ? `+${d / 1000}s` : `${d / 1000}s`}
-                </button>
-              ))}
-              <button onClick={toggleScrub} style={btn}>Live</button>
-            </>
-          )}
-        </div>
-  ) : null
+  // the scrubber renders inline, or into the workbench toolbar in its skin
+  const wb = !!scrubberSlot
+  const b = (extra: React.CSSProperties = {}) =>
+    wb ? { className: "wb-btn" + (extra.background ? " primary" : ""), style: extra.width ? { width: extra.width, justifyContent: "center", padding: 0 } : undefined }
+      : { style: { ...btn, ...extra } }
+  const scrubControls = (
+    <>
+      {!scrubOn ? (
+        <button onClick={toggleScrub} {...b()}><I name="sliders-horizontal" size={wb ? 13 : 12} style={wb ? undefined : { marginRight: 5, verticalAlign: -2 }} />{wb ? " " : ""}Scrub</button>
+      ) : (
+        <>
+          <button onClick={() => setPlayStart(scrubPlay ? null : scrubT)}
+            {...b({ width: 40, textAlign: "center", background: T.ink, color: "#F9F4EB", borderColor: T.ink })}>
+            <I name={scrubPlay ? "pause" : "play"} size={wb ? 12 : 11} style={wb ? undefined : { verticalAlign: -1 }} />
+          </button>
+          <input type="range" min={0} max={25000} step={100} value={scrubT}
+            className={wb ? "wb-slider grow" : undefined}
+            onChange={(e) => seek(+e.target.value)} style={{ flex: 1, maxWidth: wb ? 280 : 440 }} />
+          <span className={wb ? "wb-time" : undefined} style={wb ? undefined : { fontVariantNumeric: "tabular-nums", width: 44 }}>{(scrubT / 1000).toFixed(1)}s</span>
+          {[-1000, -100, 100, 1000].map((d) => (
+            <button key={d} onClick={() => seek(Math.max(0, Math.min(25000, scrubT + d)))} {...b()}>
+              {d > 0 ? `+${d / 1000}s` : `${d / 1000}s`}
+            </button>
+          ))}
+          <button onClick={toggleScrub} {...b()}>Live</button>
+        </>
+      )}
+    </>
+  )
+  const scrubBar = !scrubber ? null : wb ? createPortal(scrubControls, scrubberSlot!) : (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, fontSize: 12, color: T.inkSoft }}>
+      {scrubControls}
+    </div>
+  )
 
   // each step is the single layout, remounted per step so it fades in fresh;
   // steps always play whole (no loop, no segment) and report back to advance
@@ -452,10 +480,12 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[] }): JSX.Elem
     const stacked = width > 0 && width < 820
     const cardW = stacked ? width : width * 684 / 1392
     const inset = Math.max(12, Math.round(cardW * (stacked ? 16 / 370 : 48 / 684)))
-    const card = { fit: "bleed" as const, bleedRatio: stacked ? 200 / 370 : 520 / 684, insetX: inset, insetY: inset, radius: 12, canvasHeight: 0 }
+    // side by side, the card matches the list's height at every width (it
+    // follows the rows opening and closing); stacked, it keeps the mock's ratio
+    const card = { fit: "bleed" as const, bleedRatio: stacked ? 200 / 370 : 520 / 684, insetX: inset, insetY: inset, radius: 12, canvasHeight: stacked ? 0 : listH }
     const rowGap = stacked ? 16 : 24
     const list = (
-      <div style={{ display: "flex", flexDirection: "column", gap: rowGap, width: "100%", maxWidth: stacked ? undefined : 448, justifySelf: "end" }}>
+      <div ref={listRef} style={{ display: "flex", flexDirection: "column", gap: rowGap, width: "100%", maxWidth: stacked ? undefined : 448, justifySelf: "end" }}>
         {steps.map((st, i) => {
           const on = i === at
           const last = i === steps.length - 1
@@ -563,7 +593,7 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   return (
     <ShellPrefs.Provider value={prefs}>
       {merged.layout === "multi-step" ? (
-        <MultiStep {...merged} steps={props.steps} />
+        <MultiStep {...merged} steps={props.steps} scrubberSlot={props.scrubberSlot} />
       ) : (
         <Single {...merged}
           debugHold={props.debugHold}

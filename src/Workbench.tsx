@@ -387,6 +387,7 @@ export default function Workbench(): JSX.Element {
   const toggleAll = () => saveFold(Object.fromEntries(Object.keys(FOLD_ALL).map((k) => [k, !allOpen])) as Record<FoldKey, boolean>)
   const [previewW, setPreviewW] = React.useState<number | "full">("full")
   const [cropEdit, setCropEdit] = React.useState(false)
+  const [scrubSlot, setScrubSlot] = React.useState<HTMLSpanElement | null>(null)
   const [dragging, setDragging] = React.useState<"" | "w" | "h" | "pin">("")
   // transport
   const [scrubOn, setScrubOn] = React.useState(false)
@@ -595,6 +596,8 @@ export default function Workbench(): JSX.Element {
                 )}
               </span>
             )}
+            {/* multi-step's scrubber lives inside SceneCanvas; it renders here */}
+            {isMulti && <span className="wb-tools" ref={setScrubSlot} />}
             <span style={{ flex: 1 }} />
             <Seg v={bpValue} set={(v) => setPreviewW(v === "full" ? "full" : +v)}
               options={[["375", "375"], ["768", "768"], ["1024", "1024"], ["full", "Full"]]} />
@@ -615,7 +618,7 @@ export default function Workbench(): JSX.Element {
               style={{ position: "relative", cursor: !isMulti && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
             >
               {isMulti ? (
-                <SceneCanvas key={runNonce} {...cfg} scrubber maxWidth={4000} />
+                <SceneCanvas key={runNonce} {...cfg} scrubber scrubberSlot={scrubSlot} maxWidth={4000} />
               ) : cropEdit ? (
                 <CropEditor sceneKey={cfg.customScene} holdT={t}
                   rect={{ x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }}
