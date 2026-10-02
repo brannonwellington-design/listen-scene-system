@@ -2495,3 +2495,379 @@ export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playF
     </AppShell>
   )
 }
+
+// ------------------------------------------ Use case · Usability & UX testing -
+// Homepage refresh, Use Cases 04, from the legacy concept shot: the
+// participant shares their screen while using a customer's site in their own
+// browser, and the Listen interviewer runs in a rail beside it. The beat is a
+// say/do gap: they say they'd rather get help from a person, then pick the AI
+// agent in the site's help widget, and the interviewer asks why. The browser
+// and the site ("Omni", a made-up customer) are someone else's product, so
+// they keep fixed light colors; only the rail follows the theme.
+const UX_BAR_H = 52                  // browser toolbar
+const UX_RAIL_W = 368                // interviewer rail
+const UX_SITE_W = APP_W - UX_RAIL_W
+const UX_PAD = 24                    // rail margins
+const UX_CAM = 160                   // webcam tile
+const UX_Q_FONT = { fontSize: 22, lineHeight: "30.8px", letterSpacing: -0.44 }
+const UX_PROGRESS = 0.55
+const UX_ORANGE = "#C4500B"
+const UX_INK = "#161616"
+const UX_SOFT = "#6B6B6B"
+const UX_LINE = "#ECECEC"
+const UX_REC_MS = 2400
+const UX_SAY_Q = "Would you rather get help from a person or an AI agent?"
+const UX_SAID = "A person, honestly. I'd rather talk to someone real.".split(" ")
+const UX_TASK = "Now imagine you have a question about your latest invoice. Get help the way you normally would.".split(" ")
+const UX_FOLLOWUP = "You said you'd rather talk to a person, but you chose the AI agent. What made you do that?".split(" ")
+type UXPhase = "ask" | "rec" | "load1" | "task" | "load2" | "follow"
+
+/** Omni's mark: two linked rings, then the wordmark */
+function OmniLogo({ color, size = 22 }: { color: string; size?: number }): JSX.Element {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 1, color, fontSize: size, lineHeight: 1, letterSpacing: -0.5, fontWeight: 500 }}>
+      <svg width={size * 1.15} height={size} viewBox="0 0 23 20" fill="none" stroke="currentColor" strokeWidth={2.2}>
+        <ellipse cx="8" cy="10" rx="6.6" ry="8.4" /><ellipse cx="15" cy="10" rx="6.6" ry="8.4" />
+      </svg>
+      mni
+    </span>
+  )
+}
+
+/** browser toolbar, Safari-style */
+function UXBrowserBar(): JSX.Element {
+  const ic = { color: "#6E6E6E" }
+  return (
+    <div style={{ height: UX_BAR_H, flexShrink: 0, background: "#F2F2F2", borderBottom: "1px solid #DEDEDE", display: "flex", alignItems: "center", padding: "0 18px", position: "relative" }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {["#FF5F57", "#FEBC2E", "#28C840"].map((c) => <span key={c} style={{ width: 12, height: 12, borderRadius: "50%", background: c }} />)}
+      </div>
+      <span style={{ ...ic, marginLeft: 28, display: "inline-flex", gap: 2, alignItems: "center" }}><I name="panel-left" size={17} /><I name="chevron-down" size={12} /></span>
+      <span style={{ ...ic, marginLeft: 22, display: "inline-flex", gap: 14 }}><I name="chevron-left" size={18} /><span style={{ opacity: 0.4 }}><I name="chevron-right" size={18} /></span></span>
+      <div style={{ position: "absolute", left: "50%", top: 10, transform: "translateX(-50%)", width: 440, height: 32, borderRadius: 8, background: "#E6E6E6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13.5, color: "#262626" }}>
+        <span style={{ position: "absolute", left: 12, ...ic }}><I name="monitor" size={14} /></span>
+        omni.ai
+        <span style={{ position: "absolute", right: 12, ...ic }}><I name="rotate-cw" size={13} /></span>
+      </div>
+      <span style={{ flex: 1 }} />
+      <span style={{ ...ic, display: "inline-flex", gap: 18 }}>
+        <I name="circle-arrow-down" size={17} /><I name="share-up" size={17} /><I name="plus" size={17} /><I name="copy" size={16} />
+      </span>
+    </div>
+  )
+}
+
+function UXCard({ label, badge, children }: { label: string; badge?: React.ReactNode; children: React.ReactNode }): JSX.Element {
+  return (
+    <div style={{ flex: 1, border: `1px solid ${UX_LINE}`, borderRadius: 12, padding: 20, display: "flex", flexDirection: "column", height: 200 }}>
+      <div style={{ display: "flex", alignItems: "center", height: 20 }}>
+        <span style={{ fontSize: 11, letterSpacing: 0.9, color: "#7A7A7A", fontWeight: 500 }}>{label}</span>
+        <span style={{ flex: 1 }} />{badge}
+      </div>
+      {children}
+    </div>
+  )
+}
+const uxBtn: React.CSSProperties = { height: 32, border: `1px solid #E2E2E2`, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 500, color: UX_INK, marginTop: "auto", background: "#FFF" }
+
+function UXMeter({ name, value, f, note, cursor }: { name: string; value: string; f: number; note: string; cursor?: string }): JSX.Element {
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ display: "flex", fontSize: 12.5 }}>
+        <span style={{ color: UX_INK, fontWeight: 500 }}>{name}</span><span style={{ flex: 1 }} /><span style={{ color: "#8A8A8A" }}>{value}</span>
+      </div>
+      <div data-cursor={cursor} style={{ height: 6, borderRadius: 3, background: "#F3EEE9", marginTop: 10, overflow: "hidden" }}>
+        <div style={{ width: `${f * 100}%`, height: "100%", background: UX_ORANGE, borderRadius: 3 }} />
+      </div>
+      <div style={{ fontSize: 11, color: "#9A9A9A", marginTop: 8 }}>{note}</div>
+    </div>
+  )
+}
+
+/** the customer's billing page, with its help widget */
+function UXSite({ open, hov, picked, agentSaid, usageHover }: { open: boolean; hov: "" | "ai" | "human"; picked: boolean; agentSaid: number; usageHover: boolean }): JSX.Element {
+  const opt = (k: "ai" | "human", icon: string, title: string, sub: string, tag: string, tagC: [string, string]) => {
+    const on = hov === k || (picked && k === "ai")
+    return (
+      <div data-cursor={"ux-" + k} style={{
+        display: "flex", alignItems: "center", gap: 12, padding: "14px 14px", borderRadius: 12,
+        background: on ? "#F8E9DC" : "#FBF4EE", border: `1px solid ${on ? "#E9C3A2" : "#F2E4D7"}`,
+        transition: "background-color .2s ease, border-color .2s ease",
+      }}>
+        <span style={{ width: 34, height: 34, borderRadius: 9, background: "#FFF", border: "1px solid #EFE2D6", display: "flex", alignItems: "center", justifyContent: "center", color: UX_INK }}><I name={icon} size={16} /></span>
+        <span style={{ flex: 1 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: UX_INK }}>{title}</div>
+          <div style={{ fontSize: 12, color: UX_SOFT, marginTop: 2, whiteSpace: "nowrap" }}>{sub}</div>
+        </span>
+        <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: 0.6, padding: "3px 7px", whiteSpace: "nowrap", borderRadius: 6, color: tagC[0], background: tagC[1] }}>{tag}</span>
+      </div>
+    )
+  }
+  const AGENT = "Hi! I'm Omni's AI agent. I can help with plans, payments and invoices. What do you need?".split(" ")
+  return (
+    <div style={{ width: UX_SITE_W, height: "100%", position: "relative", overflow: "hidden", background: "#FFF", color: UX_INK }}>
+      {/* site header */}
+      <div style={{ height: 56, background: UX_ORANGE, display: "flex", alignItems: "center", padding: "0 24px", gap: 30 }}>
+        <OmniLogo color="#FFF" />
+        <span style={{ display: "flex", gap: 26, fontSize: 13.5, fontWeight: 500, color: "rgba(255,255,255,.92)" }}><span>Dashboard</span><span>Projects</span><span>Settings</span></span>
+        <span style={{ flex: 1 }} />
+        <span style={{ height: 32, padding: "0 12px", borderRadius: 8, background: "rgba(255,255,255,.16)", border: "1px solid rgba(255,255,255,.22)", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: "#FFF" }}><I name="search" size={13} />Search</span>
+        <span style={{ color: "#FFF", display: "flex" }}><I name="bell" size={17} /></span>
+      </div>
+
+      <div style={{ padding: "36px 40px 0" }}>
+        <div style={{ display: "flex", alignItems: "flex-start" }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: "#8A8A8A" }}>Settings <span style={{ margin: "0 4px" }}>/</span> <span style={{ color: UX_INK }}>Billing</span></div>
+            <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: -0.5, marginTop: 6 }}>Billing</div>
+            <div style={{ fontSize: 13.5, color: UX_SOFT, marginTop: 6 }}>Manage your plan, payment details and view past invoices.</div>
+          </div>
+          <span style={{ ...uxBtn, marginTop: 0, padding: "0 14px", gap: 8, height: 36 }}><I name="download" size={14} />Download statements</span>
+        </div>
+
+        <div style={{ display: "flex", gap: 16, marginTop: 26 }}>
+          <UXCard label="CURRENT PLAN" badge={<span style={{ fontSize: 11, fontWeight: 500, color: "#15803D", background: "#E9F8EE", borderRadius: 10, padding: "2px 8px", display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 5, height: 5, borderRadius: "50%", background: "#16A34A" }} />Active</span>}>
+            <div style={{ fontSize: 19, fontWeight: 600, marginTop: 12 }}>Business</div>
+            <div style={{ marginTop: 2 }}><span style={{ fontSize: 28, fontWeight: 600, letterSpacing: -0.6 }}>$100</span><span style={{ fontSize: 12.5, color: "#8A8A8A" }}> / month</span></div>
+            <div style={{ fontSize: 12, lineHeight: "18px", color: UX_SOFT, marginTop: 8 }}>Billed monthly. Includes priority support, advanced analytics and unlimited projects.</div>
+            <span style={uxBtn}>Change plan</span>
+          </UXCard>
+          <UXCard label="PAYMENT METHOD">
+            <div style={{ fontSize: 16, fontWeight: 500, marginTop: 14, letterSpacing: 1 }}>•••• •••• •••• 5555</div>
+            <div style={{ fontSize: 12, color: "#8A8A8A", marginTop: 6 }}>Expires 08 / 2027</div>
+            <span style={uxBtn}>Update payment method</span>
+          </UXCard>
+          <UXCard label="UPCOMING INVOICE">
+            <div style={{ marginTop: 12 }}><span style={{ fontSize: 28, fontWeight: 600, letterSpacing: -0.6 }}>$100</span><span style={{ fontSize: 13, color: "#8A8A8A" }}>.00</span></div>
+            <div style={{ fontSize: 12, color: UX_SOFT, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}><I name="calendar" size={13} />Scheduled for <span style={{ color: UX_INK, fontWeight: 600 }}>July 12, 2026</span></div>
+            <div style={{ borderTop: `1px solid ${UX_LINE}`, marginTop: 12, paddingTop: 10, fontSize: 11.5, color: UX_SOFT, display: "grid", gridTemplateColumns: "1fr auto", rowGap: 4 }}>
+              <span>Business plan</span><span style={{ color: UX_INK }}>$100.00</span><span>Tax</span><span style={{ color: UX_INK }}>$0.00</span>
+            </div>
+            <span style={uxBtn}>View invoice details</span>
+          </UXCard>
+        </div>
+
+        <div style={{ border: `1px solid ${UX_LINE}`, borderRadius: 12, padding: 20, marginTop: 16 }}>
+          <div style={{ display: "flex", alignItems: "flex-start" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>Usage this cycle</div>
+              <div style={{ fontSize: 12, color: "#8A8A8A", marginTop: 3 }}>Jun 1 – Jul 1, 2026 · resets in 18 days</div>
+            </div>
+            <span style={{ fontSize: 12.5, fontWeight: 500, color: UX_ORANGE, textDecoration: usageHover ? "underline" : "none" }}>View detailed usage →</span>
+          </div>
+          <div style={{ display: "flex", gap: 40, marginTop: 18 }}>
+            <UXMeter name="API Requests" value="842K / 1M" f={0.842} note="84% of monthly limit used" cursor="ux-api" />
+            <UXMeter name="Team Members" value="18 / 25" f={0.72} note="7 seats remaining" />
+          </div>
+        </div>
+
+        <div style={{ border: `1px solid ${UX_LINE}`, borderRadius: 12, marginTop: 16, overflow: "hidden" }}>
+          <div style={{ fontSize: 16, fontWeight: 600, padding: "18px 20px" }}>Recent invoices</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", padding: "10px 20px", background: "#FBF5F0", fontSize: 10.5, letterSpacing: 0.8, color: "#8A8A8A", fontWeight: 500 }}>
+            <span>INVOICE</span><span>DATE</span><span>AMOUNT</span>
+          </div>
+          {[["June Invoice", "Jun 12, 2026"], ["May Invoice", "May 12, 2026"]].map(([n, d]) => (
+            <div key={n} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", alignItems: "center", padding: "14px 20px", borderTop: `1px solid ${UX_LINE}`, fontSize: 13 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 500 }}><span style={{ width: 26, height: 26, borderRadius: 6, background: "#FBEBDD", color: UX_ORANGE, display: "flex", alignItems: "center", justifyContent: "center" }}><I name="file" size={13} /></span>{n}</span>
+              <span style={{ color: UX_SOFT }}>{d}</span><span style={{ fontWeight: 600 }}>$100.00</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* help widget */}
+      <div style={{
+        position: "absolute", right: 24, bottom: 92, width: 384, height: 404, borderRadius: 16, background: "#FFF",
+        border: "1px solid #E8E8E8", boxShadow: "0 12px 40px rgba(0,0,0,.14)", display: "flex", flexDirection: "column", overflow: "hidden",
+        opacity: open ? 1 : 0, transform: open ? "none" : "translateY(12px) scale(.98)", transformOrigin: "bottom right",
+        transition: "opacity .3s ease, transform .4s cubic-bezier(.22,1,.36,1)",
+      }}>
+        <div style={{ height: 60, display: "flex", alignItems: "center", padding: "0 18px", borderBottom: `1px solid ${UX_LINE}` }}>
+          <OmniLogo color={UX_INK} size={20} /><span style={{ flex: 1 }} />
+          <span style={{ width: 28, height: 28, borderRadius: 8, background: "#F4F4F4", display: "flex", alignItems: "center", justifyContent: "center", color: UX_SOFT }}><I name="x" size={14} /></span>
+        </div>
+        <div style={{ flex: 1, padding: 20, position: "relative" }}>
+          <div style={{ opacity: agentSaid > 0 ? 0 : 1, transition: "opacity .25s ease" }}>
+            <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: -0.3, marginBottom: 16 }}>How can we help?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {opt("ai", "sparkles", "Talk to an AI agent now", "No waiting, answers in seconds", "INSTANT", ["#15803D", "#E2F6E8"])}
+              {opt("human", "headphones", "Talk to a human", "Connect with a live specialist", "~6 MIN WAIT", ["#B45309", "#FCEFD9"])}
+            </div>
+          </div>
+          {agentSaid > 0 && (
+            <div className="ll-enter" style={{ position: "absolute", inset: 20 }}>
+              <div style={{ fontSize: 11, color: "#9A9A9A", textAlign: "center", marginBottom: 14 }}>You're chatting with Omni AI</div>
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                <span style={{ width: 26, height: 26, borderRadius: "50%", background: UX_ORANGE, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><I name="sparkles" size={13} /></span>
+                <div style={{ background: "#F5F2EF", borderRadius: "4px 12px 12px 12px", padding: "10px 12px", fontSize: 13, lineHeight: "19px", maxWidth: 260 }}>
+                  {agentSaid === 1
+                    ? <span style={{ display: "inline-flex", gap: 4, padding: "4px 0" }}>{[0, 1, 2].map((i) => <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "#9A9A9A", animation: "ll-pulse 1s ease-in-out infinite", animationDelay: `${i * 0.18}s` }} />)}</span>
+                    : AGENT.slice(0, agentSaid - 1).join(" ")}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "0 16px 10px" }}>
+          <div style={{ height: 44, borderRadius: 10, border: "1px solid #E6E6E6", display: "flex", alignItems: "center", padding: "0 6px 0 14px", fontSize: 13, color: "#A0A0A0" }}>
+            Reply to Omni Support…<span style={{ flex: 1 }} />
+            <span style={{ width: 32, height: 32, borderRadius: 8, background: UX_ORANGE, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center" }}><I name="send" size={14} /></span>
+          </div>
+          <div style={{ fontSize: 10.5, color: "#C98A5E", textAlign: "center", marginTop: 8 }}>Powered by Omni AI</div>
+        </div>
+      </div>
+
+      {/* help launcher */}
+      <span data-cursor="ux-help" style={{
+        position: "absolute", right: 24, bottom: 24, width: 52, height: 52, borderRadius: "50%", background: UX_ORANGE, color: "#FFF",
+        display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 6px 18px rgba(196,80,11,.35)",
+      }}><I name={open ? "chevron-down" : "message-circle"} size={22} /></span>
+    </div>
+  )
+}
+
+export function SceneUCUsability({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor(APP_CURSOR_START)
+  const [phase, setPhase] = React.useState<UXPhase>("ask")
+  const [recT, setRecT] = React.useState(0)
+  const [said, setSaid] = React.useState(0)      // caption words shown
+  const [words, setWords] = React.useState(0)    // task / follow-up words streamed
+  const [enabled, setEnabled] = React.useState(true)
+  const [usageHover, setUsageHover] = React.useState(false)
+  const [open, setOpen] = React.useState(false)
+  const [hov, setHov] = React.useState<"" | "ai" | "human">("")
+  const [picked, setPicked] = React.useState(false)
+  const [agentSaid, setAgentSaid] = React.useState(0)
+  const CARD_PAD = 8, CARD_GAP = 7, STRIP_H = 60, ROW_H = 32
+  const CARD_H = CARD_PAD * 2 + STRIP_H + CARD_GAP + ROW_H
+  const AGENT_WORDS = 17
+
+  useScene(active, async (p) => {
+    setPhase("ask"); setRecT(0); setSaid(0); setWords(0); setEnabled(true); setUsageHover(false)
+    setOpen(false); setHov(""); setPicked(false); setAgentSaid(0); cur.hide()
+    // the "say": they answer out loud
+    await p.sleep(700)
+    cur.show("ux-start", -200, -160); await p.sleep(300)
+    cur.move("ux-start"); await p.sleep(750)
+    cur.click(1); await p.sleep(250)
+    setPhase("rec"); cur.hide()
+    const perWord = Math.floor((UX_REC_MS - 600) / UX_SAID.length / 30) * 30
+    for (let i = 1; i <= UX_REC_MS / IV_TICK; i++) {
+      await p.sleep(IV_TICK); setRecT(i * IV_TICK)
+      setSaid(Math.max(0, Math.min(UX_SAID.length, Math.floor((i * IV_TICK - 450) / perWord))))
+    }
+    cur.show("ux-submit", -140, -110); await p.sleep(300)
+    cur.move("ux-submit"); await p.sleep(600)
+    cur.click(2); await p.sleep(250)
+    setPhase("load1"); cur.hide(); await p.sleep(1000)
+    // the task
+    setPhase("task"); setEnabled(false)
+    for (let i = 1; i <= UX_TASK.length; i++) { await p.sleep(IV_WORD_MS); setWords(i) }
+    await p.sleep(700)
+    // the "do": they look around the page, then open help
+    cur.show({ x: 520, y: 560 }); await p.sleep(250)
+    cur.move("ux-api", 60, 0); await p.sleep(800)
+    setUsageHover(true); await p.sleep(700)
+    setUsageHover(false)
+    cur.move("ux-help"); await p.sleep(900)
+    cur.click(3); await p.sleep(200)
+    setOpen(true); await p.sleep(800)
+    cur.move("ux-human", 40, 0); await p.sleep(650)
+    setHov("human"); await p.sleep(1000)
+    cur.move("ux-ai", 40, 0); await p.sleep(450)
+    setHov("ai"); await p.sleep(500)
+    cur.click(4); await p.sleep(200)
+    setPicked(true); setAgentSaid(1); setPhase("load2"); setWords(0)
+    await p.sleep(400)
+    cur.move("ux-ai", 140, 70); await p.sleep(300)
+    cur.hide()
+    await p.sleep(500)
+    // the interviewer catches the gap
+    setPhase("follow")
+    for (let i = 1; i <= UX_FOLLOWUP.length; i++) {
+      await p.sleep(IV_WORD_MS); setWords(i)
+      if (i >= 3) setAgentSaid(Math.min(AGENT_WORDS + 1, 1 + (i - 2) * 2))
+    }
+    setAgentSaid(AGENT_WORDS + 1)
+    await p.sleep(250)
+    setEnabled(true)
+    await p.sleep(1800)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  const mm = (ms: number) => `00:${String(Math.floor(ms / 1000)).padStart(2, "0")}`
+  const recording = phase === "rec"
+  const barBtn: React.CSSProperties = { height: 32, padding: "0 12px", borderRadius: 8, fontSize: 16, display: "inline-flex", alignItems: "center", gap: 7 }
+  const stream = (ws: string[]) => (
+    <div style={UX_Q_FONT}>
+      {ws.map((w, i) => (
+        <span key={i} style={{ color: i < words ? T.ink : "#E4E4E4", opacity: i < words ? 1 : 0, transition: "color .7s ease, opacity .25s ease" }}>{w}{i < ws.length - 1 ? " " : ""}</span>
+      ))}
+    </div>
+  )
+  const dots = (
+    <div className="ll-enter" style={{ display: "flex", gap: 11, paddingTop: 13 }}>
+      {[0, 1, 2].map((i) => (
+        <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: T.ink, animation: "ll-pulse 1s ease-in-out infinite", animationDelay: `${i * 0.18}s` }} />
+      ))}
+    </div>
+  )
+
+  return (
+    <BareFrame cursor={cur.state}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <UXBrowserBar />
+        <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          <UXSite open={open} hov={hov} picked={picked} agentSaid={agentSaid} usageHover={usageHover} />
+
+          {/* interviewer rail */}
+          <div style={{ width: UX_RAIL_W, flexShrink: 0, position: "relative", borderLeft: `1px solid ${T.appBorder}`, background: T.appBg }}>
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "rgba(0, 0, 0, 0.1)" }}>
+              <div style={{ width: `${UX_PROGRESS * 100}%`, height: "100%", background: T.brand }} />
+            </div>
+            <div style={{ position: "absolute", top: 40, left: UX_PAD, right: UX_PAD }}>
+              {(phase === "ask" || recording) && <div style={{ ...UX_Q_FONT, color: T.ink }}>{UX_SAY_Q}</div>}
+              {(phase === "load1" || phase === "load2") && dots}
+              {phase === "task" && stream(UX_TASK)}
+              {phase === "follow" && stream(UX_FOLLOWUP)}
+            </div>
+
+            {/* webcam tile, with the answer captioned while they speak */}
+            <div style={{ position: "absolute", right: UX_PAD, bottom: UX_PAD + CARD_H + 16, width: UX_CAM, height: UX_CAM, borderRadius: 10, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
+              <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
+              <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 48, height: 48, fontSize: 20 }}>M</span>
+              <ClipVideo t={phase === "ask" ? 0 : recording ? recT : UX_REC_MS} playing={recording && hold == null && active} />
+              <span style={{ position: "absolute", top: 9, left: 9, width: 8, height: 8, borderRadius: "50%", background: IV_RED }} />
+              {recording && said > 0 && (
+                <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "18px 9px 8px", background: "linear-gradient(transparent, rgba(0,0,0,.6))", color: "#FFF", fontSize: 12, lineHeight: "16px" }}>
+                  {UX_SAID.slice(0, said).join(" ")}
+                </div>
+              )}
+            </div>
+
+            {/* bottom control: Start Recording ⇄ Pause · timer · Submit */}
+            <div style={{ position: "absolute", left: UX_PAD, right: UX_PAD, bottom: UX_PAD }}>
+              {recording ? (
+                <div className="ll-enter" style={{ height: CARD_H, borderRadius: 16, background: "#EEEEEE", padding: CARD_PAD, display: "flex", flexDirection: "column", gap: CARD_GAP }}>
+                  <DotStrip t={recT} w={UX_RAIL_W - UX_PAD * 2 - CARD_PAD * 2} h={STRIP_H} />
+                  <div style={{ height: ROW_H, display: "flex", alignItems: "center", gap: 11 }}>
+                    <span style={{ ...barBtn, border: `1px solid ${IV_RED}`, color: IV_RED, background: T.appBg }}>Pause <I name="circle-pause" size={16} /></span>
+                    <span style={{ flex: 1, textAlign: "center", color: IV_RED, fontSize: 17, fontVariantNumeric: "tabular-nums" }}>{mm(recT)}</span>
+                    <span data-cursor="ux-submit" style={{ ...barBtn, background: T.brand, color: "#FAFAFA" }}>Submit <I name="circle-stop" size={16} /></span>
+                  </div>
+                </div>
+              ) : (
+                <button data-cursor="ux-start" className="ll-btn primary" style={{
+                  width: "100%", height: IV_BTN_H, borderRadius: 8, justifyContent: "center", fontSize: 16, letterSpacing: -0.32,
+                  background: enabled && phase !== "load1" && phase !== "load2" ? T.brand : "#ECEFFF",
+                  color: enabled && phase !== "load1" && phase !== "load2" ? "#FAFAFA" : T.brandFaint,
+                  transition: "background-color .35s ease, color .35s ease",
+                }}>Start Recording</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </BareFrame>
+  )
+}
