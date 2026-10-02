@@ -18,6 +18,7 @@ import {
   EI_USECASE_W, EI_USECASE_H,
   SceneUCBrandTracking, SceneUCConsumerAttitudes, SceneUCFeaturePriority,
   SceneUCUsability,
+  SceneUCPricing,
   SceneProps,
 } from "./ListenScenes"
 import { APP_W, APP_H } from "./ListenKit"
@@ -56,6 +57,7 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "uc-brand-tracking", title: "Brand tracking & health", group: "Use cases", n: 2, Scene: SceneUCBrandTracking, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-feature-priority", title: "Product & feature prioritization", group: "Use cases", n: 3, Scene: SceneUCFeaturePriority, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-usability", title: "Usability & UX testing", group: "Use cases", n: 4, Scene: SceneUCUsability, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-pricing", title: "Pricing & willingness-to-pay", group: "Use cases", n: 7, Scene: SceneUCPricing, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- /features/emotional-intelligence — the page's 8 product shots, in
   // page order: hero, the three Features cards, the four Use-case cards
@@ -80,7 +82,6 @@ export type PlannedShot = { group: Group; n: number; title: string }
 export const PLANNED: PlannedShot[] = [
   { group: "Use cases", n: 5, title: "Churn, retention & activation" },
   { group: "Use cases", n: 6, title: "Ad & creative testing" },
-  { group: "Use cases", n: 7, title: "Pricing & willingness-to-pay" },
   { group: "Use cases", n: 8, title: "Positioning & messaging" },
 ]
 
@@ -192,7 +193,7 @@ export const SEQUENCES: Sequence[] = [
         body: "See how people react to your ads, moment by moment, before you launch.",
       },
       {
-        content: "deliver-results",
+        content: "uc-pricing",
         title: "Pricing & Willingness-to-Pay",
         body: "Learn what people will pay, and the value that justifies the price.",
       },
