@@ -15,7 +15,7 @@ import { addPropertyControls, ControlType } from "framer"
 import {
   T, PatternLayer, PatternType, ensureCss, ShellPrefs, useShellPrefs, APP_W, APP_H,
 } from "./ListenKit"
-import { REGISTRY, SEQUENCES, byKey, sequenceByKey, RegistryEntry, Step, StepStyle } from "./ListenRegistry"
+import { REGISTRY, SEQUENCES, byKey, label, sequenceByKey, RegistryEntry, Step, StepStyle } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
 import { PRESETS, getPreset, presetNames } from "./ListenPresets"
 import { I } from "./ListenIcons"
@@ -626,14 +626,14 @@ const isList = (p: SceneCanvasProps) => isMulti(p) && ((p.stepStyle ?? "auto") =
   ? p.sequence !== "custom" && sequenceByKey(p.sequence ?? "how-it-works").style === "list"
   : p.stepStyle === "list")
 const stepContentKeys = REGISTRY.map((e) => e.key)
-const stepContentTitles = REGISTRY.map((e) => e.title)
+const stepContentTitles = REGISTRY.map(label)
 
 addPropertyControls(SceneCanvas, {
   // 1 content
   layout: { type: ControlType.Enum, title: "Layout", options: ["single", "multi-step"], optionTitles: ["Single", "Multi-step"], defaultValue: "single", displaySegmentedControl: true },
   preset: { type: ControlType.Enum, title: "Preset", options: ["custom", ...presetNames()], defaultValue: "custom" },
-  content: { type: ControlType.Enum, title: "Shot", options: [...REGISTRY.map((e) => e.key), "custom"], optionTitles: [...REGISTRY.map((e) => e.title), "Custom crop…"], defaultValue: "design-study", hidden: isMulti },
-  customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), optionTitles: REGISTRY.map((e) => e.title), hidden: (p) => isMulti(p) || p.content !== "custom" },
+  content: { type: ControlType.Enum, title: "Shot", options: [...REGISTRY.map((e) => e.key), "custom"], optionTitles: [...REGISTRY.map(label), "Custom crop…"], defaultValue: "design-study", hidden: isMulti },
+  customScene: { type: ControlType.Enum, title: "Custom scene", options: REGISTRY.map((e) => e.key), optionTitles: REGISTRY.map(label), hidden: (p) => isMulti(p) || p.content !== "custom" },
   cropX: { type: ControlType.Number, title: "Crop X", defaultValue: 0, min: 0, max: APP_W, hidden: (p) => isMulti(p) || p.content !== "custom" },
   cropY: { type: ControlType.Number, title: "Crop Y", defaultValue: 0, min: 0, max: APP_H, hidden: (p) => isMulti(p) || p.content !== "custom" },
   cropW: { type: ControlType.Number, title: "Crop W (0=full)", defaultValue: 0, min: 0, max: APP_W, hidden: (p) => isMulti(p) || p.content !== "custom" },
