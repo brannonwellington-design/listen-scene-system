@@ -21,9 +21,15 @@ import {
 } from "./ListenScenes"
 import { APP_W, APP_H } from "./ListenKit"
 
+/** picker sections, in menu order — one per page or module a shot belongs to */
+export const GROUPS = ["How it works", "Use cases", "Emotional intelligence", "Cards"] as const
+export type Group = (typeof GROUPS)[number]
+
 export type RegistryEntry = {
   key: string
+  /** short name within its group — `label()` adds the group in front */
   title: string
+  group: Group
   Scene: (p: SceneProps) => JSX.Element
   w: number
   h: number
@@ -35,33 +41,40 @@ export type RegistryEntry = {
 
 export const REGISTRY: RegistryEntry[] = [
   // --- How it works (homepage) ----------------------------------------------
-  { key: "design-study", title: "Design the study", Scene: SceneDesignStudy, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "reach-people", title: "Reach the right people", Scene: SceneReachPeople, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "interview-scale", title: "Interview at scale", Scene: SceneInterviewScale, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "deliver-results", title: "Deliver meaningful results", Scene: SceneDeliverResults, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "compound", title: "Compound your learnings", Scene: SceneCompound, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "design-study", title: "Design the study", group: "How it works", Scene: SceneDesignStudy, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "reach-people", title: "Reach the right people", group: "How it works", Scene: SceneReachPeople, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "interview-scale", title: "Interview at scale", group: "How it works", Scene: SceneInterviewScale, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "deliver-results", title: "Deliver meaningful results", group: "How it works", Scene: SceneDeliverResults, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "compound", title: "Compound your learnings", group: "How it works", Scene: SceneCompound, w: APP_W, h: APP_H, kind: "scene" },
+
+  // --- homepage Use Cases — one app scene per use case, in list order ---------
+  { key: "uc-consumer-attitudes", title: "Consumer attitudes & behaviors", group: "Use cases", Scene: SceneUCConsumerAttitudes, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-brand-tracking", title: "Brand tracking & health", group: "Use cases", Scene: SceneUCBrandTracking, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-feature-priority", title: "Product & feature prioritization", group: "Use cases", Scene: SceneUCFeaturePriority, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- /features/emotional-intelligence — the page's 8 product shots, in
   // page order: hero, the three Features cards, the four Use-case cards
-  { key: "ei-hero-report", title: "EI · Hero · Study report", Scene: SceneEIHeroReport, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "ei-feature-signals", title: "EI · Feature · Multi-signal detection", Scene: FragmentEIFeatureSignals, w: EI_SIGNALS_W, h: EI_SIGNALS_H, kind: "fragment" },
-  { key: "ei-feature-traceable", title: "EI · Feature · Research-grounded + traceable", Scene: FragmentEIFeatureTraceable, w: EI_TRACEABLE_W, h: EI_TRACEABLE_H, kind: "fragment" },
-  { key: "ei-feature-comparison", title: "EI · Feature · Structured for comparison", Scene: FragmentEIFeatureComparison, w: EI_COMPARISON_W, h: EI_COMPARISON_H, kind: "fragment" },
-  { key: "ei-usecase-ad-testing", title: "EI · Use case · Creative/Ad testing", Scene: FragmentEIUseCaseAdTesting, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
-  { key: "ei-usecase-concepts", title: "EI · Use case · Concept comparison", Scene: FragmentEIUseCaseConcepts, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
-  { key: "ei-usecase-brand", title: "EI · Use case · Brand research", Scene: FragmentEIUseCaseBrand, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
-  { key: "ei-usecase-ux", title: "EI · Use case · UX research", Scene: FragmentEIUseCaseUX, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+  { key: "ei-hero-report", title: "Hero · Study report", group: "Emotional intelligence", Scene: SceneEIHeroReport, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "ei-feature-signals", title: "Feature · Multi-signal detection", group: "Emotional intelligence", Scene: FragmentEIFeatureSignals, w: EI_SIGNALS_W, h: EI_SIGNALS_H, kind: "fragment" },
+  { key: "ei-feature-traceable", title: "Feature · Research-grounded + traceable", group: "Emotional intelligence", Scene: FragmentEIFeatureTraceable, w: EI_TRACEABLE_W, h: EI_TRACEABLE_H, kind: "fragment" },
+  { key: "ei-feature-comparison", title: "Feature · Structured for comparison", group: "Emotional intelligence", Scene: FragmentEIFeatureComparison, w: EI_COMPARISON_W, h: EI_COMPARISON_H, kind: "fragment" },
+  { key: "ei-usecase-ad-testing", title: "Use case · Creative/Ad testing", group: "Emotional intelligence", Scene: FragmentEIUseCaseAdTesting, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+  { key: "ei-usecase-concepts", title: "Use case · Concept comparison", group: "Emotional intelligence", Scene: FragmentEIUseCaseConcepts, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+  { key: "ei-usecase-brand", title: "Use case · Brand research", group: "Emotional intelligence", Scene: FragmentEIUseCaseBrand, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+  { key: "ei-usecase-ux", title: "Use case · UX research", group: "Emotional intelligence", Scene: FragmentEIUseCaseUX, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
 
-  // --- homepage Use Cases — one app scene per use case, in list order ---------
-  { key: "uc-consumer-attitudes", title: "Use case · Consumer attitudes & behaviors", Scene: SceneUCConsumerAttitudes, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "uc-brand-tracking", title: "Use case · Brand tracking & health", Scene: SceneUCBrandTracking, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "uc-feature-priority", title: "Use case · Product & feature prioritization", Scene: SceneUCFeaturePriority, w: APP_W, h: APP_H, kind: "scene" },
-
-  // --- general fragments ----------------------------------------------------
-  { key: "top-answer-card", title: "Top Answer card", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
-  { key: "live-interview-card", title: "Live interview card", Scene: FragmentLiveInterview, w: LIVE_INTERVIEW_W, h: LIVE_INTERVIEW_H, kind: "fragment" },
-  { key: "emotion-quote-card", title: "Emotion quote card", Scene: FragmentEmotionQuote, w: EMOTION_QUOTE_W, h: EMOTION_QUOTE_H, kind: "fragment" },
+  // --- cards — small UI pieces, not full pages -------------------------------
+  { key: "top-answer-card", title: "Top answer", group: "Cards", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
+  { key: "live-interview-card", title: "Live interview", group: "Cards", Scene: FragmentLiveInterview, w: LIVE_INTERVIEW_W, h: LIVE_INTERVIEW_H, kind: "fragment" },
+  { key: "emotion-quote-card", title: "Emotion quote", group: "Cards", Scene: FragmentEmotionQuote, w: EMOTION_QUOTE_W, h: EMOTION_QUOTE_H, kind: "fragment" },
 ]
+
+/** "Group · Title" — for flat lists that can't show section headers (Framer) */
+export const label = (e: RegistryEntry): string => `${e.group} · ${e.title}`
+
+/** registry entries bucketed by group, in GROUPS order — for menus with headers */
+export const grouped = (): Array<[Group, RegistryEntry[]]> =>
+  GROUPS.map((g) => [g, REGISTRY.filter((e) => e.group === g)] as [Group, RegistryEntry[]]).filter(([, es]) => es.length > 0)
 
 export const byKey = (key: string): RegistryEntry =>
   REGISTRY.find((e) => e.key === key) ?? REGISTRY[0]

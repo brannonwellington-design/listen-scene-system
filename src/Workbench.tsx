@@ -5,7 +5,7 @@
 // UI: a shadcn-style inspector kit hand-rolled on the Listen Labs tokens.
 import * as React from "react"
 import SceneCanvas, { CANVAS_DEFAULTS, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
-import { byKey, REGISTRY, SEQUENCES } from "./ListenRegistry"
+import { byKey, grouped, label, SEQUENCES } from "./ListenRegistry"
 import { T, Logo, ScaleBox, PatternLayer, PatternType, APP_W } from "./ListenKit"
 import { I } from "./ListenIcons"
 
@@ -307,16 +307,18 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
 }
 
 // -------------------------------------------------------------- workbench ---
-// content is one unified list — full scenes + fragments straight from the
-// registry — plus "Custom crop…" for framing a rect out of any scene
-const CONTENT_OPTS: Array<[string, string]> = REGISTRY.map((e) => [e.key, e.title])
-
-/** unified content select */
-function ContentSel(p: { v: string; set: (s: string) => void }): JSX.Element {
+// content is one list of every shot in the registry, sectioned by group —
+// plus "Custom crop…" for framing a rect out of any scene
+/** shot select, with a header per group */
+function ShotSel(p: { v: string; set: (s: string) => void; custom?: boolean }): JSX.Element {
   return (
     <select className="wb-select" value={p.v} onChange={(e) => p.set(e.target.value)}>
-      {CONTENT_OPTS.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
-      <option value="custom">Custom crop…</option>
+      {grouped().map(([g, es]) => (
+        <optgroup key={g} label={g}>
+          {es.map((e) => <option key={e.key} value={e.key}>{e.title}</option>)}
+        </optgroup>
+      ))}
+      {p.custom && <optgroup label="Other"><option value="custom">Custom crop…</option></optgroup>}
     </select>
   )
 }
@@ -428,7 +430,7 @@ export default function Workbench(): JSX.Element {
   const summary: Record<FoldKey, string> = {
     content: isMulti
       ? "Multi-step · " + (SEQUENCES.find((q) => q.key === cfg.sequence)?.title ?? cfg.sequence) + " · " + (listStyle ? "List" : "Captions")
-      : "Single · " + (cfg.content === "custom" ? "Crop of " + byKey(cfg.customScene).title : byKey(cfg.content).title),
+      : "Single · " + (cfg.content === "custom" ? "Crop of " + label(byKey(cfg.customScene)) : label(byKey(cfg.content))),
     playback: isMulti
       ? (cfg.autoCycle ? "Auto-advance · " + cfg.resumeDelay + "s pause" : "Manual")
       : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.segEnd ? " · " + secs(cfg.segStart) + "–" + secs(cfg.segEnd) : ""),
@@ -570,13 +572,12 @@ export default function Workbench(): JSX.Element {
             ) : (
               <>
                 <Field label="Shot">
-                  <ContentSel v={cfg.content} set={setContent} />
+                  <ShotSel v={cfg.content} set={setContent} custom />
                 </Field>
                 {cfg.content === "custom" && (
                   <div className="wb-sub">
                     <Field label="From scene">
-                      <Sel v={cfg.customScene} set={(v) => set("customScene")(v)}
-                        options={REGISTRY.map((e) => e.key)} titles={REGISTRY.map((e) => e.title)} />
+                      <ShotSel v={cfg.customScene} set={(v) => set("customScene")(v)} />
                     </Field>
                     <Field label="Crop x · y">
                       <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
