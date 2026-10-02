@@ -98,15 +98,11 @@ export const T = {
 // layout inside scenes are in this space; ScaleBox maps it to the container.
 export const FRAME_W = 1120
 export const FRAME_H = 640
-// Scenes inside the app shell are authored larger (same aspect ratio) so the
-// open sidebar leaves the content about the width FRAME_W scenes had.
+// Every full product page (app shell or not) is authored at this size, 1:1
+// with live px, so flipping between shots feels like one window. The open
+// sidebar leaves the content about the width FRAME_W scenes had.
 export const APP_W = 1344
 export const APP_H = 768
-// Homepage Use Cases shots sit in a near-square card (it matches the list's
-// height), so they're authored as a taller app window; the card's crop then
-// shows the sidebar plus the real content and still runs off both edges.
-export const UC_W = 1120
-export const UC_H = 1160
 // open sidebar width, matched to the live app (the Figma mock shows 260);
 // rows inset 8px each side
 const NAV_W = 235

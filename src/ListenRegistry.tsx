@@ -19,7 +19,7 @@ import {
   SceneUCBrandTracking, SceneUCConsumerAttitudes, SceneUCFeaturePriority,
   SceneProps,
 } from "./ListenScenes"
-import { FRAME_W, FRAME_H, APP_W, APP_H, UC_W, UC_H } from "./ListenKit"
+import { APP_W, APP_H } from "./ListenKit"
 
 export type RegistryEntry = {
   key: string
@@ -37,7 +37,7 @@ export const REGISTRY: RegistryEntry[] = [
   // --- How it works (homepage) ----------------------------------------------
   { key: "design-study", title: "Design the study", Scene: SceneDesignStudy, w: APP_W, h: APP_H, kind: "scene" },
   { key: "reach-people", title: "Reach the right people", Scene: SceneReachPeople, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "interview-scale", title: "Interview at scale", Scene: SceneInterviewScale, w: FRAME_W, h: FRAME_H, kind: "scene" },
+  { key: "interview-scale", title: "Interview at scale", Scene: SceneInterviewScale, w: APP_W, h: APP_H, kind: "scene" },
   { key: "deliver-results", title: "Deliver meaningful results", Scene: SceneDeliverResults, w: APP_W, h: APP_H, kind: "scene" },
   { key: "compound", title: "Compound your learnings", Scene: SceneCompound, w: APP_W, h: APP_H, kind: "scene" },
 
@@ -53,9 +53,9 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "ei-usecase-ux", title: "EI · Use case · UX research", Scene: FragmentEIUseCaseUX, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
 
   // --- homepage Use Cases — one app scene per use case, in list order ---------
-  { key: "uc-consumer-attitudes", title: "Use case · Consumer attitudes & behaviors", Scene: SceneUCConsumerAttitudes, w: UC_W, h: UC_H, kind: "scene", bleedShow: 1090 },
-  { key: "uc-brand-tracking", title: "Use case · Brand tracking & health", Scene: SceneUCBrandTracking, w: UC_W, h: UC_H, kind: "scene", bleedShow: 1090 },
-  { key: "uc-feature-priority", title: "Use case · Product & feature prioritization", Scene: SceneUCFeaturePriority, w: UC_W, h: UC_H, kind: "scene", bleedShow: 1090 },
+  { key: "uc-consumer-attitudes", title: "Use case · Consumer attitudes & behaviors", Scene: SceneUCConsumerAttitudes, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-brand-tracking", title: "Use case · Brand tracking & health", Scene: SceneUCBrandTracking, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-feature-priority", title: "Use case · Product & feature prioritization", Scene: SceneUCFeaturePriority, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- general fragments ----------------------------------------------------
   { key: "top-answer-card", title: "Top Answer card", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },

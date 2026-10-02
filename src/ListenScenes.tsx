@@ -8,7 +8,7 @@ import * as React from "react"
 import {
   T, BareFrame, Chip, Caret, Donut, Waveform, DotSpinner, EmotionTag,
   EMOTIONS, useScene, useCursor, ensureCss,
-  IPhoneScreen, FRAME_W, FRAME_H, APP_W, UC_W,
+  IPhoneScreen, APP_W,
   AppShell, workspaceNav, studyEditNav, studyNav, chatNav,
 } from "./ListenKit"
 import { I } from "./ListenIcons"
@@ -648,15 +648,15 @@ export function SceneReachPeople({ active, onDone, runKey = 0, hold, playFrom, o
 // becomes a Pause · timer · Submit bar while recording, then a three-dot
 // loader and the moderator's follow-up streaming in word by word. The
 // product does not transcribe live, so no text appears while recording.
-// Real page is ~1511px wide; the scene scales it by ~0.74 into 1120x640.
-// live px × 0.74 (1512 → 1120)
-const IV_COL_W = 408                 // 552px column
-const IV_COL_X = (FRAME_W - IV_COL_W) / 2
-const IV_INSET = 9                   // question text sits 12px inside the column
-const IV_BTN_H = 30                  // 40px button
-const IV_EDGE = 18                   // 24px bottom / right margins
-const IV_CAM = 89                    // 120px webcam tile on question screens
-const IV_Q_FONT = { fontSize: 17.8, lineHeight: "24.9px", letterSpacing: -0.36 } // 24/33.6, -0.48
+// Drawn 1:1 in live px, as the page lays out in a 1344x768 window — the
+// size every full product shot shares.
+const IV_COL_W = 552                 // centred question column
+const IV_COL_X = (APP_W - IV_COL_W) / 2
+const IV_INSET = 12                  // question text sits inside the column
+const IV_BTN_H = 40
+const IV_EDGE = 24                   // bottom / right margins
+const IV_CAM = 120                   // webcam tile on question screens
+const IV_Q_FONT = { fontSize: 24, lineHeight: "33.6px", letterSpacing: -0.48 }
 const IV_PROGRESS = 0.3              // progress bar fill, this far into the study
 // webcam tile (bottom right) with the participant clip. Off for now: the
 // recording visualizer carries the moment. Flip to true to bring it back —
@@ -819,21 +819,21 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
   const [recT, setRecT] = React.useState(0)        // ms since Start Recording
   const [words, setWords] = React.useState(0)
   const [enabled, setEnabled] = React.useState(false)
-  const cur = useCursor()
-  const CARD_PAD = 6, STRIP_H = 44, ROW_H = 24
-  const CARD_H = CARD_PAD * 2 + STRIP_H + 5 + ROW_H
+  const cur = useCursor(APP_CURSOR_START)
+  const CARD_PAD = 8, CARD_GAP = 7, STRIP_H = 60, ROW_H = 32
+  const CARD_H = CARD_PAD * 2 + STRIP_H + CARD_GAP + ROW_H
 
   useScene(active, async (p) => {
     setPhase("idle"); setRecT(0); setWords(0); setEnabled(false); cur.hide()
     await p.sleep(700)
-    cur.show("iv-start", -180, -110)
+    cur.show("iv-start", -240, -150)
     await p.sleep(350)
     cur.move("iv-start")
     await p.sleep(750)
     cur.click(1); await p.sleep(250)
     setPhase("recording"); cur.hide()
     for (let i = 1; i <= IV_REC_MS / IV_TICK; i++) { await p.sleep(IV_TICK); setRecT(i * IV_TICK) }
-    cur.show("iv-submit", -120, -90)
+    cur.show("iv-submit", -160, -120)
     await p.sleep(300)
     cur.move("iv-submit")
     await p.sleep(600)
@@ -850,29 +850,29 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
 
   const mm = (ms: number) => `00:${String(Math.floor(ms / 1000)).padStart(2, "0")}`
   const recording = phase === "recording"
-  const barBtn: React.CSSProperties = { height: 24, padding: "0 9px", borderRadius: 6, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }
+  const barBtn: React.CSSProperties = { height: 32, padding: "0 12px", borderRadius: 8, fontSize: 16, display: "inline-flex", alignItems: "center", gap: 7 }
 
   return (
     <BareFrame cursor={cur.state}>
       <div style={{ flex: 1, position: "relative" }}>
         {/* progress bar */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "rgba(0, 0, 0, 0.1)" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "rgba(0, 0, 0, 0.1)" }}>
           <div style={{ width: `${IV_PROGRESS * 100}%`, height: "100%", background: T.brand }} />
         </div>
         {/* header: settings (Skip is admin-only, so participants don't see it) */}
-        <div style={{ position: "absolute", top: 14, right: IV_EDGE, color: T.ink }}>
-          <I name="settings" size={15} />
+        <div style={{ position: "absolute", top: 19, right: IV_EDGE, color: T.ink }}>
+          <I name="settings" size={20} />
         </div>
 
         {/* question column */}
-        <div style={{ position: "absolute", left: IV_COL_X + IV_INSET, top: 65, width: IV_COL_W - IV_INSET * 2 }}>
+        <div style={{ position: "absolute", left: IV_COL_X + IV_INSET, top: 88, width: IV_COL_W - IV_INSET * 2 }}>
           <div style={{ ...IV_Q_FONT, color: T.ink, opacity: phase === "idle" || recording ? 1 : 0, transition: "opacity .3s ease" }}>
             {IV_QUESTION}
           </div>
           {phase === "loading" && (
-            <div className="ll-enter" style={{ position: "absolute", top: 12, left: 0, display: "flex", gap: 8 }}>
+            <div className="ll-enter" style={{ position: "absolute", top: 16, left: 0, display: "flex", gap: 11 }}>
               {[0, 1, 2].map((i) => (
-                <span key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: T.ink, animation: "ll-pulse 1s ease-in-out infinite", animationDelay: `${i * 0.18}s` }} />
+                <span key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: T.ink, animation: "ll-pulse 1s ease-in-out infinite", animationDelay: `${i * 0.18}s` }} />
               ))}
             </div>
           )}
@@ -888,17 +888,17 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
         {/* bottom control: Start Recording ⇄ Pause · timer · Submit */}
         <div style={{ position: "absolute", left: IV_COL_X, width: IV_COL_W, bottom: IV_EDGE }}>
           {recording ? (
-            <div className="ll-enter" style={{ height: CARD_H, borderRadius: 12, background: "#EEEEEE", padding: CARD_PAD, display: "flex", flexDirection: "column", gap: 5 }}>
+            <div className="ll-enter" style={{ height: CARD_H, borderRadius: 16, background: "#EEEEEE", padding: CARD_PAD, display: "flex", flexDirection: "column", gap: CARD_GAP }}>
               <DotStrip t={recT} w={IV_COL_W - CARD_PAD * 2} h={STRIP_H} />
-              <div style={{ height: ROW_H, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ ...barBtn, border: `1px solid ${IV_RED}`, color: IV_RED, background: T.appBg }}>Pause <I name="circle-pause" size={12} /></span>
-                <span style={{ flex: 1, textAlign: "center", color: IV_RED, fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>{mm(recT)}</span>
-                <span data-cursor="iv-submit" style={{ ...barBtn, background: T.brand, color: "#FAFAFA" }}>Submit <I name="circle-stop" size={12} /></span>
+              <div style={{ height: ROW_H, display: "flex", alignItems: "center", gap: 11 }}>
+                <span style={{ ...barBtn, border: `1px solid ${IV_RED}`, color: IV_RED, background: T.appBg }}>Pause <I name="circle-pause" size={16} /></span>
+                <span style={{ flex: 1, textAlign: "center", color: IV_RED, fontSize: 17, fontVariantNumeric: "tabular-nums" }}>{mm(recT)}</span>
+                <span data-cursor="iv-submit" style={{ ...barBtn, background: T.brand, color: "#FAFAFA" }}>Submit <I name="circle-stop" size={16} /></span>
               </div>
             </div>
           ) : (
             <button data-cursor="iv-start" className="ll-btn primary" style={{
-              width: "100%", height: IV_BTN_H, borderRadius: 6, justifyContent: "center", fontSize: 11.8, letterSpacing: -0.24,
+              width: "100%", height: IV_BTN_H, borderRadius: 8, justifyContent: "center", fontSize: 16, letterSpacing: -0.32,
               background: phase === "idle" || enabled ? T.brand : "#ECEFFF", color: phase === "idle" || enabled ? "#FAFAFA" : T.brandFaint,
               transition: "background-color .35s ease, color .35s ease",
             }}>Start Recording</button>
@@ -907,12 +907,12 @@ export function SceneInterviewScale({ active, onDone, runKey = 0, hold, playFrom
 
         {/* webcam tile (see IV_SHOW_CAM) */}
         {IV_SHOW_CAM && (
-          <div style={{ position: "absolute", right: IV_EDGE, bottom: IV_EDGE, width: IV_CAM, height: IV_CAM, borderRadius: 6, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
+          <div style={{ position: "absolute", right: IV_EDGE, bottom: IV_EDGE, width: IV_CAM, height: IV_CAM, borderRadius: 8, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
             <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
-            <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 30, height: 30, fontSize: 13 }}>M</span>
+            <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 40, height: 40, fontSize: 18 }}>M</span>
             {/* the participant: the clip covers the fallback avatar once it loads */}
             <ClipVideo t={phase === "idle" ? 0 : recording ? recT : IV_REC_MS} playing={recording && hold == null && active} />
-            {recording && <span style={{ position: "absolute", top: 7, right: 7, width: 6, height: 6, borderRadius: "50%", background: IV_RED }} />}
+            {recording && <span style={{ position: "absolute", top: 9, right: 9, width: 8, height: 8, borderRadius: "50%", background: IV_RED }} />}
           </div>
         )}
 
@@ -2080,7 +2080,7 @@ function BTOutline({ at }: { at: number }): JSX.Element {
 
 export function SceneUCBrandTracking({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
-  const cur = useCursor({ x: UC_W - 120, y: 1000 })
+  const cur = useCursor(APP_CURSOR_START)
   const [donut, setDonut] = React.useState(false)
   const [summary, setSummary] = React.useState(false)
   const [chart, setChart] = React.useState(false)
@@ -2248,12 +2248,13 @@ const CA_ROW = 58
 
 export function SceneUCConsumerAttitudes({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
-  const cur = useCursor({ x: UC_W - 120, y: 1000 })
+  const cur = useCursor(APP_CURSOR_START)
   const [grown, setGrown] = React.useState(false)
   const [hover, setHover] = React.useState(-1)
+  const [scrolled, setScrolled] = React.useState(false)
 
   useScene(active, async (p) => {
-    setGrown(false); setHover(-1); cur.hide()
+    setGrown(false); setHover(-1); setScrolled(false); cur.hide()
     await p.sleep(500)
     setGrown(true)
     await p.sleep(2000)
@@ -2379,15 +2380,18 @@ const FP_HALF = 53 // index points from the 100 line to either end of the track
 const FP_ROW = 41
 const FP_TRACK = 487
 const FP_RED = "#A93224"
+// px the page scrolls to bring last place into the 768 window
+const FP_SCROLL = 300
 
 export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
   ensureCss()
-  const cur = useCursor({ x: UC_W - 120, y: 1000 })
+  const cur = useCursor(APP_CURSOR_START)
   const [grown, setGrown] = React.useState(false)
   const [hover, setHover] = React.useState(-1)
+  const [scrolled, setScrolled] = React.useState(false)
 
   useScene(active, async (p) => {
-    setGrown(false); setHover(-1); cur.hide()
+    setGrown(false); setHover(-1); setScrolled(false); cur.hide()
     await p.sleep(500)
     setGrown(true)
     await p.sleep(2100)
@@ -2397,7 +2401,11 @@ export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playF
     setHover(0); await p.sleep(1600)
     cur.move("fp-r2"); await p.sleep(500)
     setHover(2); await p.sleep(1600)
-    cur.move("fp-r19"); await p.sleep(800)
+    // the window runs off below Pineapple: scroll down to last place
+    setHover(-1); cur.hide(); await p.sleep(150)
+    setScrolled(true); await p.sleep(1000)
+    cur.show("fp-r19", 120, -40); await p.sleep(250)
+    cur.move("fp-r19"); await p.sleep(700)
     setHover(19); await p.sleep(1600)
     cur.move("fp-r19", 90, 60); await p.sleep(350)
     setHover(-1); cur.hide()
@@ -2411,7 +2419,7 @@ export function SceneUCFeaturePriority({ active, onDone, runKey = 0, hold, playF
       title="Seltzer Water Flavor Preferences" crumb={["Details"]}
       actions={<span className="ll-tbtn">Share <I name="link" size={14} /></span>}>
       <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-        <div style={{ display: "flex", gap: 32, padding: "22px 0 0 38px" }}>
+        <div style={{ display: "flex", gap: 32, padding: "22px 0 0 38px", transform: `translateY(${scrolled ? -FP_SCROLL : 0}px)`, transition: "transform 1s cubic-bezier(.22,1,.36,1)" }}>
           {/* the question, pinned beside its chart */}
           <div style={{ width: 242, flexShrink: 0, alignSelf: "flex-start", background: T.fill, borderRadius: 10, padding: "16px 16px 18px", fontSize: 16, lineHeight: "24px", color: T.ink }}>
             <span style={{ color: T.inkSoft }}>Q12:</span> We'd like to understand your flavor preferences for flavored seltzer
