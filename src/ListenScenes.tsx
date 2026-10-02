@@ -2509,6 +2509,9 @@ const UX_RAIL_W = 368                // interviewer rail
 const UX_SITE_W = APP_W - UX_RAIL_W
 const UX_PAD = 24                    // rail margins
 const UX_CAM = 160                   // webcam tile
+// webcam tile with the captioned answer. Off for now: the clip is a
+// placeholder. Flip to true once there's a real participant recording.
+const UX_SHOW_CAM = false
 const UX_Q_FONT = { fontSize: 22, lineHeight: "30.8px", letterSpacing: -0.44 }
 const UX_PROGRESS = 0.55
 const UX_ORANGE = "#C4500B"
@@ -2832,8 +2835,8 @@ export function SceneUCUsability({ active, onDone, runKey = 0, hold, playFrom, o
               {phase === "follow" && stream(UX_FOLLOWUP)}
             </div>
 
-            {/* webcam tile, with the answer captioned while they speak */}
-            <div style={{ position: "absolute", right: UX_PAD, bottom: UX_PAD + CARD_H + 16, width: UX_CAM, height: UX_CAM, borderRadius: 10, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
+            {/* webcam tile, with the answer captioned while they speak (see UX_SHOW_CAM) */}
+            {UX_SHOW_CAM && <div style={{ position: "absolute", right: UX_PAD, bottom: UX_PAD + CARD_H + 16, width: UX_CAM, height: UX_CAM, borderRadius: 10, overflow: "hidden", background: "linear-gradient(160deg, #E3DCCE 0%, #CFC7B6 55%, #B9AF9C 100%)" }}>
               <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 55% 60%, rgba(255,255,255,.4), transparent 70%)" }} />
               <span className="ll-avatar" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: 48, height: 48, fontSize: 20 }}>M</span>
               <ClipVideo t={phase === "ask" ? 0 : recording ? recT : UX_REC_MS} playing={recording && hold == null && active} />
@@ -2843,7 +2846,7 @@ export function SceneUCUsability({ active, onDone, runKey = 0, hold, playFrom, o
                   {UX_SAID.slice(0, said).join(" ")}
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* bottom control: Start Recording ⇄ Pause · timer · Submit */}
             <div style={{ position: "absolute", left: UX_PAD, right: UX_PAD, bottom: UX_PAD }}>
