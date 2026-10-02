@@ -20,6 +20,7 @@ import {
   SceneUCUsability,
   SceneUCPricing,
   SceneUCChurn,
+  SceneUCAdTesting,
   SceneProps,
 } from "./ListenScenes"
 import { APP_W, APP_H } from "./ListenKit"
@@ -59,6 +60,7 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "uc-feature-priority", title: "Product & feature prioritization", group: "Use cases", n: 3, Scene: SceneUCFeaturePriority, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-usability", title: "Usability & UX testing", group: "Use cases", n: 4, Scene: SceneUCUsability, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-churn", title: "Churn, retention & activation", group: "Use cases", n: 5, Scene: SceneUCChurn, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-ad-testing", title: "Ad & creative testing", group: "Use cases", n: 6, Scene: SceneUCAdTesting, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-pricing", title: "Pricing & willingness-to-pay", group: "Use cases", n: 7, Scene: SceneUCPricing, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- /features/emotional-intelligence — the page's 8 product shots, in
@@ -82,7 +84,6 @@ export const REGISTRY: RegistryEntry[] = [
  *  workbench menu so the gaps show; move one into REGISTRY when it lands */
 export type PlannedShot = { group: Group; n: number; title: string }
 export const PLANNED: PlannedShot[] = [
-  { group: "Use cases", n: 6, title: "Ad & creative testing" },
   { group: "Use cases", n: 8, title: "Positioning & messaging" },
 ]
 
@@ -189,7 +190,7 @@ export const SEQUENCES: Sequence[] = [
         body: "Find out why customers stay, leave, or never get started.",
       },
       {
-        content: "interview-scale",
+        content: "uc-ad-testing",
         title: "Ad & Creative Testing",
         body: "See how people react to your ads, moment by moment, before you launch.",
       },
