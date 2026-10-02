@@ -5,7 +5,7 @@
 // UI: a shadcn-style inspector kit hand-rolled on the Listen Labs tokens.
 import * as React from "react"
 import SceneCanvas, { CANVAS_DEFAULTS, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
-import { byKey, grouped, label, SEQUENCES } from "./ListenRegistry"
+import { byKey, grouped, label, shortLabel, SEQUENCES } from "./ListenRegistry"
 import { T, Logo, ScaleBox, PatternLayer, PatternType, APP_W } from "./ListenKit"
 import { I } from "./ListenIcons"
 
@@ -307,15 +307,18 @@ function CropEditor(props: { sceneKey: string; rect: Rect; holdT: number; onChan
 }
 
 // -------------------------------------------------------------- workbench ---
-// content is one list of every shot in the registry, sectioned by group —
+// content is one list of every shot in the registry, sectioned by group and
+// numbered in page order, with planned shots greyed out —
 // plus "Custom crop…" for framing a rect out of any scene
 /** shot select, with a header per group */
 function ShotSel(p: { v: string; set: (s: string) => void; custom?: boolean }): JSX.Element {
   return (
     <select className="wb-select" value={p.v} onChange={(e) => p.set(e.target.value)}>
-      {grouped().map(([g, es]) => (
+      {grouped().map(([g, items]) => (
         <optgroup key={g} label={g}>
-          {es.map((e) => <option key={e.key} value={e.key}>{e.title}</option>)}
+          {items.map((it) => it.planned
+            ? <option key={"planned-" + it.entry.n} disabled>{shortLabel(it.entry)} — not built yet</option>
+            : <option key={it.entry.key} value={it.entry.key}>{shortLabel(it.entry)}</option>)}
         </optgroup>
       ))}
       {p.custom && <optgroup label="Other"><option value="custom">Custom crop…</option></optgroup>}

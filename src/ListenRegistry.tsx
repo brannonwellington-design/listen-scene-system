@@ -30,6 +30,9 @@ export type RegistryEntry = {
   /** short name within its group — `label()` adds the group in front */
   title: string
   group: Group
+  /** position on its page, shown as "01" in menus; leave off when the group
+   *  has no page order (Cards) */
+  n?: number
   Scene: (p: SceneProps) => JSX.Element
   w: number
   h: number
@@ -41,27 +44,27 @@ export type RegistryEntry = {
 
 export const REGISTRY: RegistryEntry[] = [
   // --- How it works (homepage) ----------------------------------------------
-  { key: "design-study", title: "Design the study", group: "How it works", Scene: SceneDesignStudy, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "reach-people", title: "Reach the right people", group: "How it works", Scene: SceneReachPeople, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "interview-scale", title: "Interview at scale", group: "How it works", Scene: SceneInterviewScale, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "deliver-results", title: "Deliver meaningful results", group: "How it works", Scene: SceneDeliverResults, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "compound", title: "Compound your learnings", group: "How it works", Scene: SceneCompound, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "design-study", title: "Design the study", group: "How it works", n: 1, Scene: SceneDesignStudy, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "reach-people", title: "Reach the right people", group: "How it works", n: 2, Scene: SceneReachPeople, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "interview-scale", title: "Interview at scale", group: "How it works", n: 3, Scene: SceneInterviewScale, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "deliver-results", title: "Deliver meaningful results", group: "How it works", n: 4, Scene: SceneDeliverResults, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "compound", title: "Compound your learnings", group: "How it works", n: 5, Scene: SceneCompound, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- homepage Use Cases — one app scene per use case, in list order ---------
-  { key: "uc-consumer-attitudes", title: "Consumer attitudes & behaviors", group: "Use cases", Scene: SceneUCConsumerAttitudes, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "uc-brand-tracking", title: "Brand tracking & health", group: "Use cases", Scene: SceneUCBrandTracking, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "uc-feature-priority", title: "Product & feature prioritization", group: "Use cases", Scene: SceneUCFeaturePriority, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-consumer-attitudes", title: "Consumer attitudes & behaviors", group: "Use cases", n: 1, Scene: SceneUCConsumerAttitudes, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-brand-tracking", title: "Brand tracking & health", group: "Use cases", n: 2, Scene: SceneUCBrandTracking, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-feature-priority", title: "Product & feature prioritization", group: "Use cases", n: 3, Scene: SceneUCFeaturePriority, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- /features/emotional-intelligence — the page's 8 product shots, in
   // page order: hero, the three Features cards, the four Use-case cards
-  { key: "ei-hero-report", title: "Hero · Study report", group: "Emotional intelligence", Scene: SceneEIHeroReport, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "ei-feature-signals", title: "Feature · Multi-signal detection", group: "Emotional intelligence", Scene: FragmentEIFeatureSignals, w: EI_SIGNALS_W, h: EI_SIGNALS_H, kind: "fragment" },
-  { key: "ei-feature-traceable", title: "Feature · Research-grounded + traceable", group: "Emotional intelligence", Scene: FragmentEIFeatureTraceable, w: EI_TRACEABLE_W, h: EI_TRACEABLE_H, kind: "fragment" },
-  { key: "ei-feature-comparison", title: "Feature · Structured for comparison", group: "Emotional intelligence", Scene: FragmentEIFeatureComparison, w: EI_COMPARISON_W, h: EI_COMPARISON_H, kind: "fragment" },
-  { key: "ei-usecase-ad-testing", title: "Use case · Creative/Ad testing", group: "Emotional intelligence", Scene: FragmentEIUseCaseAdTesting, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
-  { key: "ei-usecase-concepts", title: "Use case · Concept comparison", group: "Emotional intelligence", Scene: FragmentEIUseCaseConcepts, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
-  { key: "ei-usecase-brand", title: "Use case · Brand research", group: "Emotional intelligence", Scene: FragmentEIUseCaseBrand, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
-  { key: "ei-usecase-ux", title: "Use case · UX research", group: "Emotional intelligence", Scene: FragmentEIUseCaseUX, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+  { key: "ei-hero-report", title: "Hero · Study report", group: "Emotional intelligence", n: 1, Scene: SceneEIHeroReport, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "ei-feature-signals", title: "Feature · Multi-signal detection", group: "Emotional intelligence", n: 2, Scene: FragmentEIFeatureSignals, w: EI_SIGNALS_W, h: EI_SIGNALS_H, kind: "fragment" },
+  { key: "ei-feature-traceable", title: "Feature · Research-grounded + traceable", group: "Emotional intelligence", n: 3, Scene: FragmentEIFeatureTraceable, w: EI_TRACEABLE_W, h: EI_TRACEABLE_H, kind: "fragment" },
+  { key: "ei-feature-comparison", title: "Feature · Structured for comparison", group: "Emotional intelligence", n: 4, Scene: FragmentEIFeatureComparison, w: EI_COMPARISON_W, h: EI_COMPARISON_H, kind: "fragment" },
+  { key: "ei-usecase-ad-testing", title: "Use case · Creative/Ad testing", group: "Emotional intelligence", n: 5, Scene: FragmentEIUseCaseAdTesting, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+  { key: "ei-usecase-concepts", title: "Use case · Concept comparison", group: "Emotional intelligence", n: 6, Scene: FragmentEIUseCaseConcepts, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+  { key: "ei-usecase-brand", title: "Use case · Brand research", group: "Emotional intelligence", n: 7, Scene: FragmentEIUseCaseBrand, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+  { key: "ei-usecase-ux", title: "Use case · UX research", group: "Emotional intelligence", n: 8, Scene: FragmentEIUseCaseUX, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
 
   // --- cards — small UI pieces, not full pages -------------------------------
   { key: "top-answer-card", title: "Top answer", group: "Cards", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },
@@ -69,12 +72,37 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "emotion-quote-card", title: "Emotion quote", group: "Cards", Scene: FragmentEmotionQuote, w: EMOTION_QUOTE_W, h: EMOTION_QUOTE_H, kind: "fragment" },
 ]
 
-/** "Group · Title" — for flat lists that can't show section headers (Framer) */
-export const label = (e: RegistryEntry): string => `${e.group} · ${e.title}`
+/** shots a page needs that aren't built yet — listed greyed out in the
+ *  workbench menu so the gaps show; move one into REGISTRY when it lands */
+export type PlannedShot = { group: Group; n: number; title: string }
+export const PLANNED: PlannedShot[] = [
+  { group: "Use cases", n: 4, title: "Usability & UX testing" },
+  { group: "Use cases", n: 5, title: "Churn, retention & activation" },
+  { group: "Use cases", n: 6, title: "Ad & creative testing" },
+  { group: "Use cases", n: 7, title: "Pricing & willingness-to-pay" },
+  { group: "Use cases", n: 8, title: "Positioning & messaging" },
+]
 
-/** registry entries bucketed by group, in GROUPS order — for menus with headers */
-export const grouped = (): Array<[Group, RegistryEntry[]]> =>
-  GROUPS.map((g) => [g, REGISTRY.filter((e) => e.group === g)] as [Group, RegistryEntry[]]).filter(([, es]) => es.length > 0)
+/** "01 Title" — the page-order number in front, when the shot has one */
+export const shortLabel = (e: { n?: number; title: string }): string =>
+  e.n ? `${String(e.n).padStart(2, "0")} ${e.title}` : e.title
+
+/** "Group · 01 Title" — for flat lists that can't show section headers (Framer) */
+export const label = (e: RegistryEntry): string => `${e.group} · ${shortLabel(e)}`
+
+export type MenuItem = { entry: RegistryEntry; planned?: false } | { entry: PlannedShot; planned: true }
+
+/** built and planned shots bucketed by group, in GROUPS order and page order */
+export const grouped = (): Array<[Group, MenuItem[]]> =>
+  GROUPS.map((g) => {
+    const items: MenuItem[] = [
+      ...REGISTRY.filter((e) => e.group === g).map((entry) => ({ entry })),
+      ...PLANNED.filter((e) => e.group === g).map((entry) => ({ entry, planned: true as const })),
+    ]
+    // keeps registry order for shots without a number
+    items.sort((a, b) => (a.entry.n ?? 0) - (b.entry.n ?? 0))
+    return [g, items] as [Group, MenuItem[]]
+  }).filter(([, items]) => items.length > 0)
 
 export const byKey = (key: string): RegistryEntry =>
   REGISTRY.find((e) => e.key === key) ?? REGISTRY[0]
