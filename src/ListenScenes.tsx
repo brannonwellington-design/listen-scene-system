@@ -3025,3 +3025,118 @@ export function SceneUCPricing({ active, onDone, runKey = 0, hold, playFrom, onT
     </AppShell>
   )
 }
+
+// ---------------------------------- Use case · Churn, retention & activation -
+// Homepage refresh, Use Cases 05. "How People Buy Snacks Online: Checkout
+// Behavior & Channel Choice" (listenlabs.ai/p/8GHVaCAh), Report → "Snacks ride
+// along with baskets already in motion": the intent-break drivers chart, N=31,
+// and the paragraphs under it, verbatim. Counts are the live report's as of
+// 2026-10-02 (the API's analysis is an older run with different counts).
+const CH_DRIVERS: Array<[string, number]> = [
+  ["Limited assortment", 24], ["Item price or weak value", 18], ["Out of stock or unavailable promise", 17],
+  ["Shipping cost or threshold", 11], ["Interface or navigation friction", 11],
+]
+const CH_BASE = 31
+const CH_ROW = 54
+const CH_REPORTS = [{ title: "Listen Labs Report", meta: "Aug 7 · Listen Labs" }, { title: "Snack.com UX Insights", meta: "Aug 10 · Asad Tacy" }]
+
+/** a numbered source chip, as the live report cites transcripts inline */
+function CiteChip({ n }: { n: number }): JSX.Element {
+  return <span style={{ display: "inline-block", fontSize: 10, lineHeight: "15px", padding: "0 5px", borderRadius: 7, background: T.fill, color: T.inkSoft, verticalAlign: 2, marginLeft: 4 }}>{n}</span>
+}
+
+export function SceneUCChurn({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor(APP_CURSOR_START)
+  const [grown, setGrown] = React.useState(false)
+  const [hover, setHover] = React.useState(-1)
+  const [mark, setMark] = React.useState(false)
+
+  useScene(active, async (p) => {
+    setGrown(false); setHover(-1); setMark(false); cur.hide()
+    await p.sleep(500)
+    setGrown(true)
+    await p.sleep(1800)
+    // the top driver, then the out-of-stock promise that compounds it
+    cur.show("ch-r0", 120, 130); await p.sleep(250)
+    cur.move("ch-r0"); await p.sleep(700)
+    setHover(0); await p.sleep(1700)
+    cur.move("ch-r2"); await p.sleep(550)
+    setHover(2); await p.sleep(1500)
+    // ...and what the report makes of it
+    cur.move("ch-r4", 80, 120); await p.sleep(350)
+    setHover(-1); cur.hide()
+    await p.sleep(200)
+    setMark(true)
+    await p.sleep(2800)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  const max = Math.max(...CH_DRIVERS.map((d) => d[1]))
+
+  return (
+    <AppShell cursor={cur.state} nav={studyNav("Report", CH_REPORTS)} activeSub="Listen Labs Report"
+      title="How People Buy Snacks Online: Checkout Behavior & Channel Choice" crumb={["Report", "Listen Labs Report"]} actions={REPORT_ACTIONS}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <div style={{ display: "flex", gap: 14, padding: "12px 16px 0", color: T.inkSoft, justifyContent: "flex-end" }}>
+          <I name="download" size={14} /><I name="ellipsis" size={14} />
+        </div>
+        <div className="ll-doc-fade" style={{ flex: 1, position: "relative" }}>
+          <div style={{ width: PR_COL, margin: "0 auto", padding: "30px 0 0" }}>
+            <div style={{ fontSize: 14.5, color: T.ink }}>Assortment and value break Snacks.com intent</div>
+            <div style={{ fontSize: 13.5, lineHeight: "19px", color: T.inkSoft, marginTop: 10 }}>
+              Bars show how many participants experienced each major Snacks.com intent-break driver during the observed
+              journey. The horizontal categories are the reason purchase momentum weakened; bar length is the number of
+              participants.
+            </div>
+
+            <div style={{ position: "relative", marginTop: 14 }}>
+              {CH_DRIVERS.map(([label, n], r) => (
+                <div key={label} style={{ height: CH_ROW, paddingTop: 8, opacity: hover >= 0 && hover !== r ? 0.4 : 1, transition: "opacity .25s" }}>
+                  <div style={{ display: "flex", alignItems: "center", fontSize: 12.5, color: T.inkSoft }}>
+                    <span style={{ flex: 1 }}>{label}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontVariantNumeric: "tabular-nums" }}>{n} <I name="circle-user-round" size={12} /></span>
+                  </div>
+                  <div style={{ position: "relative", height: 11, marginTop: 6, borderRadius: 2, background: T.fill, overflow: "hidden" }}>
+                    <div style={{
+                      position: "absolute", left: 0, top: 0, bottom: 0, width: `${(n / max) * 100}%`, background: T.brand, borderRadius: 2,
+                      transform: grown ? "none" : "scaleX(0)", transformOrigin: "left center",
+                      transition: `transform .9s cubic-bezier(.22,1,.36,1) ${r * 0.08}s`,
+                    }} />
+                    <span data-cursor={"ch-r" + r} style={{ position: "absolute", top: 0, width: 10, height: 11, left: `${(n / max) * 70}%` }} />
+                  </div>
+                </div>
+              ))}
+              {hover >= 0 && (
+                <div key={hover} className="ll-card ll-enter" style={{
+                  position: "absolute", top: hover * CH_ROW + 44, left: `${(CH_DRIVERS[hover][1] / max) * 70}%`, marginLeft: 18, width: 220, zIndex: 2,
+                  padding: "10px 12px", boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 12, lineHeight: "18px",
+                }}>
+                  <div className="ll-500" style={{ marginBottom: 4 }}>{CH_DRIVERS[hover][0]}</div>
+                  <div style={{ display: "flex" }}><span style={{ color: T.inkSoft, flex: 1 }}>Participants</span><span className="ll-500">{CH_DRIVERS[hover][1]} of {CH_BASE}</span></div>
+                  <div style={{ color: T.inkSoft, marginTop: 4 }}>{Math.round((CH_DRIVERS[hover][1] / CH_BASE) * 100)}% lost momentum here</div>
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize: 12, lineHeight: "16px", color: T.inkSoft, marginTop: 10 }}>
+              Base size: N={CH_BASE}; Themes are multi-select, so one participant can contribute to more than one driver. Only the
+              five most decision-relevant drivers are shown.
+            </div>
+
+            <div style={{ fontSize: 17, lineHeight: "29px", color: T.ink, marginTop: 52 }}>
+              <span style={{ background: mark ? T.brandSoft : "transparent", borderRadius: 3, transition: "background-color .6s ease" }}>
+                The most damaging brand moment was the gap between the name <span className="ll-500">Snacks.com</span> and what shoppers found.
+              </span>{" "}
+              Non-chip categories felt token, familiar products lacked a direct-only advantage, and the prominent variety-pack
+              route led to a <span className="ll-500">"VARIETY PACK UNAVAILABLE"</span> page immediately after the top-navigation click<CiteChip n={18} /> .
+            </div>
+            <div style={{ fontSize: 17, lineHeight: "29px", color: T.ink, marginTop: 20 }}>
+              Price then made familiar products easy to reject. Shoppers compared individual bags and the final cart with grocery
+              promotions they already knew. Free shipping could not rescue an order whose item economics already felt wrong, as one
+              participant summarized: <span style={{ color: T.inkSoft }}>"I got the free shipping too, I guess. Thirty bucks for all this? It's just, that seems way overpriced."</span><CiteChip n={58} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  )
+}
