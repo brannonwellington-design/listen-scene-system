@@ -47,7 +47,7 @@ const WB_CSS = `
   .wb-main { display: flex; align-items: stretch; }
   .wb-stage { flex: 1; min-width: 0; padding: 24px 32px 72px; }
   .wb-panel { width: 344px; flex-shrink: 0; background: #FFF; border-left: 1px solid #E7E1D6;
-    padding: 8px 20px 28px; overflow-y: auto; height: calc(100vh - 57px); position: sticky; top: 0; }
+    padding: 0 20px 28px; overflow-y: auto; height: calc(100vh - 57px); position: sticky; top: 0; }
   .wb-panel::-webkit-scrollbar { width: 8px; }
   .wb-panel::-webkit-scrollbar-thumb { background: #E7E1D6; border-radius: 4px; }
   .wb-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; min-height: 38px; }
@@ -56,6 +56,7 @@ const WB_CSS = `
   .wb-tools .wb-slider { margin: 0 6px; }
   .wb-tools .wb-time { margin-right: 4px; }
   .wb-group { margin: 0 -20px; border-top: 1px solid #EEE8DD; }
+  .wb-group:first-child { border-top: none; }
   .wb-group-body { padding: 0 20px 14px; }
   .wb-section { display: flex; align-items: center; gap: 8px; width: 100%; font: 500 13px ${T.font}; color: ${T.ink};
     padding: 13px 20px; background: none; border: none; cursor: pointer; text-align: left; }
