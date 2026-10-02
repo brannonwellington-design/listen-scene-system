@@ -8,6 +8,8 @@ import { byKey } from "./ListenRegistry"
 import { T, ScaleBox } from "./ListenKit"
 
 const DEMO_CSS = `
+  /* match the scenes' type rendering (ListenKit's .ll) so page text isn't heavier */
+  .demo-page { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   .demo-split { display: flex; gap: 48px; align-items: center; flex-wrap: wrap; }
   .demo-split > div { flex: 1 1 320px; min-width: 280px; }
   .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 40px 32px; align-items: start; }
