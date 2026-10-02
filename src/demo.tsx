@@ -43,10 +43,9 @@ function Demo(): JSX.Element {
           </p>
         </div>
         <div style={{ height: 80 }} />
-        {/* the homepage section runs 1392 wide (24px gutters at 1440), wider than this page */}
-        <div style={{ width: "min(1392px, calc(100vw - 48px))", position: "relative", left: "50%", transform: "translateX(-50%)" }}>
-          <SceneCanvas layout="multi-step" sequence="use-cases" maxWidth={1392} />
-        </div>
+        {/* held to this page's 1200 column so it lines up with the sections around it
+            (on the homepage it runs 1392); the list keeps the mock's inset in its column */}
+        <SceneCanvas layout="multi-step" sequence="use-cases" maxWidth={1200} />
 
         <div style={{ height: 160 }} />
 
