@@ -1,21 +1,15 @@
 // Workbench — the composition studio (the landing page). Local-only; not
 // pasted into Framer. Tune every SceneCanvas setting live, manipulate the
 // shot directly (drag to pin, wheel to zoom, drag-resize the preview frame),
-// scrub to the beat, then save as a named preset.
+// scrub to the beat.
 // UI: a shadcn-style inspector kit hand-rolled on the Listen Labs tokens.
 import * as React from "react"
-import SceneCanvas, { CANVAS_DEFAULTS, SceneCanvasProps, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
-import { PRESETS, Preset } from "./ListenPresets"
+import SceneCanvas, { CANVAS_DEFAULTS, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
 import { byKey, REGISTRY, SEQUENCES } from "./ListenRegistry"
 import { T, Logo, ScaleBox, PatternLayer, PatternType, APP_W } from "./ListenKit"
 import { I } from "./ListenIcons"
 
 type Cfg = typeof CANVAS_DEFAULTS
-const DRAFT_KEY = "llPresetDrafts"
-
-const loadDrafts = (): Preset[] => {
-  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "[]") } catch { return [] }
-}
 
 // -------------------------------------------------------------- drag engine --
 /** window-scoped drag: survives leaving the handle, suppresses text selection */
@@ -70,23 +64,10 @@ const WB_CSS = `
   .wb-section:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(0, 33, 204, 0.35); }
   .wb-summary { font-weight: 400; font-size: 12px; color: ${T.inkFaint}; min-width: 0; overflow: hidden;
     text-overflow: ellipsis; white-space: nowrap; }
-  .wb-fold-all { display: flex; justify-content: flex-end; margin: 6px 0 2px; }
-  .wb-fold-all button { border: none; background: none; font: 11.5px ${T.font}; color: ${T.inkSoft}; cursor: pointer; padding: 2px 0; }
-  .wb-fold-all button:hover { color: ${T.ink}; }
   .wb-num { width: 18px; height: 18px; border-radius: 5px; background: #F0EBDF; color: ${T.inkSoft};
     font-size: 11px; display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
   .wb-sub { margin: 2px 0 4px; padding-left: 10px; border-left: 2px solid #EEE8DD; }
   .wb-unit { font-size: 12px; color: ${T.inkFaint}; margin-left: -2px; }
-  .wb-preset { margin: 8px -20px 0; padding: 12px 20px 14px; background: #FCFBF8; border-bottom: 1px solid #EEE8DD;
-    display: flex; flex-direction: column; gap: 8px; }
-  .wb-preset-row { display: flex; align-items: center; gap: 8px; }
-  .wb-preset-row .wb-select { flex: 1; }
-  .wb-dot { font-size: 11px; color: ${T.brand}; background: rgba(0, 33, 204, 0.08); border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
-  .wb-menu { position: absolute; top: 32px; left: 0; z-index: 20; background: #FFF; border: 1px solid #DDD6C8; border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,.1); padding: 4px; display: flex; flex-direction: column; min-width: 160px; }
-  .wb-menu button { text-align: left; border: none; background: none; font: 12.5px ${T.font}; color: ${T.ink};
-    padding: 7px 10px; border-radius: 7px; cursor: pointer; }
-  .wb-menu button:hover { background: #F6F2E9; }
   .wb-iconbtn { width: 26px; height: 26px; border-radius: 7px; border: 1px solid #DDD6C8; background: #FFF; color: ${T.inkSoft};
     display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
   .wb-iconbtn:disabled { opacity: .4; cursor: default; }
@@ -248,33 +229,6 @@ const PatternPick = (p: { v: PatternType; set: (t: PatternType) => void }) => (
   </span>
 )
 
-/** Export ▾ — copy the current composition as a preset block or as JSX */
-function ExportMenu(p: { items: Array<[string, () => string]> }): JSX.Element {
-  const [open, setOpen] = React.useState(false)
-  const [done, setDone] = React.useState("")
-  const ref = React.useRef<HTMLSpanElement>(null)
-  React.useEffect(() => {
-    if (!open) return
-    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    window.addEventListener("mousedown", close)
-    return () => window.removeEventListener("mousedown", close)
-  }, [open])
-  return (
-    <span ref={ref} style={{ position: "relative" }}>
-      <button className="wb-btn" onClick={() => setOpen(!open)}>{done ? "Copied ✓" : "Export"} <I name="chevron-down" size={12} /></button>
-      {open && (
-        <span className="wb-menu">
-          {p.items.map(([label, text]) => (
-            <button key={label} onClick={() => {
-              navigator.clipboard?.writeText(text()); setOpen(false); setDone(label)
-              setTimeout(() => setDone(""), 1400)
-            }}>{label}</button>
-          ))}
-        </span>
-      )}
-    </span>
-  )
-}
 
 // ------------------------------------------------------------ crop editor ----
 type Rect = { x: number; y: number; w: number; h: number }
@@ -366,16 +320,9 @@ function ContentSel(p: { v: string; set: (s: string) => void }): JSX.Element {
   )
 }
 
-// props that only mean something in the other layout stay out of saved output
-const MULTI_ONLY: Array<keyof Cfg> = ["sequence", "stepStyle", "autoCycle", "resumeDelay", "scrubber", "maxWidth"]
-const SINGLE_ONLY: Array<keyof Cfg> = ["content", "customScene", "cropX", "cropY", "cropW", "cropH", "loop", "loopPause", "segStart", "segEnd"]
 
 export default function Workbench(): JSX.Element {
   const [cfg, setCfg] = React.useState<Cfg>({ ...CANVAS_DEFAULTS, layout: "multi-step" })
-  const [presetSel, setPresetSel] = React.useState("")
-  const [drafts, setDrafts] = React.useState<Preset[]>(loadDrafts)
-  const [saveName, setSaveName] = React.useState("")
-  const [saving, setSaving] = React.useState(false)
   // which rail sections are open — a per-browser convenience
   const [fold, setFold] = React.useState<Record<FoldKey, boolean>>(loadFold)
   const saveFold = (f: Record<FoldKey, boolean>) => {
@@ -383,8 +330,6 @@ export default function Workbench(): JSX.Element {
     try { localStorage.setItem(FOLD_KEY, JSON.stringify(f)) } catch { /* storage unavailable */ }
   }
   const toggleFold = (k: FoldKey) => saveFold({ ...fold, [k]: !fold[k] })
-  const allOpen = Object.values(fold).every(Boolean)
-  const toggleAll = () => saveFold(Object.fromEntries(Object.keys(FOLD_ALL).map((k) => [k, !allOpen])) as Record<FoldKey, boolean>)
   const [previewW, setPreviewW] = React.useState<number | "full">("full")
   const [cropEdit, setCropEdit] = React.useState(false)
   const [scrubSlot, setScrubSlot] = React.useState<HTMLSpanElement | null>(null)
@@ -468,14 +413,8 @@ export default function Workbench(): JSX.Element {
     })
   }
 
-  // --- preset apply / save --------------------------------------------------
   const isMulti = cfg.layout === "multi-step"
 
-  const allPresets = [...PRESETS, ...drafts]
-  // a loaded preset stays selected while you tweak; the rail flags drift
-  const loaded = allPresets.find((x) => x.name === presetSel)
-  const loadedCfg = loaded ? ({ ...CANVAS_DEFAULTS, ...(loaded.props as Partial<Cfg>) } as Cfg) : null
-  const edited = !!loadedCfg && (Object.keys(CANVAS_DEFAULTS) as Array<keyof Cfg>).some((k) => cfg[k] !== loadedCfg[k])
   // scene state only means something for scenes inside the app shell
   const shellShot = isMulti || entry.w === APP_W
 
@@ -499,42 +438,6 @@ export default function Workbench(): JSX.Element {
       + " · " + (cfg.canvasHeight ? cfg.canvasHeight + "px" : "Auto"),
     canvas: (cfg.pattern === "none" ? "No pattern" : cfg.pattern[0].toUpperCase() + cfg.pattern.slice(1))
       + " · " + cfg.bgColor.toUpperCase() + (cfg.radius ? " · r" + cfg.radius : ""),
-  }
-  const applyPreset = (name: string) => {
-    setPresetSel(name)
-    const p = allPresets.find((x) => x.name === name)
-    if (!p) return
-    setCfg({ ...CANVAS_DEFAULTS, ...(p.props as Partial<Cfg>) })
-    setCropEdit(false)
-  }
-  const changedProps = (): Partial<Cfg> => {
-    const out: Partial<Cfg> = {}
-    for (const k of Object.keys(CANVAS_DEFAULTS) as Array<keyof Cfg>) {
-      if (isMulti && SINGLE_ONLY.includes(k)) continue
-      if (!isMulti && MULTI_ONLY.includes(k)) continue
-      if (cfg[k] !== CANVAS_DEFAULTS[k]) (out as any)[k] = cfg[k]
-    }
-    return out
-  }
-  const serialize = (props: Record<string, unknown>) =>
-    Object.entries(props).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")
-  const presetBlock = () => {
-    const props: Record<string, unknown> = changedProps()
-    return `  {\n    name: ${JSON.stringify(saveName || "untitled")},\n    props: { ${serialize(props)} },\n  },`
-  }
-  const jsxBlock = () => {
-    const props = changedProps()
-    const body = Object.entries(props).map(([k, v]) => typeof v === "string" ? `${k}=${JSON.stringify(v)}` : `${k}={${JSON.stringify(v)}}`).join(" ")
-    return `<SceneCanvas ${body} />`
-  }
-  const saveDraft = () => {
-    if (!saveName) return
-    const props = changedProps() as Partial<SceneCanvasProps>
-    const next = [...drafts.filter((d) => d.name !== saveName), { name: saveName, props }]
-    setDrafts(next)
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
-    setPresetSel(saveName)
-    setSaving(false)
   }
 
   const setContent = (v: string) => {
@@ -645,35 +548,8 @@ export default function Workbench(): JSX.Element {
           </div>
         </div>
 
-        {/* inspector: preset, then the five steps of building a shot */}
+        {/* inspector: the five steps of building a shot */}
         <div className="wb-panel">
-          <div className="wb-preset">
-            <div className="wb-preset-row">
-              <Sel v={presetSel} set={applyPreset} width={9999}
-                options={["", ...allPresets.map((p) => p.name)]}
-                titles={["No preset", ...allPresets.map((p) => p.name)]} />
-              {edited && <span className="wb-dot" title="Changed since this preset was loaded">edited</span>}
-            </div>
-            {saving ? (
-              <div className="wb-preset-row">
-                <input className="wb-input text" style={{ flex: 1, width: "auto" }} placeholder="Preset name…" autoFocus
-                  value={saveName} onChange={(e) => setSaveName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") saveDraft(); if (e.key === "Escape") setSaving(false) }} />
-                <button className="wb-btn primary" onClick={saveDraft} disabled={!saveName}>Save</button>
-                <button className="wb-btn" onClick={() => setSaving(false)}>Cancel</button>
-              </div>
-            ) : (
-              <div className="wb-preset-row">
-                <button className="wb-btn primary" onClick={() => { setSaveName(presetSel); setSaving(true) }}>Save as…</button>
-                <ExportMenu items={[["Copy preset TS", presetBlock], ["Copy JSX", jsxBlock]]} />
-              </div>
-            )}
-            <div className="wb-hint">Drafts save in this browser. Export → paste into <code>ListenPresets.tsx</code> to ship.</div>
-          </div>
-
-          <div className="wb-fold-all">
-            <button onClick={toggleAll}>{allOpen ? "Collapse all" : "Expand all"}</button>
-          </div>
           <Section n={1} title="Content" open={fold.content} onToggle={() => toggleFold("content")} summary={summary.content}>
             <Field label="Layout">
               <Seg v={cfg.layout} set={(v) => { set("layout")(v as Cfg["layout"]); setCropEdit(false) }}

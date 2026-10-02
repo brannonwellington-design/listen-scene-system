@@ -122,14 +122,12 @@ node scripts/dev-server.mjs   # → http://localhost:4173
   drag a box over the frozen scene to read off a crop rect in design
   coordinates, ready for SceneCanvas's custom crop controls.
 - `/` (the landing page) is the **composition workbench**. Its right rail
-  starts with the preset (load one — an *edited* tag shows drift — then
-  **Save as…** a browser draft or **Export** a preset block / JSX to paste
-  into `ListenPresets.tsx`), followed by the same five groups as Framer:
-  Content, Playback, Scene state, Framing, Canvas. Direct manipulation on
-  the stage: drag the canvas to reposition a pinned shot, scroll to zoom,
-  drag-resize the crop over a ghosted scene, punch segment in/out from the
-  scrub playhead, and preview at any width/breakpoint. Presets appear in
-  SceneCanvas's Framer dropdown.
+  has the same five groups as Framer: Content, Playback, Scene state,
+  Framing, Canvas. Direct manipulation on the stage: drag the canvas to
+  reposition a pinned shot, scroll to zoom, drag-resize the crop over a
+  ghosted scene, punch segment in/out from the scrub playhead, and preview
+  at any width/breakpoint. Presets are authored in `ListenPresets.tsx` and
+  appear in SceneCanvas's Framer dropdown.
 
 ## Motion & state vocabulary (harvested from the live app)
 
