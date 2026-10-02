@@ -8,6 +8,8 @@ import { byKey } from "./ListenRegistry"
 import { T, ScaleBox } from "./ListenKit"
 
 const DEMO_CSS = `
+  /* match the scenes' type rendering (ListenKit's .ll) so page text isn't heavier */
+  .demo-page { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
   .demo-split { display: flex; gap: 48px; align-items: center; flex-wrap: wrap; }
   .demo-split > div { flex: 1 1 320px; min-width: 280px; }
   .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 40px 32px; align-items: start; }
@@ -41,10 +43,9 @@ function Demo(): JSX.Element {
           </p>
         </div>
         <div style={{ height: 80 }} />
-        {/* the homepage section runs 1392 wide (24px gutters at 1440), wider than this page */}
-        <div style={{ width: "min(1392px, calc(100vw - 48px))", position: "relative", left: "50%", transform: "translateX(-50%)" }}>
-          <SceneCanvas layout="multi-step" sequence="use-cases" maxWidth={1392} />
-        </div>
+        {/* held to this page's 1200 column so it lines up with the sections around it
+            (on the homepage it runs 1392); the list keeps the mock's inset in its column */}
+        <SceneCanvas layout="multi-step" sequence="use-cases" maxWidth={1200} />
 
         <div style={{ height: 160 }} />
 
