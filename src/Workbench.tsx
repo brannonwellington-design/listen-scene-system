@@ -433,7 +433,7 @@ export default function Workbench(): JSX.Element {
       ? (cfg.autoCycle ? "Auto-advance · " + cfg.resumeDelay + "s pause" : "Manual")
       : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.segEnd ? " · " + secs(cfg.segStart) + "–" + secs(cfg.segEnd) : ""),
     state: (cfg.startCollapsed ? "Collapsed" : "Open") + " · " + (cfg.startTheme === "dark" ? "Dark" : "Light"),
-    framing: listStyle ? "Set by list style"
+    framing: listStyle ? "List " + cfg.listStart + "–" + cfg.listEnd + " · card " + cfg.cardStart + "–12"
       : (cfg.fit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%"
         : cfg.fit === "bleed" ? "Bleed · " + cfg.bleedShow + "px across" : "Scale to fit")
       + " · " + (cfg.canvasHeight ? cfg.canvasHeight + "px" : "Auto"),
@@ -630,7 +630,15 @@ export default function Workbench(): JSX.Element {
 
           </Section>
           <Section n={4} title="Framing" open={fold.framing} onToggle={() => toggleFold("framing")} summary={summary.framing}>
-            {listStyle && <div className="wb-hint">The list style crops its shot like the mock (a bleed card, 48px inset, 16px on mobile), so these don't apply.</div>}
+            {listStyle && <>
+              <Field label="List columns">
+                <Num v={cfg.listStart} set={set("listStart")} min={1} max={11} /><Num v={cfg.listEnd} set={set("listEnd")} min={1} max={11} />
+              </Field>
+              <Field label="Card from">
+                <Num v={cfg.cardStart} set={set("cardStart")} min={2} max={12} />
+              </Field>
+              <div className="wb-hint">A 12-column grid, 24px gutters. The card runs to column 12 and crops its shot like the mock (48px inset, 16px on mobile).</div>
+            </>}
             {!listStyle && <>
             <Field label="Mode">
               <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"], ["bleed", "Bleed"]]} />

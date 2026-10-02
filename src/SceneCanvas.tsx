@@ -53,6 +53,11 @@ export type SceneCanvasProps = {
   stepStyle?: "auto" | StepStyle
   autoCycle?: boolean
   resumeDelay?: number
+  /** list style, side by side: 12-column grid spans (24px gutters). The list
+   *  runs listStart–listEnd; the card runs cardStart–12. */
+  listStart?: number
+  listEnd?: number
+  cardStart?: number
   scrubber?: boolean
   // single content: any registry key (scene or fragment), or "custom" to
   // crop a rect out of a scene
@@ -107,6 +112,7 @@ export const CANVAS_DEFAULTS = {
   layout: "single" as "single" | "multi-step", sequence: "how-it-works",
   stepStyle: "auto" as "auto" | StepStyle,
   autoCycle: true, resumeDelay: 14, scrubber: false, maxWidth: 1200,
+  listStart: 2, listEnd: 5, cardStart: 7,
   content: "design-study", customScene: "design-study",
   cropX: 0, cropY: 0, cropW: 0, cropH: 0,
   loop: true, loopPause: 3, segStart: 0, segEnd: 0,
@@ -317,7 +323,7 @@ function Single(props: typeof CANVAS_DEFAULTS & {
 
 // ------------------------------------------------------------ multi-step -----
 function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlot?: HTMLElement | null }): JSX.Element {
-  const { sequence, stepStyle, autoCycle, resumeDelay, scrubber, maxWidth, steps: customSteps, scrubberSlot, ...canvas } = props
+  const { sequence, stepStyle, autoCycle, resumeDelay, scrubber, maxWidth, listStart, listEnd, cardStart, steps: customSteps, scrubberSlot, ...canvas } = props
   const seq = sequenceByKey(sequence)
   const steps = sequence === "custom" && customSteps?.length ? customSteps : seq.steps
   const style: StepStyle = stepStyle !== "auto" ? stepStyle : sequence === "custom" ? "captions" : seq.style
@@ -477,19 +483,24 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
 
   if (style === "list") {
     // Figma "Homepage Refresh" 897:4407 (desktop) / 893:4358 (mobile): a
-    // 566 · 142 · 684 split, the list right-aligned in its column at 448;
-    // under ~820px the card moves above the list. The inset scales with the
-    // card (48 of 684 wide; 16 of 370 stacked) so the crop reads the same at
-    // every size.
+    // 12-column grid with 24px gutters (94px columns at 1392) — list on 2–5,
+    // column 6 open, card on 7–12. Under ~820px the card moves above the
+    // list. The inset scales with the card (48 of 684 wide; 16 of 370
+    // stacked) so the crop reads the same at every size.
     const stacked = width > 0 && width < 820
-    const cardW = stacked ? width : width * 684 / 1392
+    const GUTTER = 24
+    const ls = Math.max(1, Math.min(11, Math.round(listStart)))
+    const le = Math.max(ls, Math.min(11, Math.round(listEnd)))
+    const cs = Math.max(le + 1, Math.min(12, Math.round(cardStart)))
+    const colW = (width - 11 * GUTTER) / 12
+    const cardW = stacked ? width : (13 - cs) * colW + (12 - cs) * GUTTER
     const inset = Math.max(12, Math.round(cardW * (stacked ? 16 / 370 : 48 / 684)))
     // side by side, the card matches the list's height at every width (it
     // follows the rows opening and closing); stacked, it keeps the mock's ratio
     const card = { fit: "bleed" as const, bleedShow: byKey(steps[at].content).bleedShow ?? canvas.bleedShow, bleedRatio: stacked ? 200 / 370 : 520 / 684, insetX: inset, insetY: inset, radius: 12, canvasHeight: stacked ? 0 : listH }
     const rowGap = 16
     const list = (
-      <div ref={listRef} style={{ display: "flex", flexDirection: "column", gap: rowGap, width: "100%", maxWidth: stacked ? undefined : 448, justifySelf: "end" }}>
+      <div ref={listRef} style={{ display: "flex", flexDirection: "column", gap: rowGap, width: "100%", gridColumn: stacked ? undefined : `${ls} / ${le + 1}` }}>
         {steps.map((st, i) => {
           const on = i === at
           const last = i === steps.length - 1
@@ -544,10 +555,9 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
             {list}
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,566fr) minmax(0,142fr) minmax(0,684fr)", alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, minmax(0, 1fr))", columnGap: GUTTER, alignItems: "start" }}>
             {list}
-            <div />
-            {shot(card)}
+            <div style={{ gridColumn: `${cs} / 13`, minWidth: 0 }}>{shot(card)}</div>
           </div>
         )}
       </div>
@@ -642,6 +652,9 @@ addPropertyControls(SceneCanvas, {
     hidden: (p) => !isMulti(p) || p.sequence !== "custom",
   },
   stepStyle: { type: ControlType.Enum, title: "Style", options: ["auto", "captions", "list"], optionTitles: ["Auto", "Captions", "List"], defaultValue: "auto", displaySegmentedControl: true, hidden: isSingle },
+  listStart: { type: ControlType.Number, title: "List from column", defaultValue: 2, min: 1, max: 11, step: 1, displayStepper: true, hidden: (p) => !isList(p) },
+  listEnd: { type: ControlType.Number, title: "List to column", defaultValue: 5, min: 1, max: 11, step: 1, displayStepper: true, hidden: (p) => !isList(p) },
+  cardStart: { type: ControlType.Number, title: "Card from column", defaultValue: 7, min: 2, max: 12, step: 1, displayStepper: true, hidden: (p) => !isList(p) },
   // 2 playback — single loops (optionally a time-slice); multi-step steps play whole, then advance
   loop: { type: ControlType.Boolean, title: "Loop", defaultValue: true, hidden: isMulti },
   loopPause: { type: ControlType.Number, title: "Loop pause (s)", defaultValue: 3, min: 0, max: 20, step: 0.5, hidden: isMulti },
