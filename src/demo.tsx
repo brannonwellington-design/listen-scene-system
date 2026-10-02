@@ -14,7 +14,19 @@ const DEMO_CSS = `
   .demo-split > div { flex: 1 1 320px; min-width: 280px; }
   .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 40px 32px; align-items: start; }
   .demo-label { font-size: 12px; letter-spacing: 0; color: #6B6861; margin-bottom: 10px; }
-  @media (max-width: 640px) { .demo-page { padding: 48px 20px 96px !important; } }
+  .demo-grid-overlay { position: fixed; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); z-index: 50;
+    width: min(1200px, calc(100vw - 96px)); display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px;
+    pointer-events: none; }
+  .demo-grid-overlay > div { background: rgba(0, 33, 204, 0.06); border-left: 1px solid rgba(0, 33, 204, 0.18);
+    border-right: 1px solid rgba(0, 33, 204, 0.18); }
+  .demo-grid-overlay span { display: block; padding-top: 8px; text-align: center; font-size: 11px; color: rgba(0, 33, 204, 0.6);
+    font-variant-numeric: tabular-nums; }
+  .demo-grid-toggle { position: fixed; right: 20px; bottom: 20px; z-index: 51; font: 13px ${T.font}; color: ${T.ink};
+    background: #FFF; border: 1px solid #DDD6C8; border-radius: 8px; padding: 7px 12px; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .demo-grid-toggle[aria-pressed="true"] { background: ${T.ink}; color: #F9F4EB; border-color: ${T.ink}; }
+  @media (max-width: 640px) { .demo-page { padding: 48px 20px 96px !important; }
+    .demo-grid-overlay { width: calc(100vw - 40px); } }
 `
 
 /** a single shot with no canvas treatment (no fill, pattern, or padding) */
@@ -22,10 +34,36 @@ function BareShot(props: { scene: string }): JSX.Element {
   return <SceneCanvas content={props.scene} bgColor="transparent" padX={0} padY={0} />
 }
 
+/** the page's 12-column grid (24px gutters) over its 1200 column; toggle with
+ *  the Grid button, the G key, or ?grid=1 */
+function GridOverlay(): JSX.Element {
+  const [on, setOn] = React.useState(() => new URLSearchParams(location.search).get("grid") === "1")
+  React.useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "g" || e.metaKey || e.ctrlKey || e.altKey) return
+      if ((e.target as HTMLElement).closest?.("input, textarea, select")) return
+      setOn((v) => !v)
+    }
+    window.addEventListener("keydown", key)
+    return () => window.removeEventListener("keydown", key)
+  }, [])
+  return (
+    <>
+      {on && (
+        <div className="demo-grid-overlay" aria-hidden>
+          {Array.from({ length: 12 }, (_, i) => <div key={i}><span>{i + 1}</span></div>)}
+        </div>
+      )}
+      <button className="demo-grid-toggle" onClick={() => setOn(!on)} aria-pressed={on}>{on ? "Hide grid" : "Show grid"}</button>
+    </>
+  )
+}
+
 function Demo(): JSX.Element {
   return (
     <div className="demo-page" style={{ background: T.pageBg, minHeight: "100vh", fontFamily: T.font, color: T.ink, padding: "80px 48px 160px" }}>
       <style>{DEMO_CSS}</style>
+      <GridOverlay />
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <h1 style={{ fontSize: 44, fontWeight: 400, maxWidth: 640, lineHeight: 1.15 }}>
           How it works
@@ -44,7 +82,7 @@ function Demo(): JSX.Element {
         </div>
         <div style={{ height: 80 }} />
         {/* held to this page's 1200 column so it lines up with the sections around it
-            (on the homepage it runs 1392); the list keeps the mock's inset in its column */}
+            (on the homepage it runs 1392); the list and card sit on its 12-column grid */}
         <SceneCanvas layout="multi-step" sequence="use-cases" maxWidth={1200} />
 
         <div style={{ height: 160 }} />
