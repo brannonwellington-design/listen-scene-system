@@ -476,7 +476,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
   )
 
   if (style === "list") {
-    // Figma "Homepage Refresh" 891:4320 (desktop) / 893:4358 (mobile): a
+    // Figma "Homepage Refresh" 897:4407 (desktop) / 893:4358 (mobile): a
     // 566 · 142 · 684 split, the list right-aligned in its column at 448;
     // under ~820px the card moves above the list. The inset scales with the
     // card (48 of 684 wide; 16 of 370 stacked) so the crop reads the same at
@@ -487,7 +487,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
     // side by side, the card matches the list's height at every width (it
     // follows the rows opening and closing); stacked, it keeps the mock's ratio
     const card = { fit: "bleed" as const, bleedShow: byKey(steps[at].content).bleedShow ?? canvas.bleedShow, bleedRatio: stacked ? 200 / 370 : 520 / 684, insetX: inset, insetY: inset, radius: 12, canvasHeight: stacked ? 0 : listH }
-    const rowGap = stacked ? 16 : 24
+    const rowGap = 16
     const list = (
       <div ref={listRef} style={{ display: "flex", flexDirection: "column", gap: rowGap, width: "100%", maxWidth: stacked ? undefined : 448, justifySelf: "end" }}>
         {steps.map((st, i) => {
@@ -501,7 +501,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
                   background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit",
                   color: T.brand, fontSize: 20, lineHeight: 1.4, letterSpacing: -0.4,
                 }}>
-                <span style={{ width: stacked ? 32 : 40, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ width: stacked ? 32 : 28, flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
@@ -509,9 +509,8 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
                   <span className={"ll-open" + (on ? " on" : "")} aria-hidden={!on}>
                     <span>
                       <span style={{
-                        display: "block", paddingTop: stacked ? 8 : 16, color: T.brandFaint,
-                        fontSize: stacked ? 16 : 20, lineHeight: stacked ? "22px" : 1.4,
-                        letterSpacing: stacked ? -0.32 : -0.4,
+                        display: "block", paddingTop: 8, color: T.brandFaint,
+                        fontSize: 16, lineHeight: "22px", letterSpacing: -0.32,
                       }}>{st.body}</span>
                     </span>
                   </span>
