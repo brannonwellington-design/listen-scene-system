@@ -17,6 +17,7 @@ import {
   FragmentEIUseCaseAdTesting, FragmentEIUseCaseConcepts, FragmentEIUseCaseBrand, FragmentEIUseCaseUX,
   EI_USECASE_W, EI_USECASE_H,
   SceneUCBrandTracking, SceneUCConsumerAttitudes, SceneUCFeaturePriority,
+  SceneUCUsability,
   SceneProps,
 } from "./ListenScenes"
 import { APP_W, APP_H } from "./ListenKit"
@@ -54,6 +55,7 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "uc-consumer-attitudes", title: "Consumer attitudes & behaviors", group: "Use cases", n: 1, Scene: SceneUCConsumerAttitudes, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-brand-tracking", title: "Brand tracking & health", group: "Use cases", n: 2, Scene: SceneUCBrandTracking, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-feature-priority", title: "Product & feature prioritization", group: "Use cases", n: 3, Scene: SceneUCFeaturePriority, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-usability", title: "Usability & UX testing", group: "Use cases", n: 4, Scene: SceneUCUsability, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- /features/emotional-intelligence — the page's 8 product shots, in
   // page order: hero, the three Features cards, the four Use-case cards
@@ -76,7 +78,6 @@ export const REGISTRY: RegistryEntry[] = [
  *  workbench menu so the gaps show; move one into REGISTRY when it lands */
 export type PlannedShot = { group: Group; n: number; title: string }
 export const PLANNED: PlannedShot[] = [
-  { group: "Use cases", n: 4, title: "Usability & UX testing" },
   { group: "Use cases", n: 5, title: "Churn, retention & activation" },
   { group: "Use cases", n: 6, title: "Ad & creative testing" },
   { group: "Use cases", n: 7, title: "Pricing & willingness-to-pay" },
@@ -176,7 +177,7 @@ export const SEQUENCES: Sequence[] = [
         body: "Hear which features matter most to customers, and why, before you build.",
       },
       {
-        content: "compound",
+        content: "uc-usability",
         title: "Usability & UX Testing",
         body: "Watch people use your product, hear what they're thinking, and see where they get stuck.",
       },
