@@ -2874,3 +2874,154 @@ export function SceneUCUsability({ active, onDone, runKey = 0, hold, playFrom, o
     </BareFrame>
   )
 }
+
+// ------------------------------------- Use case · Pricing & willingness-to-pay -
+// Homepage refresh, Use Cases 07. "Airport Lounge Membership: Willingness to
+// Pay" (listenlabs.ai/p/YfAwSg55), Report → "The concept appeals, but travelers
+// still need a reason to pay": the Gabor-Granger chart for annual membership,
+// 100 respondents. $150 / $250 / $350 demand comes from the analysis scalars
+// (54% / 35% / 24%); $450 and up are read off the live chart and agree with its
+// revenue curve. Revenue per respondent is price × demand. Prices are tested
+// tiers, so the x-axis is evenly spaced, as live.
+const PR_PRICES = [150, 250, 350, 450, 550, 750, 850]
+const PR_DEMAND = [54, 35, 24, 13, 12, 8, 6]
+const PR_REV = PR_PRICES.map((p, i) => (p * PR_DEMAND[i]) / 100)
+const PR_PEAK = 1                    // $250, the revenue-maximizing price
+const PR_COL = 760                   // report column
+const PR_PLOT_L = 50, PR_PLOT_R = 86 // axis label gutters
+const PR_PLOT_H = 236
+const PR_RED = "#B3261E"
+const PR_SENTENCES = [
+  "Modeled annual revenue remains close to its peak across several tested prices.",
+  "Both adjacent tested tiers retain most of peak modeled gross revenue, making acquisition value and service costs central to the final choice.",
+  "Higher tested prices reduce both demand and modeled gross revenue relative to the recommended launch price.",
+]
+const PR_REPORTS = [{ title: "Listen Labs Report", meta: "Sep 18 · Listen Labs" }]
+const money = (v: number) => `$${v.toFixed(2)}`
+
+export function SceneUCPricing({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor(APP_CURSOR_START)
+  const [drawn, setDrawn] = React.useState(false)
+  const [hover, setHover] = React.useState(-1)
+  const [mark, setMark] = React.useState(false)
+
+  useScene(active, async (p) => {
+    setDrawn(false); setHover(-1); setMark(false); cur.hide()
+    await p.sleep(500)
+    setDrawn(true)
+    await p.sleep(2000)
+    // the peak, then the two tiers either side of it
+    cur.show("pr-p1", 160, 140); await p.sleep(250)
+    cur.move("pr-p1"); await p.sleep(700)
+    setHover(1); await p.sleep(1700)
+    cur.move("pr-p0"); await p.sleep(500)
+    setHover(0); await p.sleep(1400)
+    cur.move("pr-p2"); await p.sleep(600)
+    setHover(2); await p.sleep(1400)
+    // ...which is what the report says next
+    cur.move("pr-p2", 60, 150); await p.sleep(350)
+    setHover(-1); cur.hide()
+    await p.sleep(200)
+    setMark(true)
+    await p.sleep(2600)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  const plotW = PR_COL - PR_PLOT_L - PR_PLOT_R
+  const inset = 24
+  const xAt = (i: number) => inset + (i * (plotW - inset * 2)) / (PR_PRICES.length - 1)
+  const yAt = (v: number) => PR_PLOT_H - (v / 100) * PR_PLOT_H
+  const path = (vs: number[]) => vs.map((v, i) => `${i ? "L" : "M"}${xAt(i).toFixed(1)} ${yAt(v).toFixed(1)}`).join(" ")
+  const line = (vs: number[], color: string, delay: number) => (
+    <path d={path(vs)} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" pathLength={1}
+      style={{ strokeDasharray: 1, strokeDashoffset: drawn ? 0 : 1, transition: `stroke-dashoffset 1.3s cubic-bezier(.45,0,.2,1) ${delay}s` }} />
+  )
+  const axis: React.CSSProperties = { position: "absolute", fontSize: 12, color: T.inkSoft, fontVariantNumeric: "tabular-nums" }
+
+  return (
+    <AppShell cursor={cur.state} nav={studyNav("Report", PR_REPORTS)} activeSub="Listen Labs Report"
+      title="Airport Lounge Membership: Willingness to Pay" crumb={["Report", "Listen Labs Report"]} actions={REPORT_ACTIONS}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <div style={{ display: "flex", gap: 14, padding: "12px 16px 0", color: T.inkSoft, justifyContent: "flex-end" }}>
+          <I name="download" size={14} /><I name="ellipsis" size={14} />
+        </div>
+        <div className="ll-doc-fade" style={{ flex: 1, position: "relative" }}>
+          <div style={{ width: PR_COL, margin: "0 auto", padding: "22px 0 0" }}>
+            <div style={{ fontSize: 14.5, color: T.ink }}>Annual membership demand and revenue by price</div>
+            <div style={{ fontSize: 13.5, lineHeight: "19px", color: T.inkSoft, marginTop: 8 }}>
+              This exercise measured stated likelihood to buy unlimited annual access across a broad network of similar lounges.
+              The demand curve shows the share who would buy at each tested annual price; the revenue curve multiplies price by
+              stated demand and marks the best-performing tested price. Treat the result as directional because survey purchase
+              intent can exceed real-world conversion.
+            </div>
+            <div style={{ fontSize: 13.5, color: T.inkSoft, marginTop: 16 }}>
+              Revenue-maximizing price: <span className="ll-500" style={{ color: T.ink }}>{money(PR_PRICES[PR_PEAK])}</span> ({PR_DEMAND[PR_PEAK]}% would buy, 100 respondents)
+            </div>
+            <div style={{ display: "flex", gap: 18, marginTop: 14, fontSize: 12.5, color: T.inkSoft }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: T.brand }} />Demand (% who would buy)</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: PR_RED }} />Revenue / respondent</span>
+            </div>
+
+            {/* dual-axis line chart */}
+            <div style={{ position: "relative", height: PR_PLOT_H + 56, marginTop: 26 }}>
+              {[0, 25, 50, 75, 100].map((v) => (
+                <React.Fragment key={v}>
+                  <span style={{ ...axis, left: 0, width: PR_PLOT_L - 12, textAlign: "right", top: yAt(v) - 8 }}>{v}%</span>
+                  <span style={{ ...axis, left: PR_PLOT_L + plotW + 10, top: yAt(v) - 8 }}>{money(v)}</span>
+                  <span style={{ position: "absolute", left: PR_PLOT_L, width: plotW, top: yAt(v), height: 1, background: T.appBorder }} />
+                </React.Fragment>
+              ))}
+              {PR_PRICES.map((p, i) => (
+                <span key={p} style={{ ...axis, top: PR_PLOT_H + 26, left: PR_PLOT_L + xAt(i) - 30, width: 60, textAlign: "center" }}>{money(p)}</span>
+              ))}
+              <svg width={plotW} height={PR_PLOT_H} style={{ position: "absolute", left: PR_PLOT_L, top: 0, overflow: "visible" }}>
+                {/* the revenue-maximizing price */}
+                <line x1={xAt(PR_PEAK)} x2={xAt(PR_PEAK)} y1={0} y2={PR_PLOT_H} stroke={T.inkSoft} strokeWidth={1} strokeDasharray="4 3"
+                  style={{ opacity: drawn ? 1 : 0, transition: "opacity .5s ease 1.4s" }} />
+                {hover >= 0 && <line x1={xAt(hover)} x2={xAt(hover)} y1={0} y2={PR_PLOT_H} stroke={T.ink} strokeOpacity={0.18} strokeWidth={1} />}
+                {line(PR_REV, PR_RED, 0.15)}
+                {line(PR_DEMAND, T.brand, 0)}
+                {hover >= 0 && (
+                  <>
+                    <circle cx={xAt(hover)} cy={yAt(PR_REV[hover])} r={4.5} fill={PR_RED} stroke={T.appBg} strokeWidth={2} />
+                    <circle cx={xAt(hover)} cy={yAt(PR_DEMAND[hover])} r={4.5} fill={T.brand} stroke={T.appBg} strokeWidth={2} />
+                  </>
+                )}
+              </svg>
+              {/* cursor targets: one per tested price, between the two lines */}
+              {PR_PRICES.map((p, i) => (
+                <span key={p} data-cursor={"pr-p" + i} style={{ position: "absolute", left: PR_PLOT_L + xAt(i) - 4, top: (yAt(PR_REV[i]) + yAt(PR_DEMAND[i])) / 2 - 4, width: 8, height: 8 }} />
+              ))}
+              {hover >= 0 && (
+                <div key={hover} className="ll-card ll-enter" style={{
+                  position: "absolute", left: PR_PLOT_L + xAt(hover) + 16, top: yAt(PR_REV[hover]) + 8, width: 224, zIndex: 2,
+                  padding: "10px 12px", boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 12, lineHeight: "18px",
+                }}>
+                  <div className="ll-500" style={{ marginBottom: 4 }}>{money(PR_PRICES[hover])}{hover === PR_PEAK ? " · peak revenue" : ""}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: T.brand }} /><span style={{ color: T.inkSoft, flex: 1 }}>Would buy</span><span className="ll-500">{PR_DEMAND[hover]}%</span></div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: PR_RED }} /><span style={{ color: T.inkSoft, flex: 1 }}>Revenue / respondent</span><span className="ll-500">{money(PR_REV[hover])}</span></div>
+                  {hover !== PR_PEAK && (
+                    <div style={{ color: T.inkSoft, marginTop: 4 }}>{Math.round((PR_REV[hover] / PR_REV[PR_PEAK]) * 100)}% of peak revenue</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ fontSize: 17, lineHeight: "29px", color: T.ink, marginTop: 30 }}>
+              {PR_SENTENCES.map((s, i) => (
+                <span key={i} style={{ background: i === 1 && mark ? T.brandSoft : "transparent", borderRadius: 3, transition: "background-color .6s ease" }}>{s}{i < PR_SENTENCES.length - 1 ? " " : ""}</span>
+              ))}
+            </div>
+
+            <div style={{ fontSize: 14.5, color: T.ink, marginTop: 44 }}>Day-pass demand and revenue by price</div>
+            <div style={{ fontSize: 13.5, lineHeight: "19px", color: T.inkSoft, marginTop: 8 }}>
+              This exercise measured stated likelihood to buy one lounge visit at each tested price. The demand curve shows the
+              share who would buy at each day-pass price; the revenue curve multiplies price by stated demand and marks the
+              best-performing tested price.
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  )
+}
