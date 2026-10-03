@@ -139,7 +139,9 @@ const CSS = `
   .hp-cust-meta { gap: 48px; }
 }
 @container (max-width: 640px) {
-  .hp-sec { padding: 64px 16px; gap: 48px; }
+  .hp-sec { padding: 80px 16px; gap: 80px; }
+  .hp-h2 { font-size: 24px; line-height: 1.4; letter-spacing: -0.48px; }
+  .hp-lede { font-size: 16px; line-height: 22px; letter-spacing: -0.32px; }
   .hp-nav { padding: 0 16px; }
   .hp-nav-right .hp-signin { display: none; }
   .hp-hero { padding: 32px 16px 16px; }
@@ -276,7 +278,8 @@ function HowItWorks({ style }: { style: StepStyle }): JSX.Element {
         <p className="hp-lede">From first question to insights that compound. Enterprise-grade controls throughout.</p>
       </div>
       <div ref={ref} className="hp-live">
-        {w > 0 && <SceneCanvas layout="multi-step" sequence="how-it-works" stepStyle={style} maxWidth={1392} padX={padX} padY={padY} radius={12} />}
+        {w > 0 && <SceneCanvas layout="multi-step" sequence="how-it-works" stepStyle={style} maxWidth={1392} padX={padX} padY={padY} radius={12}
+          swipeBleed={w <= 608 ? 16 : 24} />}
       </div>
     </section>
   )
