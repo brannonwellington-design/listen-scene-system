@@ -430,6 +430,12 @@ export default function Workbench(): JSX.Element {
     : cfg.stepStyle
   const listStyle = stepStyle === "list"
   const stageStyle = stepStyle === "stage"
+  // list and stage edit their own card's fit and height; single edits the canvas's
+  const framed = listStyle || stageStyle
+  const curFit = framed ? cfg.frameFit : cfg.fit
+  const fitKey = framed ? "frameFit" as const : "fit" as const
+  const curH = framed ? cfg.frameHeight : cfg.canvasHeight
+  const hKey = framed ? "frameHeight" as const : "canvasHeight" as const
   // one-line summaries for folded sections
   const secs = (ms: number) => +(ms / 1000).toFixed(1) + "s"
   const summary: Record<FoldKey, string> = {
@@ -440,11 +446,10 @@ export default function Workbench(): JSX.Element {
       ? (cfg.autoCycle ? "Auto-advance · " + cfg.resumeDelay + "s pause" : "Manual")
       : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.segEnd ? " · " + secs(cfg.segStart) + "–" + secs(cfg.segEnd) : ""),
     state: (cfg.startCollapsed ? "Collapsed" : "Open") + " · " + (cfg.startTheme === "dark" ? "Dark" : "Light"),
-    framing: stageStyle ? "Stage · shot from column 5"
-      : listStyle ? "List " + cfg.listStart + "–" + cfg.listEnd + " · card " + cfg.cardStart + "–12"
-      : (cfg.fit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%"
-        : cfg.fit === "bleed" ? "Bleed · " + cfg.bleedShow + "px across" : "Scale to fit")
-      + " · " + (cfg.canvasHeight ? cfg.canvasHeight + "px" : "Auto"),
+    framing: (stageStyle ? "Stage · " : listStyle ? "List " + cfg.listStart + "–" + cfg.listEnd + " · card " + cfg.cardStart + "–12 · " : "")
+      + (curFit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%"
+        : curFit === "bleed" ? "Bleed · " + cfg.bleedShow + "px across" : "Scale to fit")
+      + " · " + (curH ? curH + "px" : "Auto"),
     canvas: (cfg.pattern === "none" ? "No pattern" : cfg.pattern[0].toUpperCase() + cfg.pattern.slice(1))
       + " · " + cfg.bgColor.toUpperCase() + (cfg.radius ? " · r" + cfg.radius : ""),
   }
@@ -644,26 +649,25 @@ export default function Workbench(): JSX.Element {
               <Field label="Card from">
                 <Num v={cfg.cardStart} set={set("cardStart")} min={2} max={12} />
               </Field>
-              <div className="wb-hint">A 12-column grid, 24px gutters. The card runs to column 12 and crops its shot like the mock (48px inset, 16px on mobile).</div>
+              <div className="wb-hint">A 12-column grid, 24px gutters. The card runs to column 12. Bleed crops its shot like the mock (48px inset, 16px on mobile).</div>
             </>}
             {stageStyle && (
-              <div className="wb-hint">One panel on a 12-column grid. The caption, progress, and arrows sit on columns 1–4; the shot starts at column 5 and runs off the right and bottom, cropped like the Use Cases card. Under 820px the caption stacks above the shot.</div>
+              <div className="wb-hint">One panel on a 12-column grid. The caption, progress, and arrows sit on columns 1–4; the shot takes column 5 onward (Bleed runs it off the right and bottom, like the Use Cases card).</div>
             )}
-            {!listStyle && !stageStyle && <>
             <Field label="Mode">
-              <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"], ["bleed", "Bleed"]]} />
+              <Seg v={curFit} set={(v) => set(fitKey)(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"], ["bleed", "Bleed"]]} />
             </Field>
-            {cfg.fit === "bleed" && (
+            {curFit === "bleed" && (
               <div className="wb-sub">
-                <Field label="Insets x · y">
+                {!framed && <Field label="Insets x · y">
                   <Num v={cfg.insetX} set={set("insetX")} /><Num v={cfg.insetY} set={set("insetY")} />
-                </Field>
+                </Field>}
                 <Field label="Show">
                   <Num v={cfg.bleedShow} set={set("bleedShow")} wide /><span className="wb-unit">px across</span>
                 </Field>
               </div>
             )}
-            {cfg.fit === "pinned" && (
+            {curFit === "pinned" && (
               <div className="wb-sub">
                 <Field label="Anchor"><CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} /></Field>
                 <Field label="Insets x · y">
@@ -679,12 +683,12 @@ export default function Workbench(): JSX.Element {
               </div>
             )}
             <Field label="Height">
-              <Seg v={cfg.canvasHeight ? "fixed" : "auto"}
-                set={(v) => set("canvasHeight")(v === "auto" ? 0 : Math.round(canvasRef.current?.getBoundingClientRect().height || 400))}
+              <Seg v={curH ? "fixed" : "auto"}
+                set={(v) => set(hKey)(v === "auto" ? 0 : Math.round((framed ? previewRef : canvasRef).current?.getBoundingClientRect().height || 400))}
                 options={[["auto", "Auto"], ["fixed", "Fixed"]]} />
-              {cfg.canvasHeight > 0 && <><Num v={cfg.canvasHeight} set={set("canvasHeight")} wide /><span className="wb-unit">px</span></>}
+              {curH > 0 && <><Num v={curH} set={set(hKey)} wide /><span className="wb-unit">px</span></>}
             </Field>
-            </>}
+            {framed && <div className="wb-hint">Under 820px the card stacks and keeps the bleed crop at auto height.</div>}
 
           </Section>
           <Section n={5} title="Canvas" open={fold.canvas} onToggle={() => toggleFold("canvas")} summary={summary.canvas}>
