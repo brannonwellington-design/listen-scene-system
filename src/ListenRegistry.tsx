@@ -21,6 +21,7 @@ import {
   SceneUCPricing,
   SceneUCChurn,
   SceneUCAdTesting,
+  SceneUCPositioning,
   SceneProps,
 } from "./ListenScenes"
 import { APP_W, APP_H } from "./ListenKit"
@@ -62,6 +63,7 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "uc-churn", title: "Churn, retention & activation", group: "Use cases", n: 5, Scene: SceneUCChurn, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-ad-testing", title: "Ad & creative testing", group: "Use cases", n: 6, Scene: SceneUCAdTesting, w: APP_W, h: APP_H, kind: "scene" },
   { key: "uc-pricing", title: "Pricing & willingness-to-pay", group: "Use cases", n: 7, Scene: SceneUCPricing, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "uc-positioning", title: "Positioning & messaging", group: "Use cases", n: 8, Scene: SceneUCPositioning, w: APP_W, h: APP_H, kind: "scene" },
 
   // --- /features/emotional-intelligence — the page's 8 product shots, in
   // page order: hero, the three Features cards, the four Use-case cards
@@ -84,7 +86,6 @@ export const REGISTRY: RegistryEntry[] = [
  *  workbench menu so the gaps show; move one into REGISTRY when it lands */
 export type PlannedShot = { group: Group; n: number; title: string }
 export const PLANNED: PlannedShot[] = [
-  { group: "Use cases", n: 8, title: "Positioning & messaging" },
 ]
 
 /** "01 Title" — the page-order number in front, when the shot has one */
@@ -200,7 +201,7 @@ export const SEQUENCES: Sequence[] = [
         body: "Learn what people will pay, and the value that justifies the price.",
       },
       {
-        content: "ei-hero-report",
+        content: "uc-positioning",
         title: "Positioning & Messaging",
         body: "Find the words that land with your audience and the claims they believe.",
       },
