@@ -121,7 +121,7 @@ export type Step = { content: string; title: string; body: string; ms?: number }
 /** how a multi-step lays out its steps:
  *   captions — the shot on top, a row of captions under it (How it works)
  *   list     — numbered rows beside a cropped shot; stacks on mobile (Use Cases) */
-export type StepStyle = "captions" | "list"
+export type StepStyle = "captions" | "list" | "stage"
 
 export type Sequence = { key: string; title: string; style: StepStyle; steps: Step[] }
 
