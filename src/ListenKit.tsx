@@ -189,6 +189,9 @@ const CSS = `
 @keyframes ll-grow { from{transform:scaleX(0)} to{transform:none} }
 /* multi-step list: the active row's hairline fills over the shot's length */
 .ll-fill { animation:ll-fill linear both; transform-origin:left center; }
+/* swipe rails (mobile captions): scroll without a visible bar */
+.ll-swipe { scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.ll-swipe::-webkit-scrollbar { display:none; }
 @keyframes ll-fill { from{transform:scaleX(0)} to{transform:none} }
 .ll-open { display:grid; grid-template-rows:0fr; opacity:0;
   transition:grid-template-rows .5s cubic-bezier(.22,1,.36,1), opacity .3s; }

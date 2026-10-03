@@ -94,6 +94,10 @@ export type SceneCanvasProps = {
    *  Under ~820px both styles keep their stacked bleed card. */
   frameFit?: "responsive" | "pinned" | "bleed"
   frameHeight?: number
+  /** captions style, under ~820px: how far the swipe rail of captions runs
+   *  past the component's edges (match the page's side padding so it bleeds
+   *  to the screen edge) */
+  swipeBleed?: number
   // canvas
   pattern?: PatternType
   patternSpacing?: number
@@ -124,7 +128,7 @@ export const CANVAS_DEFAULTS = {
   startCollapsed: false, startTheme: "light" as "light" | "dark",
   fit: "responsive" as "responsive" | "pinned" | "bleed", bleedShow: 880, bleedRatio: 0.76, anchor: "top-left" as Anchor, insetX: 40, insetY: 40,
   zoom: 0.5, smallBehavior: "fit" as const, fitBelow: 480, canvasHeight: 0,
-  frameFit: "bleed" as "responsive" | "pinned" | "bleed", frameHeight: 0,
+  frameFit: "bleed" as "responsive" | "pinned" | "bleed", frameHeight: 0, swipeBleed: 16,
   pattern: "none" as PatternType, patternSpacing: 16, patternOpacity: 1,
   bgColor: T.pageContainer, padX: 56, padY: 44, radius: 0,
 }
@@ -331,7 +335,7 @@ function Single(props: typeof CANVAS_DEFAULTS & {
 
 // ------------------------------------------------------------ multi-step -----
 function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlot?: HTMLElement | null }): JSX.Element {
-  const { sequence, stepStyle, autoCycle, resumeDelay, scrubber, maxWidth, listStart, listEnd, cardStart, frameFit, frameHeight, steps: customSteps, scrubberSlot, ...canvas } = props
+  const { sequence, stepStyle, autoCycle, resumeDelay, scrubber, maxWidth, listStart, listEnd, cardStart, frameFit, frameHeight, swipeBleed, steps: customSteps, scrubberSlot, ...canvas } = props
   const seq = sequenceByKey(sequence)
   const steps = sequence === "custom" && customSteps?.length ? customSteps : seq.steps
   const style: StepStyle = stepStyle !== "auto" ? stepStyle : sequence === "custom" ? "captions" : seq.style
@@ -490,6 +494,37 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
   )
 
   const showPx = byKey(steps[at].content).bleedShow ?? canvas.bleedShow
+
+  // captions style, narrow: the captions become a swipe rail. Advancing
+  // scrolls the active caption to the rail's start; a swipe that settles on
+  // another caption jumps to it, like a click.
+  const swiping = style === "captions" && width > 0 && width < 820
+  const railRef = React.useRef<HTMLDivElement>(null)
+  const autoScroll = React.useRef(0)
+  const settle = React.useRef<ReturnType<typeof setTimeout>>()
+  React.useEffect(() => () => clearTimeout(settle.current), [])
+  React.useEffect(() => {
+    const rail = railRef.current
+    const item = rail?.children[at] as HTMLElement | undefined
+    if (!rail || !item) return
+    const left = item.offsetLeft - swipeBleed
+    if (Math.abs(rail.scrollLeft - left) < 2) return
+    autoScroll.current = Date.now()
+    rail.scrollTo({ left, behavior: "smooth" })
+  }, [at, swiping, swipeBleed])
+  const onRailScroll = () => {
+    clearTimeout(settle.current)
+    settle.current = setTimeout(() => {
+      const rail = railRef.current
+      if (!rail || Date.now() - autoScroll.current < 900) return
+      let best = at, bestD = Infinity
+      Array.from(rail.children).forEach((c, i) => {
+        const d = Math.abs((c as HTMLElement).offsetLeft - swipeBleed - rail.scrollLeft)
+        if (d < bestD) { bestD = d; best = i }
+      })
+      if (best !== at) onStepClick(best)
+    }, 140)
+  }
 
   if (style === "stage") {
     // one big panel (the How it works container): counter, title, and body in
@@ -667,6 +702,39 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
     )
   }
 
+  if (swiping) {
+    // Figma "Homepage Refresh" 897:4431: a 252-of-370 card with the shot inset
+    // 16 and shown at 493 of 1344 (~965 design px across), then 241px
+    // captions 16 apart, the active one full and the rest at 40%
+    const inset = Math.max(12, Math.round(width * 16 / 370))
+    const capW = Math.min(241, Math.round(width * 241 / 370))
+    return (
+      <div ref={rootRef} className="ll" style={{ width: "100%", maxWidth, margin: "0 auto" }}>
+        {scrubBar}
+        {shot({ fit: "bleed", bleedShow: 965, bleedRatio: 252 / 370, insetX: inset, insetY: inset, radius: 12, canvasHeight: 0 }, "card")}
+        <div ref={railRef} className="ll-swipe" onScroll={onRailScroll} style={{
+          display: "flex", gap: 16, marginTop: 16, overflowX: "auto", scrollSnapType: "x mandatory",
+          marginLeft: -swipeBleed, marginRight: -swipeBleed, padding: `0 ${swipeBleed}px`, scrollPaddingLeft: swipeBleed,
+        }}>
+          {steps.map((st, i) => (
+            <button key={i} onClick={() => onStepClick(i)} aria-pressed={i === at}
+              style={{
+                flex: `0 0 ${capW}px`, scrollSnapAlign: "start", textAlign: "left", display: "flex", flexDirection: "column", gap: 4,
+                background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: T.brand,
+                opacity: i === at ? 1 : 0.4, transition: "opacity .3s",
+              }}>
+              <span style={{ fontSize: 18, lineHeight: "24px", letterSpacing: -0.36, fontVariantNumeric: "tabular-nums" }}>{String(i + 1).padStart(2, "0")}</span>
+              <span style={{ fontSize: 18, lineHeight: "24px", letterSpacing: -0.36 }}>{st.title}</span>
+              <span style={{ fontSize: 14, lineHeight: "20px", letterSpacing: -0.28, opacity: 0.54 }}>{st.body}</span>
+            </button>
+          ))}
+          {/* lets the last caption snap to the start */}
+          <span aria-hidden style={{ flex: `0 0 ${Math.max(0, width - capW - 16)}px` }} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div ref={rootRef} className="ll" style={{ width: "100%", maxWidth, margin: "0 auto" }}>
       {scrubBar}
@@ -786,6 +854,7 @@ addPropertyControls(SceneCanvas, {
   smallBehavior: { type: ControlType.Enum, title: "Small screens", options: ["fit", "mask"], optionTitles: ["Scale to fit", "Keep pinned"], defaultValue: "fit", hidden: (p) => modeOf(p) !== "pinned" },
   fitBelow: { type: ControlType.Number, title: "Fall back below (px)", defaultValue: 480, min: 240, max: 900, hidden: (p) => modeOf(p) !== "pinned" || p.smallBehavior !== "fit" },
   canvasHeight: { type: ControlType.Number, title: "Height (0 = auto)", defaultValue: 0, min: 0, max: 1200, hidden: isFramed },
+  swipeBleed: { type: ControlType.Number, title: "Swipe bleed (mobile)", defaultValue: 16, min: 0, max: 64, hidden: (p) => styleOf(p) !== "captions" },
   frameHeight: { type: ControlType.Number, title: "Height (0 = auto)", defaultValue: 0, min: 0, max: 1200, hidden: (p) => !isFramed(p) },
   maxWidth: { type: ControlType.Number, title: "Max width", defaultValue: 1200, min: 640, max: 1600, step: 10, hidden: isSingle },
   // 5 canvas
