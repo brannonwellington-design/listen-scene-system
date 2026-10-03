@@ -3140,3 +3140,185 @@ export function SceneUCChurn({ active, onDone, runKey = 0, hold, playFrom, onTim
     </AppShell>
   )
 }
+
+// --------------------------------------- Use case · Ad & creative testing -----
+// Homepage refresh, Use Cases 06. "HBO vs Netflix vs Paramount+ Concept Test"
+// (listenlabs.ai/p/Pu0mgOLs), Details → Brand Evaluation: the emotional concept
+// comparison and the Q9 brand rating, side by side per concept. Counts are
+// measured off the live bars (2026-10-02) and sum to each concept's responses.
+// The page's legacy right-hand question rail is left out, as in the newer
+// Details layout.
+type ADEmotion = "anger" | "disgust" | "fear" | "happiness" | "sadness" | "surprise" | "neutral"
+const AD_EMO_ORDER: ADEmotion[] = ["anger", "disgust", "fear", "happiness", "sadness", "surprise", "neutral"]
+const AD_NEUTRAL = "#E8E8E8"
+const AD_RATINGS: Array<[string, string]> = [
+  ["Poor", "#E5485D"], ["Fair", "#F7ACBA"], ["Good", "#B4B6B8"], ["Very Good", "#61AAFC"], ["Excellent", "#2463EB"],
+]
+type ADConcept = { name: string; n: number; emo: Partial<Record<ADEmotion, number>>; rate: number[]; hue: [string, string] }
+const AD_CONCEPTS: ADConcept[] = [
+  { name: "HBO", n: 71, emo: { anger: 2, disgust: 7, happiness: 40, surprise: 11, neutral: 11 }, rate: [0, 3, 14, 31, 23], hue: ["#3B2A8C", "#7B3FD6"] },
+  { name: "Netflix", n: 95, emo: { anger: 8, disgust: 7, happiness: 63, sadness: 3, surprise: 5, neutral: 9 }, rate: [0, 9, 13, 33, 40], hue: ["#5A0F12", "#C8222B"] },
+  { name: "Paramount", n: 77, emo: { anger: 4, disgust: 4, fear: 1, happiness: 46, sadness: 3, surprise: 4, neutral: 15 }, rate: [0, 11, 19, 33, 14], hue: ["#0B2A6B", "#2F6BE0"] },
+]
+const AD_ROW = 84
+const AD_LEFT = 242
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
+const emoColor = (e: ADEmotion) => (e === "neutral" ? AD_NEUTRAL : EMOTIONS[e].fg)
+
+/** a concept's streaming-home thumbnail: a stylized dark UI in its own hue */
+function ADThumb({ hue }: { hue: [string, string] }): JSX.Element {
+  return (
+    <span style={{ width: 58, height: 58, borderRadius: 4, flexShrink: 0, overflow: "hidden", background: "#0E0E12", position: "relative", display: "block" }}>
+      <span style={{ position: "absolute", left: 4, right: 4, top: 4, height: 3, borderRadius: 1, background: "rgba(255,255,255,.18)" }} />
+      <span style={{ position: "absolute", left: 4, right: 4, top: 10, height: 22, borderRadius: 2, background: `linear-gradient(120deg, ${hue[0]}, ${hue[1]})` }} />
+      {[0, 1, 2, 3].map((i) => (
+        <span key={i} style={{ position: "absolute", top: 36, left: 4 + i * 13, width: 11, height: 8, borderRadius: 1, background: i % 2 ? "rgba(255,255,255,.22)" : `${hue[1]}AA` }} />
+      ))}
+      {[0, 1, 2, 3].map((i) => (
+        <span key={i} style={{ position: "absolute", top: 47, left: 4 + i * 13, width: 11, height: 7, borderRadius: 1, background: "rgba(255,255,255,.14)" }} />
+      ))}
+    </span>
+  )
+}
+
+function ADLegend({ items }: { items: Array<[string, string]> }): JSX.Element {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 11, paddingLeft: 18 }}>
+      {items.map(([label, c]) => (
+        <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 9, fontSize: 14, color: T.inkSoft }}>
+          <span style={{ width: 8, height: 8, borderRadius: 1, background: c }} />{label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function ADCompare({ kebab }: { kebab?: boolean }): JSX.Element {
+  return (
+    <span style={{ display: "inline-flex", gap: 8 }}>
+      <span className="ll-tbtn" style={{ height: 32 }}>Compare <I name="chevron-down" size={12} /></span>
+      {kebab && <span className="ll-tbtn" style={{ height: 32, width: 32, padding: 0, justifyContent: "center" }}><I name="ellipsis-vertical" size={14} /></span>}
+    </span>
+  )
+}
+
+export function SceneUCAdTesting({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor(APP_CURSOR_START)
+  const [grown, setGrown] = React.useState(false)
+  // hovered segment: [chart 0 = emotion / 1 = rating, concept row, segment key]
+  const [hover, setHover] = React.useState<[number, number, string] | null>(null)
+
+  useScene(active, async (p) => {
+    setGrown(false); setHover(null); cur.hide()
+    await p.sleep(500)
+    setGrown(true)
+    await p.sleep(2000)
+    // Netflix's concept lands the most joy...
+    cur.show("ad-0-1-happiness", 120, 140); await p.sleep(250)
+    cur.move("ad-0-1-happiness"); await p.sleep(700)
+    setHover([0, 1, "happiness"]); await p.sleep(1700)
+    // ...and the best ratings; Paramount's the fewest top marks
+    cur.move("ad-1-1-Excellent"); await p.sleep(700)
+    setHover([1, 1, "Excellent"]); await p.sleep(1600)
+    cur.move("ad-1-2-Excellent"); await p.sleep(550)
+    setHover([1, 2, "Excellent"]); await p.sleep(1600)
+    cur.move("ad-1-2-Excellent", 60, 90); await p.sleep(350)
+    setHover(null); cur.hide()
+    await p.sleep(1500)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  const bar = (chart: number, row: number, segs: Array<[string, number, string]>, n: number, gap: number) => (
+    <div style={{ position: "relative", height: 8, marginTop: 9, borderRadius: 2, background: T.fill, overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, display: "flex", gap, clipPath: grown ? "inset(0 0 0 0)" : "inset(0 100% 0 0)", transition: `clip-path 1s cubic-bezier(.22,1,.36,1) ${(chart * 3 + row) * 0.1}s` }}>
+        {segs.filter(([, v]) => v > 0).map(([k, v, c]) => {
+          const dim = hover && (hover[0] !== chart || hover[1] !== row || hover[2] !== k)
+          return (
+            <span key={k} data-cursor={`ad-${chart}-${row}-${k}`} style={{ flexGrow: v, flexBasis: 0, background: c, borderRadius: 2, opacity: dim && hover![0] === chart ? 0.35 : 1, transition: "opacity .25s" }} />
+          )
+        })}
+      </div>
+    </div>
+  )
+  const tip = (chart: number) => {
+    if (!hover || hover[0] !== chart) return null
+    const [, row, k] = hover
+    const c = AD_CONCEPTS[row]
+    const v = chart === 0 ? c.emo[k as ADEmotion] ?? 0 : c.rate[AD_RATINGS.findIndex((r) => r[0] === k)]
+    return (
+      <div key={k + row} className="ll-card ll-enter" style={{
+        // the last rating row sits on the fold, so its tip opens upward
+        position: "absolute", top: chart === 1 && row === 2 ? row * AD_ROW - 62 : row * AD_ROW + 64, right: 0, width: 210, zIndex: 2,
+        padding: "10px 12px", boxShadow: "0 4px 16px rgba(0,0,0,.08)", fontSize: 12, lineHeight: "18px",
+      }}>
+        <div className="ll-500" style={{ marginBottom: 4 }}>{c.name} · {chart === 0 ? cap(k) : k}</div>
+        <div style={{ display: "flex" }}><span style={{ color: T.inkSoft, flex: 1 }}>Responses</span><span className="ll-500">{v} of {c.n}</span></div>
+        <div style={{ color: T.inkSoft, marginTop: 4 }}>{Math.round((v / c.n) * 100)}% of {c.name} responses</div>
+      </div>
+    )
+  }
+  const rows = (chart: number) => (
+    <div style={{ position: "relative", marginTop: 18 }}>
+      {AD_CONCEPTS.map((c, r) => {
+        const segs: Array<[string, number, string]> = chart === 0
+          ? AD_EMO_ORDER.map((e) => [e, c.emo[e] ?? 0, emoColor(e)])
+          : AD_RATINGS.map(([label, col], i) => [label, c.rate[i], col])
+        return (
+          <div key={c.name} style={{ height: AD_ROW, display: "flex", alignItems: "center", gap: 12 }}>
+            <ADThumb hue={c.hue} />
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "baseline", fontSize: 15 }}>
+                <span className="ll-500" style={{ color: T.ink }}>{c.name}</span><span style={{ flex: 1 }} />
+                <span style={{ color: T.inkSoft }}>{chart === 0 ? `${c.n} responses` : `(${c.n} responses)`}</span>
+              </div>
+              {bar(chart, r, segs, c.n, chart === 0 ? 3 : 3)}
+            </div>
+          </div>
+        )
+      })}
+      {tip(chart)}
+    </div>
+  )
+
+  return (
+    <AppShell cursor={cur.state} nav={studyNav("Details")} title="HBO vs Netflix vs Paramount+ Concept Test" crumb={["Details"]}
+      actions={<span className="ll-tbtn">Share <I name="link" size={14} /></span>}>
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+        <div style={{ padding: "26px 38px 0" }}>
+          <div style={{ fontSize: 20, color: T.ink, letterSpacing: -0.2 }}>Brand Evaluation</div>
+
+          {/* emotional concept comparison */}
+          <div style={{ display: "flex", gap: 34, marginTop: 30 }}>
+            <div style={{ width: AD_LEFT, flexShrink: 0, paddingTop: 10 }}>
+              <ADLegend items={[...AD_EMO_ORDER.map((e): [string, string] => [cap(e), emoColor(e)])]} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <span className="ll-500" style={{ fontSize: 18, color: T.ink, flex: 1 }}>Emotional Concept Comparison</span><ADCompare />
+              </div>
+              {rows(0)}
+            </div>
+          </div>
+
+          {/* Q9 brand rating */}
+          <div style={{ display: "flex", gap: 34, marginTop: 36 }}>
+            <div style={{ width: AD_LEFT, flexShrink: 0 }}>
+              <div style={{ background: T.chromeBg, borderRadius: 10, padding: "16px 16px 18px", fontSize: 17, lineHeight: "25px", color: T.ink }}>
+                <span style={{ color: T.inkSoft }}>Q9:</span> How would you rate{" "}
+                <span style={{ fontSize: 12.5, padding: "2px 6px", borderRadius: 5, background: "rgba(149, 64, 191, 0.10)", color: "#9540BF", verticalAlign: 1 }}>concept title</span>{" "}
+                as a streaming service brand?
+              </div>
+              <div style={{ marginTop: 22 }}><ADLegend items={AD_RATINGS} /></div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <span className="ll-500" style={{ fontSize: 18, color: T.ink, flex: 1 }}>Concept Comparison</span><ADCompare kebab />
+              </div>
+              {rows(1)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  )
+}
