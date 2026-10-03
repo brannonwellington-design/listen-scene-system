@@ -377,7 +377,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
     setRunKey((k) => k + 1)
   }
 
-  // list style: the active row's hairline fills over the shot's length. The
+  // list and stage styles: the active progress fills over the shot's length. The
   // first play uses the step's `ms` guess; after that, the measured length.
   const rootRef = React.useRef<HTMLDivElement>(null)
   const [inView, setInView] = React.useState(false)
@@ -473,13 +473,90 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
     <div className={scrubOn && !scrubPlay ? "ll-noanim" : undefined}>
       <Single key={stepKey} {...canvas} {...over}
         content={steps[at].content} loop={false} segStart={0} segEnd={0}
-        onFinish={style === "list" ? onShotDone : onStepDone}
+        onFinish={style === "captions" ? onStepDone : onShotDone}
         debugHold={scrubOn && !scrubPlay ? scrubT : undefined}
         debugPlayFrom={scrubOn && scrubPlay ? playStart! : undefined}
         debugOnTime={scrubOn ? setScrubT : undefined}
       />
     </div>
   )
+
+  if (style === "stage") {
+    // one big panel (the How it works container): counter, title, and body in
+    // the top-left columns, progress segments and arrows at their foot, and
+    // the shot inset from the top and running off the right and bottom edges,
+    // cropped like the Use Cases card. Under ~820px the caption sits above a
+    // stacked card and the controls drop below it.
+    const stacked = width > 0 && width < 820
+    const GUTTER = 24
+    const P = stacked ? 0 : Math.max(24, Math.round(width * 48 / 1392))
+    const colW = (width - P * 2 - 11 * GUTTER) / 12
+    const capW = Math.round(4 * colW + 3 * GUTTER)
+    const cardInset = Math.max(12, Math.round(width * 16 / 370))
+    const card = stacked
+      ? { fit: "bleed" as const, bleedShow: byKey(steps[at].content).bleedShow ?? canvas.bleedShow, bleedRatio: 200 / 370, insetX: cardInset, insetY: cardInset, radius: 12, canvasHeight: 0 }
+      : { fit: "bleed" as const, bleedShow: byKey(steps[at].content).bleedShow ?? canvas.bleedShow, bleedRatio: 640 / 1392, insetX: P + Math.round(4 * (colW + GUTTER)), insetY: P, radius: 12, canvasHeight: 0 }
+    const go = (d: number) => onStepClick((at + d + steps.length) % steps.length)
+    const arrow = (d: number) => (
+      <button onClick={() => go(d)} aria-label={d < 0 ? "Previous" : "Next"} style={{
+        width: 36, height: 36, borderRadius: "50%", border: `1px solid ${T.brandFaint}`, background: "transparent",
+        color: T.brand, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0,
+      }}><I name={d < 0 ? "chevron-left" : "chevron-right"} size={16} /></button>
+    )
+    const caption = (
+      <div key={at} className="ll-enter">
+        <div style={{ fontSize: 14, color: T.brandFaint, fontVariantNumeric: "tabular-nums" }}>
+          {String(at + 1).padStart(2, "0")} / {String(steps.length).padStart(2, "0")}
+        </div>
+        <div style={{ fontSize: stacked ? 24 : 32, lineHeight: 1.2, letterSpacing: stacked ? -0.48 : -0.64, color: T.brand, marginTop: 12 }}>{steps[at].title}</div>
+        <div style={{ fontSize: 16, lineHeight: "24px", letterSpacing: -0.32, color: T.brandFaint, marginTop: 12 }}>{steps[at].body}</div>
+      </div>
+    )
+    // one segment per step: done ones full, the active one filling over the
+    // shot's length; each jumps to its step
+    const controls = (
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ flex: 1, display: "flex", gap: 6 }}>
+          {steps.map((_, i) => (
+            <button key={i} onClick={() => onStepClick(i)} aria-label={"Step " + (i + 1)} aria-pressed={i === at}
+              style={{ flex: 1, height: 16, padding: 0, border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
+              <span style={{ display: "block", width: "100%", height: 2, borderRadius: 1, background: i < at ? T.brand : T.brandSoft, position: "relative", overflow: "hidden" }}>
+                {i === at && !(scrubOn && !scrubPlay) && (
+                  <span key={stepKey + "/" + viewRun} className="ll-fill" style={{
+                    position: "absolute", inset: 0, background: T.brand,
+                    animationDuration: `${stepMs}ms`,
+                    animationPlayState: inView ? "running" : "paused",
+                    ...(filled ? { animation: "none" } : {}),
+                  }} />
+                )}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>{arrow(-1)}{arrow(1)}</div>
+      </div>
+    )
+    return (
+      <div ref={rootRef} className="ll" style={{ width: "100%", maxWidth, margin: "0 auto" }}>
+        {scrubBar}
+        {stacked ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {caption}
+            {shot(card)}
+            {controls}
+          </div>
+        ) : (
+          <div style={{ position: "relative" }}>
+            {shot(card)}
+            <div style={{ position: "absolute", left: P, top: P, bottom: P, width: capW, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
+              {caption}
+              <div style={{ pointerEvents: "auto" }}>{controls}</div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (style === "list") {
     // Figma "Homepage Refresh" 897:4407 (desktop) / 893:4358 (mobile): a
@@ -621,10 +698,13 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
 
 const isSingle = (p: SceneCanvasProps) => (p.layout ?? "single") === "single"
 const isMulti = (p: SceneCanvasProps) => p.layout === "multi-step"
-/** the list style frames its own shot, so the framing controls step aside */
-const isList = (p: SceneCanvasProps) => isMulti(p) && ((p.stepStyle ?? "auto") === "auto"
-  ? p.sequence !== "custom" && sequenceByKey(p.sequence ?? "how-it-works").style === "list"
-  : p.stepStyle === "list")
+/** the multi-step style in effect: forced, or the sequence's own */
+const styleOf = (p: SceneCanvasProps): StepStyle | null => !isMulti(p) ? null
+  : (p.stepStyle ?? "auto") !== "auto" ? p.stepStyle as StepStyle
+  : p.sequence === "custom" ? "captions" : sequenceByKey(p.sequence ?? "how-it-works").style
+const isList = (p: SceneCanvasProps) => styleOf(p) === "list"
+/** list and stage frame their own shot, so the framing controls step aside */
+const isFramed = (p: SceneCanvasProps) => styleOf(p) === "list" || styleOf(p) === "stage"
 const stepContentKeys = REGISTRY.map((e) => e.key)
 const stepContentTitles = REGISTRY.map(label)
 
@@ -651,7 +731,7 @@ addPropertyControls(SceneCanvas, {
     },
     hidden: (p) => !isMulti(p) || p.sequence !== "custom",
   },
-  stepStyle: { type: ControlType.Enum, title: "Style", options: ["auto", "captions", "list"], optionTitles: ["Auto", "Captions", "List"], defaultValue: "auto", displaySegmentedControl: true, hidden: isSingle },
+  stepStyle: { type: ControlType.Enum, title: "Style", options: ["auto", "captions", "list", "stage"], optionTitles: ["Auto", "Captions", "List", "Stage"], defaultValue: "auto", displaySegmentedControl: true, hidden: isSingle },
   listStart: { type: ControlType.Number, title: "List from column", defaultValue: 2, min: 1, max: 11, step: 1, displayStepper: true, hidden: (p) => !isList(p) },
   listEnd: { type: ControlType.Number, title: "List to column", defaultValue: 5, min: 1, max: 11, step: 1, displayStepper: true, hidden: (p) => !isList(p) },
   cardStart: { type: ControlType.Number, title: "Card from column", defaultValue: 7, min: 2, max: 12, step: 1, displayStepper: true, hidden: (p) => !isList(p) },
@@ -667,15 +747,15 @@ addPropertyControls(SceneCanvas, {
   startCollapsed: { type: ControlType.Boolean, title: "Sidebar", enabledTitle: "Collapsed", disabledTitle: "Open", defaultValue: false },
   startTheme: { type: ControlType.Enum, title: "Theme", options: ["light", "dark"], optionTitles: ["Light", "Dark"], defaultValue: "light", displaySegmentedControl: true },
   // 4 framing — shared by both layouts
-  fit: { type: ControlType.Enum, title: "Framing", options: ["responsive", "pinned", "bleed"], optionTitles: ["Scale to fit", "Pin", "Bleed"], defaultValue: "responsive", displaySegmentedControl: true, hidden: isList },
-  bleedShow: { type: ControlType.Number, title: "Show (px across)", defaultValue: 880, min: 300, max: 1400, step: 10, hidden: (p) => isList(p) || p.fit !== "bleed" },
+  fit: { type: ControlType.Enum, title: "Framing", options: ["responsive", "pinned", "bleed"], optionTitles: ["Scale to fit", "Pin", "Bleed"], defaultValue: "responsive", displaySegmentedControl: true, hidden: isFramed },
+  bleedShow: { type: ControlType.Number, title: "Show (px across)", defaultValue: 880, min: 300, max: 1400, step: 10, hidden: (p) => isFramed(p) || p.fit !== "bleed" },
   anchor: { type: ControlType.Enum, title: "Anchor", options: ANCHORS, optionTitles: ["Top left", "Top center", "Top right", "Left center", "Center", "Right center", "Bottom left", "Bottom center", "Bottom right"], defaultValue: "top-left", hidden: (p) => p.fit !== "pinned" },
-  insetX: { type: ControlType.Number, title: "Inset X", defaultValue: 40, min: 0, max: 200, hidden: (p) => isList(p) || (p.fit !== "pinned" && p.fit !== "bleed") },
-  insetY: { type: ControlType.Number, title: "Inset Y", defaultValue: 40, min: 0, max: 200, hidden: (p) => isList(p) || (p.fit !== "pinned" && p.fit !== "bleed") },
+  insetX: { type: ControlType.Number, title: "Inset X", defaultValue: 40, min: 0, max: 200, hidden: (p) => isFramed(p) || (p.fit !== "pinned" && p.fit !== "bleed") },
+  insetY: { type: ControlType.Number, title: "Inset Y", defaultValue: 40, min: 0, max: 200, hidden: (p) => isFramed(p) || (p.fit !== "pinned" && p.fit !== "bleed") },
   zoom: { type: ControlType.Number, title: "Shot zoom", defaultValue: 0.5, min: 0.3, max: 2, step: 0.05, hidden: (p) => p.fit !== "pinned" },
   smallBehavior: { type: ControlType.Enum, title: "Small screens", options: ["fit", "mask"], optionTitles: ["Scale to fit", "Keep pinned"], defaultValue: "fit", hidden: (p) => p.fit !== "pinned" },
   fitBelow: { type: ControlType.Number, title: "Fall back below (px)", defaultValue: 480, min: 240, max: 900, hidden: (p) => p.fit !== "pinned" || p.smallBehavior !== "fit" },
-  canvasHeight: { type: ControlType.Number, title: "Height (0 = auto)", defaultValue: 0, min: 0, max: 1200, hidden: isList },
+  canvasHeight: { type: ControlType.Number, title: "Height (0 = auto)", defaultValue: 0, min: 0, max: 1200, hidden: isFramed },
   maxWidth: { type: ControlType.Number, title: "Max width", defaultValue: 1200, min: 640, max: 1600, step: 10, hidden: isSingle },
   // 5 canvas
   pattern: { type: ControlType.Enum, title: "Pattern", options: ["none", "dots", "grid", "circles", "crosshairs"], defaultValue: "none" },

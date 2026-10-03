@@ -424,21 +424,24 @@ export default function Workbench(): JSX.Element {
   // scene state only means something for scenes inside the app shell
   const shellShot = isMulti || entry.w === APP_W
 
-  // the list style frames its own shot (the mock's bleed card)
-  const listStyle = isMulti && (cfg.stepStyle === "auto"
-    ? SEQUENCES.find((q) => q.key === cfg.sequence)?.style === "list"
-    : cfg.stepStyle === "list")
+  // list and stage frame their own shot (the mock's bleed card)
+  const stepStyle = !isMulti ? null : cfg.stepStyle === "auto"
+    ? SEQUENCES.find((q) => q.key === cfg.sequence)?.style ?? "captions"
+    : cfg.stepStyle
+  const listStyle = stepStyle === "list"
+  const stageStyle = stepStyle === "stage"
   // one-line summaries for folded sections
   const secs = (ms: number) => +(ms / 1000).toFixed(1) + "s"
   const summary: Record<FoldKey, string> = {
     content: isMulti
-      ? "Multi-step · " + (SEQUENCES.find((q) => q.key === cfg.sequence)?.title ?? cfg.sequence) + " · " + (listStyle ? "List" : "Captions")
+      ? "Multi-step · " + (SEQUENCES.find((q) => q.key === cfg.sequence)?.title ?? cfg.sequence) + " · " + (listStyle ? "List" : stageStyle ? "Stage" : "Captions")
       : "Single · " + (cfg.content === "custom" ? "Crop of " + label(byKey(cfg.customScene)) : label(byKey(cfg.content))),
     playback: isMulti
       ? (cfg.autoCycle ? "Auto-advance · " + cfg.resumeDelay + "s pause" : "Manual")
       : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.segEnd ? " · " + secs(cfg.segStart) + "–" + secs(cfg.segEnd) : ""),
     state: (cfg.startCollapsed ? "Collapsed" : "Open") + " · " + (cfg.startTheme === "dark" ? "Dark" : "Light"),
-    framing: listStyle ? "List " + cfg.listStart + "–" + cfg.listEnd + " · card " + cfg.cardStart + "–12"
+    framing: stageStyle ? "Stage · shot from column 5"
+      : listStyle ? "List " + cfg.listStart + "–" + cfg.listEnd + " · card " + cfg.cardStart + "–12"
       : (cfg.fit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%"
         : cfg.fit === "bleed" ? "Bleed · " + cfg.bleedShow + "px across" : "Scale to fit")
       + " · " + (cfg.canvasHeight ? cfg.canvasHeight + "px" : "Auto"),
@@ -570,7 +573,7 @@ export default function Workbench(): JSX.Element {
             {isMulti ? (
               <Field label="Style">
                 <Seg v={cfg.stepStyle} set={(v) => set("stepStyle")(v as Cfg["stepStyle"])}
-                  options={[["auto", "Auto"], ["captions", "Captions"], ["list", "List"]]} />
+                  options={[["auto", "Auto"], ["captions", "Captions"], ["list", "List"], ["stage", "Stage"]]} />
               </Field>
             ) : (
               <>
@@ -643,7 +646,10 @@ export default function Workbench(): JSX.Element {
               </Field>
               <div className="wb-hint">A 12-column grid, 24px gutters. The card runs to column 12 and crops its shot like the mock (48px inset, 16px on mobile).</div>
             </>}
-            {!listStyle && <>
+            {stageStyle && (
+              <div className="wb-hint">One panel on a 12-column grid. The caption, progress, and arrows sit on columns 1–4; the shot starts at column 5 and runs off the right and bottom, cropped like the Use Cases card. Under 820px the caption stacks above the shot.</div>
+            )}
+            {!listStyle && !stageStyle && <>
             <Field label="Mode">
               <Seg v={cfg.fit} set={(v) => set("fit")(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"], ["bleed", "Bleed"]]} />
             </Field>
