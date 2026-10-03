@@ -318,16 +318,26 @@ const solo = params.get("scene")
 const refImg = params.get("ref")
 if (params.get("hold")) (window as any).__llHold = +params.get("hold")!
 // The workbench is the landing page; the showcase demo lives at ?demo=1.
-// /home is the 1:1 homepage mock with the live sections in place
-const isHome = location.pathname.replace(/\/+$/, "") === "/home"
+// "/" is the workbench and /home the 1:1 homepage mock; the tool bar's
+// Workbench | Homepage switch moves between them without a reload
+const onHome = () => location.pathname.replace(/\/+$/, "") === "/home"
+function Views(): JSX.Element {
+  const [home, setHome] = React.useState(onHome)
+  React.useEffect(() => {
+    const on = () => setHome(onHome())
+    window.addEventListener("popstate", on)
+    return () => window.removeEventListener("popstate", on)
+  }, [])
+  return home ? <Home /> : <Workbench />
+}
 createRoot(document.getElementById("root")!).render(
-  isHome ? <Home /> : params.get("demo") ? (
+  onHome() ? <Views /> : params.get("demo") ? (
     <Demo />
   ) : solo && refImg ? (
     <Compare scene={solo} refImg={refImg} />
   ) : solo ? (
     <Solo scene={solo} />
   ) : (
-    <Workbench />
+    <Views />
   ),
 )

@@ -12,6 +12,7 @@ import * as React from "react"
 import SceneCanvas from "./SceneCanvas"
 import { StepStyle } from "./ListenRegistry"
 import { I } from "./ListenIcons"
+import ToolBar, { TOOLBAR_H, rememberHomeSearch } from "./ToolBar"
 
 // the mock's variables (Paper mode)
 const C = {
@@ -40,7 +41,7 @@ const CSS = `
 .hp-soft { color: ${C.soft}; }
 
 /* nav */
-.hp-nav { position: sticky; top: 0; z-index: 40; height: 68px; padding: 0 24px; background: ${C.bg};
+.hp-nav { position: sticky; top: var(--hp-top, 0px); z-index: 40; height: 68px; padding: 0 24px; background: ${C.bg};
   display: flex; align-items: center; justify-content: space-between; }
 .hp-nav-links { display: flex; gap: 24px; align-items: center; position: absolute; left: 50%; transform: translateX(-50%); }
 .hp-nav-links span { display: inline-flex; gap: 4px; align-items: center; }
@@ -472,7 +473,9 @@ export default function Home(): JSX.Element {
     if (s.uc !== "list") q.set("uc", s.uc)
     if (s.grid) q.set("grid", "1")
     if (!s.panel) q.set("panel", "0")
-    history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : ""))
+    const search = q.toString() ? "?" + q : ""
+    history.replaceState(null, "", location.pathname + search)
+    rememberHomeSearch(search)
   }, [s])
   React.useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -491,7 +494,9 @@ export default function Home(): JSX.Element {
   return (
     <div style={{ background: s.w ? "#D9D3C7" : C.bg, minHeight: "100vh" }}>
       <style>{CSS}</style>
-      <div ref={pageRef} className="hp" style={{ width: s.w ? Math.min(s.w, vw) : "100%", boxShadow: s.w ? "0 0 0 1px #C9C1B2" : undefined }}>
+      {/* the tool bar hides with the panel (P), for clean screenshots */}
+      {s.panel && <ToolBar view="home" sticky />}
+      <div ref={pageRef} className="hp" style={{ ["--hp-top" as string]: s.panel ? TOOLBAR_H + "px" : "0px", width: s.w ? Math.min(s.w, vw) : "100%", boxShadow: s.w ? "0 0 0 1px #C9C1B2" : undefined }}>
         {s.grid && <div className="hp-gridov">{Array.from({ length: 12 }, (_, i) => <div key={i} />)}</div>}
         <Nav />
         <Hero />

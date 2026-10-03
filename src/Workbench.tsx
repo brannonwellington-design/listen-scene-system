@@ -6,8 +6,9 @@
 import * as React from "react"
 import SceneCanvas, { CANVAS_DEFAULTS, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
 import { byKey, grouped, label, shortLabel, SEQUENCES } from "./ListenRegistry"
-import { T, Logo, ScaleBox, PatternLayer, PatternType, APP_W } from "./ListenKit"
+import { T, ScaleBox, PatternLayer, PatternType, APP_W } from "./ListenKit"
 import { I } from "./ListenIcons"
+import ToolBar from "./ToolBar"
 
 type Cfg = typeof CANVAS_DEFAULTS
 
@@ -41,9 +42,6 @@ const CHEVRON = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 const WB_CSS = `
   .wb * { box-sizing: border-box; }
   .wb { font-family: ${T.font}; font-weight: 400; color: ${T.ink}; }
-  .wb-header { display: flex; align-items: center; gap: 12px; padding: 12px 20px;
-    background: #FFF; border-bottom: 1px solid #E7E1D6; flex-wrap: wrap; }
-  .wb-title { display: flex; gap: 10px; align-items: center; font-size: 14px; font-weight: 500; margin-right: 6px; }
   .wb-main { display: flex; align-items: stretch; }
   .wb-stage { flex: 1; min-width: 0; padding: 24px 32px 72px; }
   .wb-panel { width: 344px; flex-shrink: 0; background: #FFF; border-left: 1px solid #E7E1D6;
@@ -327,8 +325,12 @@ function ShotSel(p: { v: string; set: (s: string) => void; custom?: boolean }): 
 }
 
 
+let lastCfg: Cfg | null = null
+
 export default function Workbench(): JSX.Element {
-  const [cfg, setCfg] = React.useState<Cfg>({ ...CANVAS_DEFAULTS, layout: "multi-step" })
+  // the config outlives a trip to the Homepage view and back (module cache)
+  const [cfg, setCfgState] = React.useState<Cfg>(() => lastCfg ?? { ...CANVAS_DEFAULTS, layout: "multi-step" })
+  const setCfg: typeof setCfgState = (v) => setCfgState((c) => (lastCfg = typeof v === "function" ? (v as (c: Cfg) => Cfg)(c) : v))
   // which rail sections are open — a per-browser convenience
   const [fold, setFold] = React.useState<Record<FoldKey, boolean>>(loadFold)
   const saveFold = (f: Record<FoldKey, boolean>) => {
@@ -478,10 +480,7 @@ export default function Workbench(): JSX.Element {
     <div className="wb" style={{ background: T.pageBg, minHeight: "100vh" }}>
       <style>{WB_CSS}</style>
 
-      {/* header */}
-      <div className="wb-header">
-        <span className="wb-title"><Logo /> Scene Workbench</span>
-      </div>
+      <ToolBar view="workbench" />
 
       <div className="wb-main">
         {/* stage */}
