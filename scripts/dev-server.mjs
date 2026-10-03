@@ -14,7 +14,7 @@ const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 
 createServer(async (req, res) => {
   const pathname = decodeURIComponent(req.url.split("?")[0])
-  const path = pathname === "/" ? "/demo.html" : pathname
+  const path = pathname === "/" || pathname.replace(/\/+$/, "") === "/home" ? "/demo.html" : pathname
   try {
     const data = await readFile(join(root, path))
     const type = types[extname(path)] ?? "application/octet-stream"

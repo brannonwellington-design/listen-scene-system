@@ -6,7 +6,7 @@ rm -rf site
 mkdir -p site
 cp dist/demo.js site/
 # demo.html is the app shell; serve it as the site index
-sed 's#src="dist/demo.js"#src="demo.js"#' demo.html > site/index.html
+sed 's#src="/dist/demo.js"#src="/demo.js"#' demo.html > site/index.html
 # reference screenshots power compare mode (?scene=X&ref=01.png)
 cp -R "image examples" "site/image examples"
 # the interview scene's webcam clip (scripts/prep-interview-clip.py)

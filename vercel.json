@@ -1,5 +1,11 @@
 {
   "framework": null,
   "buildCommand": "sh build-site.sh",
-  "outputDirectory": "site"
+  "outputDirectory": "site",
+  "rewrites": [
+    {
+      "source": "/home",
+      "destination": "/index.html"
+    }
+  ]
 }

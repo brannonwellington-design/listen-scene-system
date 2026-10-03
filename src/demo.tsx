@@ -4,6 +4,7 @@ import * as React from "react"
 import { createRoot } from "react-dom/client"
 import SceneCanvas from "./SceneCanvas"
 import Workbench from "./Workbench"
+import Home from "./Home"
 import { byKey } from "./ListenRegistry"
 import { T, ScaleBox } from "./ListenKit"
 
@@ -317,8 +318,10 @@ const solo = params.get("scene")
 const refImg = params.get("ref")
 if (params.get("hold")) (window as any).__llHold = +params.get("hold")!
 // The workbench is the landing page; the showcase demo lives at ?demo=1.
+// /home is the 1:1 homepage mock with the live sections in place
+const isHome = location.pathname.replace(/\/+$/, "") === "/home"
 createRoot(document.getElementById("root")!).render(
-  params.get("demo") ? (
+  isHome ? <Home /> : params.get("demo") ? (
     <Demo />
   ) : solo && refImg ? (
     <Compare scene={solo} refImg={refImg} />
