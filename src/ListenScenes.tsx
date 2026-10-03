@@ -3322,3 +3322,135 @@ export function SceneUCAdTesting({ active, onDone, runKey = 0, hold, playFrom, o
     </AppShell>
   )
 }
+
+// ---------------------------------------- Use case · Positioning & messaging -
+// Homepage refresh, Use Cases 08. "MaxDiff Tool Naming Test"
+// (listenlabs.ai/p/viOvnLF5), Report → "Priority, Shortlist, Sift, and Signal
+// lead the pack": the Name Preference Ranking (MaxDiff index, 100 = average,
+// 5 respondents) and its chart panel's best / worst counts. Values are the live
+// chart's and table's (2026-10-02); 220 and 177 match the analysis.
+const PM_NAMES: Array<[string, number]> = [
+  ["Listen Priority (powered by MaxDiff)", 220], ["Listen Shortlist (powered by MaxDiff)", 193], ["Listen Priority", 184],
+  ["Listen Sift (powered by MaxDiff)", 181], ["Listen Signal (powered by MaxDiff)", 177], ["Listen Shortlist", 166],
+  ["Listen Tradeoff", 163], ["Listen Ladder", 155], ["Listen Podium (powered by MaxDiff)", 147], ["Listen Sift", 143],
+  ["Listen Podium", 143], ["Listen Sort", 133], ["Listen Max (powered by MaxDiff)", 131], ["Listen Verdict", 124],
+]
+// best, worst, times shown — for the rows the panel shows above the fold
+const PM_COUNTS: Array<[number, number, number]> = [
+  [6, 1, 9], [3, 0, 9], [4, 0, 6], [5, 3, 9], [4, 1, 9], [4, 1, 6], [3, 0, 6], [3, 0, 6], [3, 2, 9], [3, 1, 6], [2, 0, 6],
+]
+const PM_HALF = 120                  // index points from the 100 line to the track's end
+const PM_ROW = 45
+const PM_PANEL = 452
+const PM_REPORTS = [{ title: "Listen Labs Report", meta: "Jun 8 · Listen Labs" }]
+const PM_DESC = "Preference index for each candidate name. 100 = average pickability; higher means picked as \"most appealing\" more often than competitors. Index above 100 means more appealing than the average name; below 100 means less appealing."
+
+export function SceneUCPositioning({ active, onDone, runKey = 0, hold, playFrom, onTime }: SceneProps): JSX.Element {
+  ensureCss()
+  const cur = useCursor(APP_CURSOR_START)
+  const [grown, setGrown] = React.useState(false)
+  const [open, setOpen] = React.useState(false)
+  const [hover, setHover] = React.useState(-1)
+
+  useScene(active, async (p) => {
+    setGrown(false); setOpen(false); setHover(-1); cur.hide()
+    await p.sleep(500)
+    setGrown(true)
+    await p.sleep(2000)
+    // open the chart's panel for the counts behind the index
+    cur.show("pm-card", 160, 160); await p.sleep(250)
+    cur.move("pm-card"); await p.sleep(750)
+    cur.click(1); await p.sleep(200)
+    setOpen(true); await p.sleep(1100)
+    // the winner, then the same word without the badge
+    cur.move("pm-t0"); await p.sleep(700)
+    setHover(0); await p.sleep(1800)
+    cur.move("pm-t2"); await p.sleep(550)
+    setHover(2); await p.sleep(1800)
+    cur.move("pm-t2", 40, 120); await p.sleep(350)
+    setHover(-1); cur.hide()
+    await p.sleep(1400)
+  }, onDone, runKey, hold, playFrom, onTime)
+
+  const th: React.CSSProperties = { fontWeight: 400, color: T.inkSoft, textAlign: "right", padding: "0 6px 10px", fontSize: 13, lineHeight: "17px", verticalAlign: "bottom" }
+  const td: React.CSSProperties = { textAlign: "right", padding: "9px 6px", fontSize: 13.5, fontVariantNumeric: "tabular-nums", color: T.ink }
+
+  return (
+    <AppShell cursor={cur.state} nav={studyNav("Report", PM_REPORTS)} activeSub="Listen Labs Report"
+      title="MaxDiff Tool Naming Test" crumb={["Report", "Listen Labs Report"]} actions={REPORT_ACTIONS}>
+      <div style={{ flex: 1, display: "flex", minWidth: 0 }}>
+        {/* report document */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <div style={{ display: "flex", gap: 14, padding: "12px 16px 0", color: T.inkSoft, justifyContent: "flex-end" }}>
+            <I name="download" size={14} /><I name="ellipsis" size={14} />
+          </div>
+          <div className="ll-doc-fade" style={{ flex: 1, position: "relative" }}>
+            <div style={{
+              width: open ? "calc(100% - 48px)" : 660, maxWidth: 660, margin: "22px auto 0", borderRadius: 14, padding: "20px 22px 0",
+              border: `1.5px solid ${open ? "#B9C6FF" : "transparent"}`, transition: "border-color .3s ease, width .5s cubic-bezier(.22,1,.36,1)",
+            }}>
+              <div style={{ fontSize: 14.5, color: T.ink }}>Name Preference Ranking</div>
+              <div data-cursor="pm-card" style={{ fontSize: 13.5, lineHeight: "19px", color: T.inkSoft, marginTop: 10 }}>{PM_DESC}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 16, fontSize: 12, color: T.inkSoft }}>
+                Index score vs. average (5 respondents). 100 = average. <I name="info" size={12} />
+                <span style={{ flex: 1 }} />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, padding: "2px 6px", borderRadius: 5, background: T.fill, color: T.inkSoft }}>
+                  Low confidence <I name="info" size={10} />
+                </span>
+              </div>
+              <div style={{ marginTop: 4 }}>
+                {PM_NAMES.map(([name, v], r) => (
+                  <div key={name} style={{ height: PM_ROW, paddingTop: 6, opacity: hover >= 0 && hover !== r ? 0.4 : 1, transition: "opacity .25s" }}>
+                    <div style={{ fontSize: 12.5, lineHeight: "17px", color: T.inkSoft, whiteSpace: "nowrap" }}>{name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 5 }}>
+                      <span style={{ position: "relative", flex: 1, height: 11 }}>
+                        <span style={{ position: "absolute", left: 0, right: "50%", marginRight: 1, top: 0, bottom: 0, background: T.fill, borderRadius: 3 }} />
+                        <span style={{ position: "absolute", left: "50%", marginLeft: 1, right: 0, top: 0, bottom: 0, background: T.fill, borderRadius: 3 }} />
+                        <span style={{
+                          position: "absolute", left: "50%", marginLeft: 1, top: 0, bottom: 0, width: `${(Math.min(PM_HALF, v - 100) / PM_HALF) * 50}%`,
+                          background: T.brand, borderRadius: 3, transform: grown ? "none" : "scaleX(0)", transformOrigin: "left center",
+                          transition: `transform .8s cubic-bezier(.22,1,.36,1) ${r * 0.05}s`,
+                        }} />
+                      </span>
+                      <span style={{ width: 30, textAlign: "right", fontSize: 13, color: T.inkSoft, fontVariantNumeric: "tabular-nums" }}>{v}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* the chart's panel: best / worst counts */}
+        <div style={{ width: open ? PM_PANEL : 0, flexShrink: 0, overflow: "hidden", transition: "width .5s cubic-bezier(.22,1,.36,1)", borderLeft: open ? `1px solid ${T.appBorder}` : "none" }}>
+          <div className="ll-doc-fade" style={{ width: PM_PANEL, height: "100%", padding: "16px 16px 0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: T.ink }}>
+              <I name="chart-column" size={16} /><span style={{ flex: 1 }}>Name Preference Ranking</span><span style={{ color: T.inkSoft }}><I name="x" size={16} /></span>
+            </div>
+            <div style={{ background: T.chromeBg, borderRadius: 10, padding: "12px 14px", fontSize: 13.5, lineHeight: "20px", color: T.ink, marginTop: 16 }}>{PM_DESC}</div>
+            <div style={{ borderTop: `1px solid ${T.appBorder}`, marginTop: 18, paddingTop: 16, fontSize: 12.5, color: T.inkSoft }}>Best / worst counts (5 respondents).</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 16 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${T.appBorder}` }}>
+                  <th style={{ ...th, textAlign: "left", paddingLeft: 8 }}>Option</th>
+                  <th style={th}>Best</th><th style={th}>Worst</th><th style={th}>Net</th><th style={th}>Shown</th>
+                  <th style={th}>%<br />Best</th><th style={th}>%<br />Worst</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PM_COUNTS.map(([b, w, s], r) => (
+                  <tr key={r} data-cursor={"pm-t" + r} style={{ borderBottom: `1px solid ${T.appBorder}`, background: hover === r ? T.hover : "transparent", transition: "background-color .2s" }}>
+                    <td style={{ ...td, textAlign: "left", paddingLeft: 8, width: 150, lineHeight: "20px" }}>{PM_NAMES[r][0]}</td>
+                    <td style={td}>{b}</td><td style={td}>{w}</td><td style={td}>{b - w >= 0 ? "+" : ""}{b - w}</td>
+                    <td style={{ ...td, color: T.inkSoft }}>{s}</td>
+                    <td style={td}>{Math.round((b / s) * 100)}%</td><td style={td}>{Math.round((w / s) * 100)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  )
+}
