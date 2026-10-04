@@ -556,26 +556,35 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
   }
 
   if (style === "stage") {
-    // one big panel (the How it works container): counter, title, and body in
-    // the top-left columns, progress segments and arrows at their foot, and
+    // one big panel (the How it works container): counter, title, and body on
+    // columns 1–4, progress segments and arrows at their foot, and
     // the shot inset from the top and running off the right and bottom edges,
     // cropped like the Use Cases card. Under ~820px the caption sits above a
     // stacked card and the controls drop below it.
     const stacked = width > 0 && width < 820
     const GUTTER = 24
-    const P = stacked ? 0 : Math.max(24, Math.round(width * 48 / 1392))
-    const colW = (width - P * 2 - 11 * GUTTER) / 12
-    const capW = Math.round(4 * colW + 3 * GUTTER)
+    // the panel's columns are the page's: 12 across its full width with
+    // 24px gutters (8 once the page drops to its tablet grid, under 1024).
+    // 24px of inner padding; the caption runs from it to the end of column 4
+    // (3 of 8), and the shot starts on the next column.
+    const P = stacked ? 0 : GUTTER
+    const COLS = width + 2 * GUTTER > 1024 ? 12 : 8
+    const CAP = COLS === 12 ? 4 : 3
+    const colW = (width - (COLS - 1) * GUTTER) / COLS
+    const capW = Math.round(CAP * colW + (CAP - 1) * GUTTER) - P
     const cardInset = Math.max(12, Math.round(width * 16 / 370))
     const stackedCard = { fit: "bleed" as const, bleedShow: showPx, bleedRatio: 200 / 370, insetX: cardInset, insetY: cardInset, radius: 12, canvasHeight: 0 }
     const H = frameHeight > 0 ? frameHeight : Math.round(width * 640 / 1392)
-    const col5 = P + Math.round(4 * (colW + GUTTER))
+    const col5 = Math.round(CAP * (colW + GUTTER))
     // the shot's region in the panel, per mode: bleed hangs off the right and
     // bottom from column 5; fit sits inside the padding; pin fills from column 5
+    // positions are measured from the panel's outer edge; its 1px border
+    // would otherwise push everything 1px off the page's columns
+    const B = 1
     const region: React.CSSProperties = frameFit === "responsive"
-      ? { left: col5, top: P, right: P, bottom: P }
-      : frameFit === "pinned" ? { left: col5, top: 0, right: 0, bottom: 0 }
-      : { left: col5, top: P, right: 0, bottom: 0 }
+      ? { left: col5 - B, top: P - B, right: P - B, bottom: P - B }
+      : frameFit === "pinned" ? { left: col5 - B, top: 0, right: 0, bottom: 0 }
+      : { left: col5 - B, top: P - B, right: 0, bottom: 0 }
     const regionCard = frameFit === "responsive"
       ? { fit: "responsive" as const, padX: 0, padY: 0, canvasHeight: H - 2 * P, pattern: "none" as PatternType }
       : frameFit === "pinned" ? { fit: "pinned" as const, canvasHeight: H, pattern: "none" as PatternType }
@@ -633,7 +642,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
           <div style={{ position: "relative", height: H, borderRadius: 12, overflow: "hidden", background: canvas.bgColor, border: `1px solid ${T.pageLine}` }}>
             <PatternLayer type={canvas.pattern} spacing={canvas.patternSpacing} opacity={canvas.patternOpacity} />
             <div style={{ position: "absolute", ...region }}>{shot(regionCard, "bare")}</div>
-            <div style={{ position: "absolute", left: P, top: P, bottom: P, width: capW, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
+            <div style={{ position: "absolute", left: P - B, top: P - B, bottom: P - B, width: capW, display: "flex", flexDirection: "column", justifyContent: "space-between", pointerEvents: "none" }}>
               {caption}
               <div style={{ pointerEvents: "auto" }}>{controls}</div>
             </div>

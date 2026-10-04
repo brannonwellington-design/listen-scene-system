@@ -8,6 +8,12 @@
 // Breakpoints are container queries on the page wrapper, not the window, so
 // the review panel can narrow the page to any width and everything — the
 // live sections included — responds as it would in a browser that size.
+//
+// Layout is the mock's grid: 12 columns, 24px gutters and margins, content
+// capped at 1392 and centered (backgrounds still run full width). Under 1024
+// it's 8 columns; under 640, 4 columns with 16px gutters and margins. Every
+// block is placed by column span (`sp(desktop, tablet, mobile)`), so it stays
+// on the grid at every width.
 import * as React from "react"
 import SceneCanvas from "./SceneCanvas"
 import { StepStyle } from "./ListenRegistry"
@@ -33,18 +39,23 @@ const CSS = `
    (the app sidebar pins its footer with margin-top: auto) */
 :where(.hp) :where(*) { box-sizing: border-box; }
 :where(.hp) :where(p, h1, h2, h3, ul) { margin: 0; }
-.hp-sec { padding: 80px 24px; display: flex; flex-direction: column; align-items: center; gap: 80px; }
+.hp > * { --margin: 24px; }
+.hp-grid { --cols: 12; --gut: 24px; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  column-gap: var(--gut); width: 100%; max-width: 1392px; margin: 0 auto; }
+.hp-grid > * { grid-column: var(--d, 1 / -1); min-width: 0; }
+.hp-sec { padding: 80px var(--margin); }
+.hp-sec > .hp-grid { row-gap: 80px; }
 .hp-h2 { font-size: 32px; line-height: 1.2; letter-spacing: -0.64px; text-align: center; }
 .hp-lede { font-size: 20px; line-height: 1.4; letter-spacing: -0.4px; color: ${C.soft}; text-align: center; }
-.hp-head { display: flex; flex-direction: column; gap: 8px; align-items: center; max-width: 448px; }
+.hp-head { display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .hp-t14 { font-size: 14px; line-height: 20px; letter-spacing: -0.28px; }
 .hp-t16 { font-size: 16px; line-height: 22px; letter-spacing: -0.32px; }
 .hp-t12 { font-size: 12px; line-height: 16px; letter-spacing: -0.24px; }
 .hp-soft { color: ${C.soft}; }
 
 /* nav */
-.hp-nav { position: sticky; top: var(--hp-top, 0px); z-index: 40; height: 68px; padding: 0 24px; background: ${C.bg};
-  display: flex; align-items: center; justify-content: space-between; }
+.hp-nav { position: sticky; top: var(--hp-top, 0px); z-index: 40; height: 68px; padding: 0 var(--margin); background: ${C.bg}; }
+.hp-navin { position: relative; height: 100%; max-width: 1392px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
 .hp-nav-links { display: flex; gap: 24px; align-items: center; position: absolute; left: 50%; transform: translateX(-50%); }
 .hp-nav-links span { display: inline-flex; gap: 4px; align-items: center; }
 .hp-nav-right { display: flex; gap: 24px; align-items: center; }
@@ -52,7 +63,8 @@ const CSS = `
 .hp-menu { display: none; width: 32px; height: 32px; align-items: center; justify-content: center; }
 
 /* hero */
-.hp-hero { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 24px 24px; align-items: center; }
+.hp-hero { padding: 0 var(--margin) 24px; }
+.hp-hero > .hp-grid { align-items: center; row-gap: 40px; }
 .hp-hero h1 { font-weight: 400; font-size: clamp(36px, 4.03cqw, 58px); line-height: 1; letter-spacing: -0.04em; }
 .hp-hero-img { position: relative; aspect-ratio: 684 / 708; border-radius: 12px; overflow: hidden; }
 .hp-hero-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -78,7 +90,7 @@ const CSS = `
 .hp-live { width: 100%; }
 
 /* customers */
-.hp-cust { position: relative; width: 100%; max-width: 920px; display: flex; flex-direction: column; gap: 24px; }
+.hp-cust { position: relative; display: flex; flex-direction: column; gap: 24px; }
 .hp-cust-img { position: relative; aspect-ratio: 920 / 518; border-radius: 12px; }
 .hp-cust-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
 .hp-cust-img img.ghost { opacity: .2; }
@@ -89,74 +101,71 @@ const CSS = `
 .hp-segs span:first-child { background: ${C.ink}; }
 
 /* how to use */
-.hp-video { width: 100%; max-width: 920px; display: flex; flex-direction: column; gap: 24px; }
+.hp-video { display: flex; flex-direction: column; gap: 24px; }
 .hp-video img { width: 100%; aspect-ratio: 684 / 386; object-fit: cover; border-radius: 12px; display: block; }
 .hp-stats { display: flex; gap: 24px; }
 .hp-stats > div { flex: 1; min-width: 0; }
 .hp-stat { font-size: 64px; line-height: 1.2; letter-spacing: -2.56px; white-space: nowrap; }
 
 /* experts */
-.hp-experts { display: flex; gap: 142px; padding: 80px 24px 80px 142px; background: ${C.highlight}; align-items: stretch; }
-.hp-exp-left { width: 448px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 48px; }
+.hp-experts { padding: 80px var(--margin); background: ${C.highlight}; }
+.hp-experts > .hp-grid { row-gap: 48px; }
+.hp-exp-left { display: flex; flex-direction: column; justify-content: space-between; gap: 48px; }
 .hp-exp-feat { display: grid; grid-template-columns: 1fr 1fr; gap: 23px; }
 .hp-exp-feat img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; display: block; }
-.hp-exp-list { flex: 1; min-width: 0; max-width: 684px; display: flex; flex-direction: column; }
+.hp-exp-list { display: flex; flex-direction: column; }
 .hp-exp-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid ${C.tertiary}; }
 .hp-exp-row:first-child { padding-top: 0; }
 
 /* cta + footer */
-.hp-cta { position: relative; height: 800px; border-radius: 12px; overflow: hidden; margin: 24px; }
+.hp-ctawrap { padding: var(--margin); }
+.hp-cta { position: relative; height: 800px; border-radius: 12px; overflow: hidden; }
 .hp-cta > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .hp-form { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 448px; max-width: calc(100% - 32px);
   padding: 24px; border-radius: 12px; background: ${C.bg}; display: flex; flex-direction: column; gap: 24px; }
 .hp-field { height: 48px; border: 1px solid ${C.ink}; border-radius: 8px; background: ${C.highlight}; display: flex; align-items: center; padding: 0 12px; color: ${C.soft}; }
-.hp-foot { padding: 0 24px 24px; display: flex; flex-direction: column; gap: 96px; }
-.hp-foot-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 48px 24px; }
-.hp-foot-cols ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
+.hp-foot { padding: 0 var(--margin) var(--margin); }
+.hp-foot > .hp-grid { row-gap: 48px; }
+.hp-foot ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
 .hp-foot-bar { display: flex; justify-content: space-between; gap: 16px; }
 
 /* brand band */
 .hp-band { position: relative; height: clamp(520px, 55.5cqw, 800px); background: ${C.ink}; color: ${C.onBrand}; overflow: hidden; }
 .hp-band .art { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(450px, 60cqw); aspect-ratio: 3 / 2; object-fit: cover; }
 .hp-band .word { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(912px, calc(100cqw - 48px)); }
+.hp-bandin { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 1440px; }
 .hp-band .corner { position: absolute; }
 .hp-band .mark { position: absolute; left: 50%; transform: translateX(-50%); width: 15px; height: 20px; }
 
 /* ---- breakpoints (container width) ---- */
-@container (max-width: 1240px) {
-  .hp-experts { padding-left: 24px; gap: 64px; }
-}
-@container (max-width: 1080px) {
+@container (max-width: 1024px) {
+  .hp-grid { --cols: 8; }
+  .hp-grid > * { grid-column: var(--t, 1 / -1); }
   .hp-wall { flex-direction: column; }
 }
 @container (max-width: 900px) {
   .hp-nav-links { display: none; }
   .hp-menu { display: inline-flex; }
-  .hp-hero { grid-template-columns: 1fr; gap: 40px; padding-top: 48px; }
-  .hp-hero-img { aspect-ratio: 4 / 3; }
-  .hp-hero-img img { object-position: 50% 35%; }
-  .hp-experts { flex-direction: column; gap: 48px; }
-  .hp-exp-left { width: 100%; max-width: 560px; }
-  .hp-exp-list { max-width: none; }
-  .hp-foot-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hp-cust-meta { gap: 48px; }
 }
 @container (max-width: 640px) {
-  .hp-sec { padding: 80px 16px; gap: 80px; }
+  .hp > * { --margin: 16px; }
+  .hp-grid { --cols: 4; --gut: 16px; }
+  .hp-grid > * { grid-column: var(--m, 1 / -1); }
   .hp-h2 { font-size: 24px; line-height: 1.4; letter-spacing: -0.48px; }
   .hp-lede { font-size: 16px; line-height: 22px; letter-spacing: -0.32px; }
-  .hp-nav { padding: 0 16px; }
   .hp-nav-right .hp-signin { display: none; }
-  .hp-hero { padding: 32px 16px 16px; }
+  .hp-hero { padding-top: 32px; padding-bottom: 16px; }
+  .hp-hero-img { aspect-ratio: 4 / 3; }
+  .hp-hero-img img { object-position: 50% 35%; }
   .hp-row { flex-direction: column; height: auto; }
   .hp-feat { height: 180px; flex: none; }
   .hp-quad { height: 200px; flex: none; }
   .hp-cust-meta { flex-direction: column; gap: 24px; }
   .hp-stats { flex-direction: column; gap: 24px; }
   .hp-stat { font-size: 48px; }
-  .hp-experts { padding: 64px 16px; }
-  .hp-cta { margin: 16px; height: 640px; }
-  .hp-foot { padding: 0 16px 16px; }
+  .hp-experts { padding-top: 64px; padding-bottom: 64px; }
+  .hp-cta { height: 640px; }
   .hp-foot-bar { flex-direction: column; }
 }
 
@@ -169,11 +178,17 @@ const CSS = `
 .hp-seg button { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid #DDD6C8; background: #FFF; color: #1F1D1A; cursor: pointer; }
 .hp-seg button[aria-pressed="true"] { background: #1F1D1A; border-color: #1F1D1A; color: #F9F4EB; }
 .hp-panel input[type=range] { width: 100%; }
-.hp-gridov { position: absolute; top: 0; bottom: 0; left: 24px; right: 24px; z-index: 30; pointer-events: none;
-  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: 24px; }
+.hp-gridov { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: calc(100% - 2 * var(--margin));
+  max-width: 1392px; z-index: 30; pointer-events: none;
+  display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); column-gap: var(--gut); --cols: 12; --gut: 24px; }
 .hp-gridov div { background: rgba(0, 33, 204, 0.05); border-left: 1px solid rgba(0, 33, 204, .16); border-right: 1px solid rgba(0, 33, 204, .16); }
-@container (max-width: 640px) { .hp-gridov { left: 16px; right: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 16px; } }
+@container (max-width: 1024px) { .hp-gridov { --cols: 8; } .hp-gridov div:nth-child(n+9) { display: none; } }
+@container (max-width: 640px) { .hp-gridov { --cols: 4; --gut: 16px; } .hp-gridov div:nth-child(n+5) { display: none; } }
 `
+
+/** a grid span per breakpoint: desktop (12 cols), tablet (8), mobile (4);
+ *  an omitted span means the full row */
+const sp = (d?: string, t?: string, m?: string) => ({ "--d": d, "--t": t, "--m": m }) as React.CSSProperties
 
 /** measured content width of an element (for the live sections' padding) */
 function useWidth(): [React.RefObject<HTMLDivElement>, number] {
@@ -194,7 +209,7 @@ const NAV = [["Solutions", true], ["Features", true], ["Customers", false], ["Re
 
 function Nav(): JSX.Element {
   return (
-    <nav className="hp-nav">
+    <nav className="hp-nav"><div className="hp-navin">
       <img src={M + "logo.svg"} alt="Listen Labs" style={{ height: 20, display: "block" }} />
       <div className="hp-nav-links hp-t14">
         {NAV.map(([l, chev]) => <span key={l}>{l}{chev && <I name="chevron-down" size={12} />}</span>)}
@@ -206,14 +221,14 @@ function Nav(): JSX.Element {
           <svg width="18" height="12" viewBox="0 0 18 12" stroke={C.ink} strokeWidth="1.5"><path d="M0 1h18M0 6h18M0 11h18" /></svg>
         </span>
       </div>
-    </nav>
+    </div></nav>
   )
 }
 
 function Hero(): JSX.Element {
   return (
-    <section className="hp-hero">
-      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <section className="hp-hero"><div className="hp-grid">
+      <div style={{ ...sp("1 / 7", "1 / 5"), display: "flex", flexDirection: "column", gap: 24 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <h1>Customer Understanding,<br />Loud and Clear.</h1>
           <p className="hp-soft" style={{ fontSize: 20, lineHeight: 1.4, letterSpacing: -0.4, maxWidth: 684 }}>
@@ -225,11 +240,11 @@ function Hero(): JSX.Element {
           <span className="hp-btn">Book A Demo <I name="arrow-right" size={20} stroke={1.25} /></span>
         </div>
       </div>
-      <div className="hp-hero-img">
+      <div className="hp-hero-img" style={sp("7 / 13", "5 / 9")}>
         <img src={M + "hero.jpg"} alt="" />
         <div className="hp-chip hp-t14"><p>Amanda Watterson</p><p className="hp-soft">34 years old</p><p className="hp-soft">New York City, NY</p></div>
       </div>
-    </section>
+    </div></section>
   )
 }
 
@@ -252,8 +267,8 @@ function Quad(): JSX.Element {
 
 function LogoWall(): JSX.Element {
   return (
-    <section className="hp-sec">
-      <p className="hp-h2" style={{ maxWidth: 626 }}>The research partner for hundreds of leading brands</p>
+    <section className="hp-sec"><div className="hp-grid">
+      <p className="hp-h2" style={sp("4 / 10", "2 / 8")}>The research partner for hundreds of leading brands</p>
       <div className="hp-wall">
         <div className="hp-half">
           <div className="hp-row"><Feature /><Quad /></div>
@@ -264,19 +279,23 @@ function LogoWall(): JSX.Element {
           <div className="hp-row"><Quad /><Feature /></div>
         </div>
       </div>
-    </section>
+    </div></section>
   )
 }
 
-/** How it works: the mock frames a 920-wide shot in a 1392 container (236 / 40
- *  padding); under 700 the padding drops to 16 so the shot keeps its size */
+/** How it works: the mock frames the shot on columns 3–10 of the 1392
+ *  container (236 / 40 padding); on 8 columns it takes 2–7; narrower, the
+ *  captions style switches to its stacked card and the padding doesn't apply */
 function HowItWorks({ style }: { style: StepStyle }): JSX.Element {
   const [ref, w] = useWidth()
-  const padX = w < 700 ? 16 : Math.round(w * 236 / 1392)
-  const padY = w < 700 ? 16 : Math.round(w * 40 / 1392)
+  const page = w + 48
+  const cols = page > 1024 ? 12 : 8
+  const colW = (w - (cols - 1) * 24) / cols
+  const padX = Math.round((cols === 12 ? 2 : 1) * (colW + 24))
+  const padY = Math.round(w * 40 / 1392)
   return (
-    <section className="hp-sec" id="how-it-works">
-      <div className="hp-head">
+    <section className="hp-sec" id="how-it-works"><div className="hp-grid">
+      <div className="hp-head" style={sp("5 / 9", "2 / 8")}>
         <p className="hp-h2">A single place to run your research end-to-end.</p>
         <p className="hp-lede">From first question to insights that compound. Enterprise-grade controls throughout.</p>
       </div>
@@ -284,15 +303,15 @@ function HowItWorks({ style }: { style: StepStyle }): JSX.Element {
         {w > 0 && <SceneCanvas layout="multi-step" sequence="how-it-works" stepStyle={style} maxWidth={1392} padX={padX} padY={padY} radius={12}
           swipeBleed={w <= 608 ? 16 : 24} />}
       </div>
-    </section>
+    </div></section>
   )
 }
 
 function Customers(): JSX.Element {
   return (
-    <section className="hp-sec" style={{ overflow: "hidden" }}>
+    <section className="hp-sec" style={{ overflow: "hidden" }}><div className="hp-grid">
       <p className="hp-h2">Hear it from our customers</p>
-      <div className="hp-cust">
+      <div className="hp-cust" style={sp("3 / 11")}>
         <div className="hp-cust-img">
           <img className="ghost" src={M + "customer.jpg"} alt="" style={{ left: "calc(-100% - 24px)", right: "calc(100% + 24px)" }} />
           <img src={M + "customer.jpg"} alt="" />
@@ -310,29 +329,29 @@ function Customers(): JSX.Element {
         </div>
         <div className="hp-segs"><span /><span /><span /><span /></div>
       </div>
-    </section>
+    </div></section>
   )
 }
 
 function UseCases({ style }: { style: StepStyle }): JSX.Element {
   return (
-    <section className="hp-sec" id="use-cases">
-      <div className="hp-head" style={{ maxWidth: 614 }}>
+    <section className="hp-sec" id="use-cases"><div className="hp-grid">
+      <div className="hp-head" style={sp("4 / 10", "2 / 8")}>
         <p className="hp-h2">Use Cases</p>
         <p className="hp-lede">Designed for your research needs. From AI sentiment and adoption to concept tests and brand tracking.</p>
       </div>
       <div className="hp-live">
         <SceneCanvas layout="multi-step" sequence="use-cases" stepStyle={style} maxWidth={1392} />
       </div>
-    </section>
+    </div></section>
   )
 }
 
 function HowToUse(): JSX.Element {
   return (
-    <section className="hp-sec" style={{ background: C.highlight }}>
-      <div className="hp-head"><p className="hp-h2">How to use Listen</p><p className="hp-lede">Get results in hours instead of weeks</p></div>
-      <div className="hp-video">
+    <section className="hp-sec" style={{ background: C.highlight }}><div className="hp-grid">
+      <div className="hp-head" style={sp("5 / 9", "2 / 8")}><p className="hp-h2">How to use Listen</p><p className="hp-lede">Get results in hours instead of weeks</p></div>
+      <div className="hp-video" style={sp("3 / 11")}>
         <img src={M + "how-to-use.jpg"} alt="" />
         <div className="hp-stats">
           {[["3x", "Longer customer responses than average"], ["<24h", "Time to results instead of days"], ["50m+", "Possible respondents for studies"]].map(([n, l]) => (
@@ -340,7 +359,7 @@ function HowToUse(): JSX.Element {
           ))}
         </div>
       </div>
-    </section>
+    </div></section>
   )
 }
 
@@ -357,8 +376,8 @@ const EXPERTS: Array<[string, string, string]> = [
 
 function Experts(): JSX.Element {
   return (
-    <section className="hp-experts">
-      <div className="hp-exp-left">
+    <section className="hp-experts"><div className="hp-grid">
+      <div className="hp-exp-left" style={sp("2 / 6", "1 / 6")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <p className="hp-h2" style={{ textAlign: "left" }}>Research experts, on your team</p>
           <p className="hp-lede" style={{ textAlign: "left" }}>Senior in-house researchers across UX, Insights, and Data Science</p>
@@ -373,7 +392,7 @@ function Experts(): JSX.Element {
           </div>
         </div>
       </div>
-      <div className="hp-exp-list">
+      <div className="hp-exp-list" style={sp("7 / 13")}>
         {EXPERTS.map(([n, r, prev]) => (
           <div key={n} className="hp-exp-row">
             <div className="hp-t16"><p>{n}</p><p className="hp-soft">{r}</p></div>
@@ -381,7 +400,7 @@ function Experts(): JSX.Element {
           </div>
         ))}
       </div>
-    </section>
+    </div></section>
   )
 }
 
@@ -399,7 +418,7 @@ const FOOT: Array<[string, string[]]> = [
 function CtaFooter(): JSX.Element {
   return (
     <>
-      <div className="hp-cta">
+      <div className="hp-ctawrap"><div className="hp-grid"><div className="hp-cta">
         <img src={M + "cta.jpg"} alt="" />
         <div className="hp-form">
           <p style={{ fontSize: 24, lineHeight: 1.4, letterSpacing: -0.48 }}>Book a demo</p>
@@ -411,15 +430,13 @@ function CtaFooter(): JSX.Element {
             </p>
           </div>
         </div>
-      </div>
-      <footer className="hp-foot hp-t14">
-        <div className="hp-foot-cols">
-          {FOOT.map(([h, links], i) => (
-            <div key={i}><p className="hp-soft">{h}</p><ul>{links.map((l) => <li key={l}>{l}</li>)}</ul></div>
-          ))}
-        </div>
-        <div className="hp-foot-bar hp-soft"><span>© 2026 Listen Labs • All rights reserved</span><span>LinkedIn • Twitter • YouTube</span></div>
-      </footer>
+      </div></div></div>
+      <footer className="hp-foot hp-t14"><div className="hp-grid">
+        {FOOT.map(([h, links], i) => (
+          <div key={i} style={sp("span 3", "span 4", "span 2")}><p className="hp-soft">{h}</p><ul>{links.map((l) => <li key={l}>{l}</li>)}</ul></div>
+        ))}
+        <div className="hp-foot-bar hp-soft" style={{ marginTop: 48 }}><span>© 2026 Listen Labs • All rights reserved</span><span>LinkedIn • Twitter • YouTube</span></div>
+      </div></footer>
     </>
   )
 }
@@ -441,8 +458,10 @@ function Band(): JSX.Element {
     <section className="hp-band">
       <img className="art" src={M + "footer-art.jpg"} alt="" />
       <img className="word" src={M + "wordmark.svg"} alt="Listen Labs" />
-      {corner({ left: 24, top: 24 })}{corner({ right: 24, top: 24 }, true)}
-      {corner({ left: 24, bottom: 24 })}{corner({ right: 24, bottom: 24 }, true)}
+      <div className="hp-bandin">
+        {corner({ left: "var(--margin)", top: 24 })}{corner({ right: "var(--margin)", top: 24 }, true)}
+        {corner({ left: "var(--margin)", bottom: 24 })}{corner({ right: "var(--margin)", bottom: 24 }, true)}
+      </div>
       <Mark style={{ top: 46 }} /><Mark style={{ bottom: 46 }} />
     </section>
   )
