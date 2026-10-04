@@ -29,8 +29,10 @@ const M = "/media/home/"
 const CSS = `
 .hp { container-type: inline-size; background: ${C.bg}; color: ${C.ink}; font-family: 'Inter', -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; margin: 0 auto; position: relative; }
-.hp * { box-sizing: border-box; margin: 0; }
-.hp p { margin: 0; }
+/* zero-specificity reset: the live scenes inside keep their own margins
+   (the app sidebar pins its footer with margin-top: auto) */
+:where(.hp) :where(*) { box-sizing: border-box; }
+:where(.hp) :where(p, h1, h2, h3, ul) { margin: 0; }
 .hp-sec { padding: 80px 24px; display: flex; flex-direction: column; align-items: center; gap: 80px; }
 .hp-h2 { font-size: 32px; line-height: 1.2; letter-spacing: -0.64px; text-align: center; }
 .hp-lede { font-size: 20px; line-height: 1.4; letter-spacing: -0.4px; color: ${C.soft}; text-align: center; }
