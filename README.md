@@ -17,72 +17,75 @@ ready to paste into **Framer**.
 | `src/ToolBar.tsx` | The thin bar across the top of both review views (workbench at `/`, homepage at `/home`) with a **Workbench \| Homepage** switch in the same top-right spot on each. Switching is client-side (history push, so links and Back work); the workbench keeps its config and the homepage its URL settings (width, styles, grid) across trips. On `/home` the mock's nav sticks just below the bar, and P hides the bar with the review panel for clean screenshots. |
 | `src/Home.tsx` | **`/home`: a 1:1 build of the homepage refresh mock** (Figma 864:744) with the live How it works and Use Cases `SceneCanvas` sections in place, for reviewing them in context. The rest of the page is static, built from the mock's styles and assets (`media/home`). Breakpoints are container queries on the page wrapper, so the review panel (bottom right; P hides it) can narrow the page to any width, 390 / 768 / 1024 / 1280 / 1440 or a slider, without resizing the window. The panel also switches each live section's style (Captions / List / Stage) and toggles the 12-column grid (G). Its state lives in the URL (`?w=390&uc=stage&grid=1`), so a setup can be shared. The page behaves like the site: nav dropdowns (Solutions, Features, Resources) and a full-height mobile menu, a hairline under the nav once scrolled, hover and keyboard-focus states, working (unsent) email and book-a-demo forms with validation and a thank-you state, an auto-advancing customers carousel (segments fill; click, swipe, or arrow keys; pauses on hover), a video lightbox stand-in, anchor links to its sections, the real page title and favicon, and lazy-loaded images below the fold. Layout is the mock's grid: 12 columns with 24px gutters and margins, content capped at 1392 and centered (backgrounds stay full width); 8 columns under 1024; 4 columns with 16px gutters and margins under 640. Every block is placed by column span, so it holds the grid at every width, and the overlay (G) follows the same grid. The mock is desktop-only (plus the mobile Use Cases frame), so the tablet and phone spans are our own. |
 | `src/SceneCanvas.tsx` | **The universal Framer component**, with two layouts. `layout="single"` = one product shot: a scene, fragment, or **custom crop** of a scene, optionally **looping a time-slice** of its session (`loopFrom`/`loopTo`). `layout="multi-step"` = several shots cycling in one frame (auto-advance, click to jump, dev scrubber in the workbench); pick a named `sequence` or build `steps` by hand. Multi-step has three styles, set per sequence (or forced with `stepStyle`): `captions` puts a caption rail under the shot (How it works); under ~820px the shot becomes a cropped card (Figma 897:4431) and the captions become a looping swipe rail, 241px each, the active one full and the rest at 40% (01 follows 05 in both directions); advancing scrolls forward to the next caption, a tap goes to the caption tapped, a swipe that settles on another caption jumps to it, and `swipeBleed` runs the rail past the component's edges to the screen edge; `list` puts numbered rows beside a cropped card, the active row open with its body and its hairline filling as the shot plays, and stacks the card above the list under ~820px (Use Cases); `stage` shows one step at a time in a single big panel laid on the page's own columns (12 across its width with 24px gutters, or 8 under a 1024 page), with 24px inner padding and the counter, title, and body running from it to the end of column 4 (3 of 8), a segmented progress line (one segment per step, the active one filling as the shot plays) and prev/next arrows at their foot, and the shot starting at column 5 and running off the right and bottom, cropped like the Use Cases card; under ~820px the caption stacks above the card and the controls drop below it. List and Stage have their own framing, `cardFit` (Bleed by default, the mock's crop; or Scale to fit, or Pin with the usual anchor, insets, and zoom) and `cardHeight` (0 = auto: the list's height, or the panel's 640/1392 ratio); `bleedShow` sets how much shows across, and the bleed inset keeps scaling with the card. Below ~820px both keep their stacked bleed card. Side by side, `list` sits on a 12-column grid with 24px gutters: the list spans `listStart`–`listEnd` (default 2–5) and the card spans `cardStart`–12 (default 7–12), matching the mock at 1392. Every full product page, How it works, Use Cases (`uc-*` keys) and Interview at scale alike, is authored 1:1 in live px at `APP_W`×`APP_H` (1344×768), so flipping between shots, scaled or pinned, feels like one window; content past 768 runs off the bottom. Both layouts share the canvas system: surface-secondary container, optional background pattern, and the fit engine — `scale` (scales with container), `pin` (native pixels anchored to a corner with X/Y insets while the container flexes and masks; optional fall-back-to-fit below a breakpoint), or `bleed` (a card with the shot inset from its top-left and running off the right and bottom; `bleedShow` sets how many design px show across, so the crop holds at every width). Property names are the Framer contract: once instances exist in Framer, renaming a prop resets it on every instance, so rename only before install. |
+| `src/ListenSections.tsx` | **HowItWorks** and **UseCases**: SceneCanvas locked to each homepage sequence, with How it works' grid framing (padding on the page's columns, radius, swipe bleed) worked out from its own width. `/home` renders these, and they're what Framer places (see Install in Framer). |
+| `framer/` | The Framer release: `listen-scenes.js` (built by `build-framer.sh`, imported by Framer from jsDelivr at a `framer-v*` tag), the paste-in code files (`HowItWorks.tsx`, `UseCases.tsx`, `SceneCanvas.tsx`), and `harness.html`, a local smoke test that loads the bundle the way Framer does. |
 | `demo.html` + `src/demo.tsx` | Local demo page rendering everything outside Framer, including a SceneCanvas showcase (at ?demo=1; the root URL is the workbench). |
 
 ## Install in Framer
 
-1. In Framer: **Assets → Code → Create Code File**, named exactly:
-   - `ListenKit.tsx`, `ListenIcons.tsx`, `ListenScenes.tsx`, `ListenRegistry.tsx` — paste from `src/`
-2. **Create Code Component**: `SceneCanvas.tsx` — paste from `src/`
-3. Drag **SceneCanvas** anywhere. The properties panel follows the order you
-   build a shot in (the workbench rail uses the same five groups):
-   1. **Content** — Layout: Single ⇄ Multi-step (the only difference is
-      whether more than one shot plays in the frame; multi-step adds the
-      caption rail). Single picks a **Shot** from one unified list of scenes
-      and fragments, or `Custom crop…` into any scene; multi-step picks a
-      **Sequence** such as How it works, or `Custom steps…` (shot + title +
-      body each).
-   2. **Playback** — single: loop, pause, and an optional time-slice
-      (segment start/end); multi-step: auto-advance and the pause after a
-      visitor clicks a step.
-   3. **Scene state** — how app-shell scenes start: sidebar open or
-      collapsed, light or dark theme. Visitors can still change both.
-   4. **Framing** — scale to fit, or pin to a corner with insets and zoom
-      while the container masks; small-screen fallback; auto or fixed height.
-   5. **Canvas** — fill color, pattern (dots / grid / circles / crosshairs),
-      spacing, opacity, padding, radius.
+Framer doesn't get the source. It imports one bundle, `framer/listen-scenes.js`,
+from jsDelivr at a git tag of this (public) repo. Each release is a fixed URL,
+and every change still goes through a PR.
 
-The `import { addPropertyControls, ControlType } from "framer"` lines resolve
-natively inside Framer. Locally they're aliased to `src/framer-stub.ts`.
+**Install** (once per Framer project):
 
-## Adding a new scene ("grab a section of the product")
+1. **Assets → Code → New code file**, named `HowItWorks`. Paste in
+   [`framer/HowItWorks.tsx`](framer/HowItWorks.tsx). Do the same for `UseCases`
+   and, if wanted, `SceneCanvas`. Each file is a few lines: it imports its
+   component from the release URL and passes through its properties panel.
+2. Drag **HowItWorks** / **UseCases** onto the page. Set width to **Fill**
+   (height stays auto) inside a content stack capped at 1392, like `/home`.
+   Section titles and intros stay native Framer text.
 
-1. In `ListenScenes.tsx`, copy an existing scene as a starting point.
-2. Rebuild the UI from a product screenshot using the kit primitives
-   (`Chip`, `Donut`, `ll-card`, `ll-avatar`…). In-app surfaces go inside
-   `<AppShell nav={studyNav("Report")} title=… crumb=… actions=…>` in the
-   1344×768 design space (register with `APP_W`/`APP_H`); the sidebar and top
-   bar come for free, including the visitor-collapsible sidebar. Hardcode
-   believable demo data.
-3. Write the session in the `useScene` script: `p.type()` for typing,
-   `p.sleep()` for pacing, `cur.show/move/click()` for the cursor, end with a
-   ~2s dwell. Aim the cursor at elements, not pixels: tag the target with
-   `data-cursor="gen-btn"` and call `cur.move("gen-btn")` (optional dx/dy
-   nudge). The cursor tracks the element as the layout reflows — sidebar
-   collapsed or not, and in freeze-frame mode.
-4. Register it in `ListenRegistry.tsx`'s `REGISTRY` under the page it
-   belongs to (and add it as a step in a `SEQUENCES` entry if it plays in a
-   multi-step). It's now a website asset.
+**The components** (`src/ListenSections.tsx`, the same ones `/home` renders):
 
-### Naming
+- **HowItWorks**: the how-it-works sequence. **Page grid** (on by default)
+  works out the padding, radius, and mobile swipe bleed from its own width,
+  so the shot sits on the page's columns at every breakpoint. Turn it off to
+  set them by hand.
+- **UseCases**: the use-cases sequence. The list style lays itself on the
+  12 columns.
+- **SceneCanvas**: everything else, any shot or sequence (panel below).
+- Both sections offer SceneCanvas's controls minus the layout and sequence
+  pickers and the single-shot controls: style (Auto / Captions / List /
+  Stage), auto-advance, scene state, framing, and canvas.
 
-Keys follow `page-section-subject`, matching the live site's headings, so a
-key says where the shot goes. The Emotional Intelligence page
-(`/features/emotional-intelligence`) has 8 shots, in page order:
+**In the Framer editor** the shots don't play. Each shows a still (its
+registry `poster` frame, or the end of its session), and sequences hold on
+step 1. Preview and the published site play normally. The bundle loads Inter
+(400–700) itself, and its media (`media/…`) comes from the same tagged CDN
+folder, so there's nothing to upload.
 
-| Key | Section · heading |
-|---|---|
-| `ei-hero-report` | Hero · Study report |
-| `ei-feature-signals` | Features · Multi-signal emotion detection |
-| `ei-feature-traceable` | Features · Research-grounded and fully traceable |
-| `ei-feature-comparison` | Features · Structured for comparison |
-| `ei-usecase-ad-testing` | Use cases · Creative/Ad Testing |
-| `ei-usecase-concepts` | Use cases · Concept Comparison |
-| `ei-usecase-brand` | Use cases · Brand Research |
-| `ei-usecase-ux` | Use cases · UX Research |
+**Releasing a change:**
 
-Fragments are the same, just authored at their own design size — export the
-component plus `_W`/`_H` constants and register them.
+1. `sh build-framer.sh framer-vN` (the next number) rebuilds the bundle with
+   that tag's media URLs and points `framer/*.tsx` at it.
+2. Optional: smoke-test at `/framer/harness.html`. It loads the bundle the
+   way Framer does; `?target=canvas` shows the editor stills.
+3. Commit, PR, merge, then tag main: `git tag framer-vN && git push origin framer-vN`.
+4. In Framer, change `framer-vN` in each code file's import URL. Instances
+   keep their settings across releases, as long as prop names don't change
+   (see SceneCanvas above).
+
+**SceneCanvas's panel** follows the order you build a shot in (the workbench
+rail uses the same five groups):
+
+1. **Content**: Layout, Single ⇄ Multi-step. Single picks a **Shot** from one
+   unified list of scenes and fragments, or `Custom crop…` into any scene.
+   Multi-step picks a **Sequence** such as How it works, or `Custom steps…`
+   (shot + title + body each), and a style.
+2. **Playback**: single has loop, pause, and an optional time-slice (loop
+   from/to); multi-step has auto-advance and the pause after a visitor clicks
+   a step.
+3. **Scene state**: how app-shell scenes start, sidebar open or collapsed and
+   light or dark theme. Visitors can still change both.
+4. **Framing**: scale to fit, pin to a corner with insets and zoom while the
+   container masks, or bleed; small-screen fallback; auto or fixed height.
+5. **Canvas**: fill color, pattern (dots / grid / circles / crosshairs),
+   spacing, opacity, padding, radius.
+
+Locally, `framer` imports resolve to `src/framer-stub.ts`. The Framer bundle
+leaves them (and React) external, so Framer supplies its own.
 
 ## Interview webcam clip
 
@@ -98,11 +101,10 @@ Record 6–8s of someone answering the on-screen question, face centered, in a
 quiet room. The script (needs ffmpeg) writes `media/interview-clip.mp4` (240px
 square, muted) and `src/ListenClip.tsx` (loudness per 30ms). The recording
 beat lasts exactly as long as the trimmed clip. `--placeholder` generates a
-synthetic stand-in; `INTERVIEW_CLIP.placeholder` says which one is live. In
-Framer, upload the MP4 as an asset and set `INTERVIEW_CLIP.src` to its URL.
-
-The same goes for `media/ad-its-fine.jpg` (the Creative/Ad Testing card's
-ad): upload it to Framer and set `UC_AD_IMG` in `ListenScenes.tsx` to its URL.
+synthetic stand-in; `INTERVIEW_CLIP.placeholder` says which one is live.
+Scenes resolve media paths with `media()` (ListenKit), so the clip and
+`media/ad-its-fine.jpg` play from the site root locally and from the tagged
+CDN folder in Framer.
 
 ## Local development
 
