@@ -78,7 +78,8 @@ const CSS = `
 .hp-half { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .hp-row { display: flex; gap: 1px; height: 198.5px; }
 .hp-feat { flex: 1; position: relative; background: ${C.highlight}; min-width: 0; }
-.hp-feat .hp-ms { position: absolute; left: 16px; top: 16px; height: 20px; }
+.hp-feat { display: block; color: ${C.ink}; }
+.hp-feat .hp-ms { position: absolute; left: 16px; top: 16px; height: 20px; color: ${C.ink}; }
 .hp-feat .hp-up { position: absolute; right: 12px; top: 12px; width: 24px; height: 24px; }
 .hp-feat div { position: absolute; left: 16px; bottom: 16px; width: 162px; }
 .hp-quad { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; min-width: 0; }
@@ -416,13 +417,29 @@ function Hero({ widget }: { widget: boolean }): JSX.Element {
   )
 }
 
-function Feature(): JSX.Element {
+// the logo wall's feature tiles: the live site's four case studies
+// (listenlabs.ai, 2026-10-05). Only Microsoft's logo file is in hand, so the
+// others show their name until their logos arrive.
+type CaseTile = { company: string; logo?: string; stat: string; label: string }
+const CASE_TILES: CaseTile[] = [
+  { company: "Microsoft", logo: "microsoft.svg", stat: "150+", label: "Global, multilingual interviews" },
+  { company: "Sweetgreen", stat: "300+", label: "Locations tested" },
+  { company: "Anthropic", stat: "100", label: "Studies in the time of 5" },
+  { company: "Simple Modern", stat: "4x", label: "Larger sample size" },
+]
+/** a company's logo, or its name until the logo file exists */
+function Wordmark({ company, logo, h = 20 }: { company: string; logo?: string; h?: number }): JSX.Element {
+  return logo ? <img src={M + logo} alt={company} loading="lazy" style={{ height: h, display: "block" }} />
+    : <span style={{ fontSize: h * 0.8, lineHeight: h + "px", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>{company}</span>
+}
+
+function Feature({ tile }: { tile: CaseTile }): JSX.Element {
   return (
-    <div className="hp-feat">
-      <img className="hp-ms" src={M + "microsoft.svg"} alt="Microsoft" loading="lazy" />
+    <a className="hp-feat" href="#customers" onClick={(e) => jump(e, "#customers")} aria-label={tile.company + " case study"}>
+      <span className="hp-ms"><Wordmark company={tile.company} logo={tile.logo} /></span>
       <img className="hp-up" src={M + "arrow-up-right.svg"} alt="" loading="lazy" />
-      <div><p className="hp-big">150+</p><p className="hp-t12">Global, Multilingual interviews</p></div>
-    </div>
+      <div><p className="hp-big">{tile.stat}</p><p className="hp-t12">{tile.label}</p></div>
+    </a>
   )
 }
 function Quad(): JSX.Element {
@@ -439,12 +456,12 @@ function LogoWall(): JSX.Element {
       <p className="hp-h2" style={sp("4 / 10", "2 / 8")}>The research partner for hundreds of leading brands</p>
       <div className="hp-wall">
         <div className="hp-half">
-          <div className="hp-row"><Feature /><Quad /></div>
-          <div className="hp-row"><Quad /><Feature /></div>
+          <div className="hp-row"><Feature tile={CASE_TILES[0]} /><Quad /></div>
+          <div className="hp-row"><Quad /><Feature tile={CASE_TILES[1]} /></div>
         </div>
         <div className="hp-half">
-          <div className="hp-row"><Feature /><Quad /></div>
-          <div className="hp-row"><Quad /><Feature /></div>
+          <div className="hp-row"><Feature tile={CASE_TILES[2]} /><Quad /></div>
+          <div className="hp-row"><Quad /><Feature tile={CASE_TILES[3]} /></div>
         </div>
       </div>
     </div></section>
@@ -475,14 +492,24 @@ function HowItWorks({ style }: { style: StepStyle }): JSX.Element {
   )
 }
 
-type Testimonial = { quote: string; name: string; role: string; logo: string; img: string; stat: string; statLabel: string }
-const ROMANI: Testimonial = {
-  quote: "“AI removes the drudgery of my work so that I can focus on things that really matter... focusing more on the strategic work, focusing more in talking to the customers, and it makes my day-to-day work a little bit more fun.”",
-  name: "Romani Patel", role: "Director of Data Science", logo: "customer-logo.svg", img: "customer.jpg", stat: "150+", statLabel: "Global, Multilingual Interviews",
-}
-// one real testimonial so far; the carousel has the mock's four slots, so it
-// repeats until the others exist
-const TESTIMONIALS: Testimonial[] = [ROMANI, ROMANI, ROMANI, ROMANI]
+type Testimonial = { quote: string; name: string; role: string; company: string; logo?: string; img: string; stat: string; statLabel: string }
+// the live site's three customer stories (listenlabs.ai, 2026-10-05). Romani
+// keeps the mock's photo and wording; the others use their case-study poster.
+// Logos fall back to the company name until their files exist.
+const TESTIMONIALS: Testimonial[] = [
+  {
+    quote: "“AI removes the drudgery of my work so that I can focus on things that really matter... focusing more on the strategic work, focusing more in talking to the customers, and it makes my day-to-day work a little bit more fun.”",
+    name: "Romani Patel", role: "Director of Data Science", company: "Microsoft", logo: "customer-logo.svg", img: "customer.jpg", stat: "150+", statLabel: "Global, Multilingual Interviews",
+  },
+  {
+    quote: "“Think about it as 100 studies for the price, at least in terms of time, of five or six. Our researchers’ time is one of the scarcest commodities.”",
+    name: "Jane Justice Leibrock", role: "Head of User Experience Research", company: "Anthropic", img: "customer-anthropic.jpg", stat: "100", statLabel: "Studies in the Time of 5",
+  },
+  {
+    quote: "“Actually didn’t cut our research budget. We’re just doing 10 times more and being able to move much quicker.”",
+    name: "Jonathan Neman", role: "CEO", company: "Sweetgreen", img: "customer-sweetgreen.jpg", stat: "300+", statLabel: "Locations Tested",
+  },
+]
 const SLIDE_MS = 7000
 
 /** the customers carousel: auto-advances (pausing on hover, off-screen, and
@@ -533,7 +560,7 @@ function Customers(): JSX.Element {
           <div className="hp-cust-meta">
             <div style={{ width: 495, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
               <div className="hp-t16"><p>{t.name}</p><p className="hp-soft">{t.role}</p></div>
-              <img src={M + t.logo} alt="" loading="lazy" style={{ height: 24, width: 113 }} />
+              <span style={{ height: 24, display: "flex", alignItems: "center" }}><Wordmark company={t.company} logo={t.logo} h={24} /></span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <p className="hp-big">{t.stat}</p><p className="hp-t16">{t.statLabel}</p>
@@ -606,18 +633,33 @@ function HowToUse(): JSX.Element {
   )
 }
 
-const HARRIS = "Emerald Research Group\nThe Harris Poll"
-const EXPERTS: Array<[string, string, string]> = [
-  ["Camille Le", "Lead Insights Strategist", "Morning Consult\nThe Concord Group"],
-  ["Andya Pakpahan", "Senior Insights Strategist", "Morning Consult\nMarketCast"],
-  ["Amanda Harrop", "Insights Strategist", HARRIS], ["Ryan Kelly", "Insights Strategist", HARRIS],
-  ["Katie McIntyre", "Insights Strategist", HARRIS], ["Charlee Roundhill-Dean", "Insights Strategist", HARRIS],
-  ["Eva Starosolsky", "Insights Strategist", HARRIS], ["Emma Siegel", "Insights Strategist", HARRIS],
-  ["Samara Sergeant", "Insights Strategist", HARRIS], ["Brenna Falchuk", "Insights Strategist", HARRIS],
-  ["Maggie Brennan", "Insights Strategist", HARRIS], ["David Bruce", "Insights Strategist", HARRIS],
+// the mock's list, with portraits and backgrounds from the live site's team
+// (listenlabs.ai, 2026-10-05) where it has them. People the live site doesn't
+// list keep the mock's placeholder background and have no portrait yet.
+type Expert = { name: string; role: string; prev: string[]; photo?: string }
+const MOCK_PREV = ["Emerald Research Group", "The Harris Poll"]
+const ERIC: Expert = { name: "Eric Knoben", role: "Head of Insights", prev: ["Emerald Research Group", "The Harris Poll", "PSB Insights"], photo: "eric-knoben" }
+const EXPERTS: Expert[] = [
+  { name: "Camille Le", role: "Lead Insights Strategist", prev: ["Morning Consult", "The Concord Group"], photo: "camille-le" },
+  { name: "Andya Pakpahan", role: "Senior Insights Strategist", prev: ["Morning Consult", "MarketCast"], photo: "andya-pakpahan" },
+  { name: "Jill Graver", role: "Insights Strategist", prev: ["Cisco", "Harvard Decision Science Lab"], photo: "jill-graver" },
+  { name: "Amanda Harrop", role: "Insights Strategist", prev: ["Morning Consult", "Kantar Millward Brown"], photo: "amanda-harrop" },
+  { name: "Ryan Kelly", role: "Insights Strategist", prev: ["Quadrant Strategies"], photo: "ryan-kelly" },
+  { name: "Katie McIntyre", role: "Insights Strategist", prev: MOCK_PREV },
+  { name: "Charlee Roundhill-Dean", role: "Insights Strategist", prev: ["Google", "Emerald Research Group"], photo: "charlee-roundhill-dean" },
+  { name: "Eva Starosolsky", role: "Insights Strategist", prev: MOCK_PREV },
+  { name: "Emma Siegel", role: "Insights Strategist", prev: MOCK_PREV },
+  { name: "Samara Sargeant", role: "Insights Strategist", prev: ["Quadrant Strategies", "Teneo"], photo: "samara-sargeant" },
+  { name: "Brenna Falchuk", role: "Insights Strategist", prev: MOCK_PREV },
+  { name: "Maggie Brennan", role: "Insights Strategist", prev: ["Square", "Chase"], photo: "maggie-b" },
+  { name: "David Bruce", role: "Insights Strategist", prev: ["TL;DR Insights", "Schireson"], photo: "david-bruce" },
 ]
 
+/** the featured expert follows the row you hover or focus (if they have a
+ *  portrait), and settles back on Eric when you leave the list */
 function Experts(): JSX.Element {
+  const [lead, setLead] = React.useState<Expert>(ERIC)
+  const show = (e: Expert) => { if (e.photo) setLead(e) }
   return (
     <section className="hp-experts"><div className="hp-grid">
       <div className="hp-exp-left" style={sp("2 / 6", "1 / 6")}>
@@ -625,21 +667,22 @@ function Experts(): JSX.Element {
           <p className="hp-h2" style={{ textAlign: "left" }}>Research experts, on your team</p>
           <p className="hp-lede" style={{ textAlign: "left" }}>Senior in-house researchers across UX, Insights, and Data Science</p>
         </div>
-        <div className="hp-exp-feat">
-          <img src={M + "expert.jpg"} alt="" loading="lazy" />
+        <div key={lead.name} className="hp-exp-feat hp-in">
+          <img src={M + "team/" + lead.photo + ".jpg"} alt={lead.name} loading="lazy" />
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <div style={{ fontSize: 20, lineHeight: 1.4, letterSpacing: -0.4 }}><p>Eric Knoben</p><p className="hp-soft">Head of Insights</p></div>
+            <div style={{ fontSize: 20, lineHeight: 1.4, letterSpacing: -0.4 }}><p>{lead.name}</p><p className="hp-soft">{lead.role}</p></div>
             <div className="hp-t12" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <p className="hp-soft">Previously:</p><p style={{ whiteSpace: "pre-line" }}>{HARRIS}</p>
+              <p className="hp-soft">Previously:</p><p style={{ whiteSpace: "pre-line" }}>{lead.prev.join("\n")}</p>
             </div>
           </div>
         </div>
       </div>
-      <div className="hp-exp-list" style={sp("7 / 13")}>
-        {EXPERTS.map(([n, r, prev]) => (
-          <div key={n} className="hp-exp-row">
-            <div className="hp-t16"><p>{n}</p><p className="hp-soft">{r}</p></div>
-            <p className="hp-t12 hp-soft" style={{ whiteSpace: "pre-line", textAlign: "right" }}>{prev}</p>
+      <div className="hp-exp-list" style={sp("7 / 13")} onMouseLeave={() => setLead(ERIC)}>
+        {EXPERTS.map((e) => (
+          <div key={e.name} className="hp-exp-row" tabIndex={e.photo ? 0 : -1} onMouseEnter={() => show(e)} onFocus={() => show(e)}
+            onBlur={() => setLead(ERIC)}>
+            <div className="hp-t16"><p>{e.name}</p><p className="hp-soft">{e.role}</p></div>
+            <p className="hp-t12 hp-soft" style={{ whiteSpace: "pre-line", textAlign: "right" }}>{e.prev.join("\n")}</p>
           </div>
         ))}
       </div>
@@ -654,7 +697,7 @@ const FOOT: Array<[string, string[]]> = [
   ["Resources", ["Personality Test", "Compare", "Blog", "Docs & Guides", "Media Requests"]],
   ["Company", ["Careers", "Founder Program", "What’s New"]],
   ["Legal", ["Privacy Policy", "Terms & Conditions", "Cookie Policy"]],
-  ["Customers", ["Anthropic", "Cognition", "Sweet green", "Simple Modern", "McKinney", "KJT Group"]],
+  ["Customers", ["Anthropic", "Cognition", "Sweetgreen", "Simple Modern", "McKinney", "KJT Group"]],
   ["Customers", ["Monitas", "Microsoft", "Sling Money", "Emeritus", "Chubbies"]],
 ]
 
