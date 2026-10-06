@@ -169,7 +169,9 @@ const CSS = `
 
 /* ---- interaction states ---- */
 .hp a { color: inherit; text-decoration: none; }
-.hp a.hp-btn, .hp button.hp-btn { color: ${C.onBrand}; }
+/* the brand buttons outrank the link/button resets above (same elements) */
+.hp a.hp-btn, .hp button.hp-btn { background: ${C.ink}; color: ${C.onBrand}; }
+.hp a.hp-btn:hover, .hp button.hp-btn:hover { background: #0019A3; }
 .hp button { font: inherit; color: inherit; background: none; border: none; padding: 0; cursor: pointer; }
 .hp [id] { scroll-margin-top: var(--hp-top, 0px); }
 .hp :focus-visible { outline: 2px solid ${C.ink}; outline-offset: 2px; border-radius: 4px; }
