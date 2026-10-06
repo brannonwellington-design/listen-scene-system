@@ -32,7 +32,7 @@ const DEMO_CSS = `
 
 /** a single shot with no canvas treatment (no fill, pattern, or padding) */
 function BareShot(props: { scene: string }): JSX.Element {
-  return <SceneCanvas content={props.scene} bgColor="transparent" padX={0} padY={0} />
+  return <SceneCanvas shot={props.scene} fill="transparent" padX={0} padY={0} />
 }
 
 /** the page's 12-column grid (24px gutters) over its 1200 column; toggle with
@@ -124,23 +124,23 @@ function Demo(): JSX.Element {
         <div className="demo-grid" style={{ marginTop: 32 }}>
           <div>
             <div className="demo-label">EI · Feature · Research-grounded + traceable · responsive · dot grid</div>
-            <SceneCanvas content="ei-feature-traceable" pattern="dots"
+            <SceneCanvas shot="ei-feature-traceable" pattern="dots"
               canvasHeight={300} padX={40} padY={32} radius={16} loopPause={4} />
           </div>
           <div>
             <div className="demo-label">Full scene · pinned top-left 40/40, masked · concentric circles</div>
-            <SceneCanvas content="design-study" fit="pinned" anchor="top-left"
+            <SceneCanvas shot="design-study" fit="pin" anchor="top-left"
               insetX={40} insetY={40} zoom={0.46} canvasHeight={300} pattern="circles" patternSpacing={36} radius={16}
-              segStart={8500} segEnd={16000} loopPause={4} />
+              loopFrom={8500} loopTo={16000} loopPause={4} />
           </div>
           <div>
             <div className="demo-label">EI · Feature · Structured for comparison · crosshairs</div>
-            <SceneCanvas content="ei-feature-comparison" pattern="crosshairs" patternSpacing={48}
+            <SceneCanvas shot="ei-feature-comparison" pattern="crosshairs" patternSpacing={48}
               canvasHeight={300} padX={40} padY={32} radius={16} loopPause={3} />
           </div>
           <div>
             <div className="demo-label">EI · Feature · Multi-signal detection · line grid</div>
-            <SceneCanvas content="ei-feature-signals" pattern="grid" patternSpacing={28}
+            <SceneCanvas shot="ei-feature-signals" pattern="grid" patternSpacing={28}
               canvasHeight={300} padX={44} padY={36} radius={16} loopPause={5} />
           </div>
         </div>

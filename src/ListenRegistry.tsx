@@ -116,7 +116,7 @@ export const byKey = (key: string): RegistryEntry =>
 /** one step of a multi-step layout: which shot plays, and its caption.
  *  `ms` is the shot's approximate length, a first guess for the list style's
  *  progress line until the real length is measured on the first play. */
-export type Step = { content: string; title: string; body: string; ms?: number }
+export type Step = { shot: string; title: string; body: string; ms?: number }
 
 /** how a multi-step lays out its steps:
  *   captions — the shot on top, a row of captions under it (How it works)
@@ -132,27 +132,27 @@ export const SEQUENCES: Sequence[] = [
     style: "captions",
     steps: [
       {
-        content: "design-study",
+        shot: "design-study",
         title: "Design the study",
         body: "Listen Labs drafts objectives, questions, and probing context in seconds based on your goal. Or upload your own interview guide.",
       },
       {
-        content: "reach-people",
+        shot: "reach-people",
         title: "Reach the right people",
         body: "Qualified from a global network of 50M+ participants, including hard to reach audiences. Or use your list of contacts.",
       },
       {
-        content: "interview-scale",
+        shot: "interview-scale",
         title: "Interview at scale",
         body: "The AI moderator holds a real conversation with smart follow-ups to drive deeper answers. Runs globally, 24/7, across 120+ languages.",
       },
       {
-        content: "deliver-results",
+        shot: "deliver-results",
         title: "Deliver meaningful results",
         body: "Listen builds your deliverables, from highlight reels to boardroom-ready slides. Every claim traces back to a real interview.",
       },
       {
-        content: "compound",
+        shot: "compound",
         title: "Compound your learnings",
         body: "The more you run, the richer your workspace gets. Search and build on past studies, themes, and reports, so your team keeps getting sharper.",
       },
@@ -166,42 +166,42 @@ export const SEQUENCES: Sequence[] = [
     style: "list",
     steps: [
       {
-        content: "uc-consumer-attitudes",
+        shot: "uc-consumer-attitudes",
         title: "Consumer Attitudes & Behaviors",
         body: "Learn how people think, feel, and behave in a particular segment.",
       },
       {
-        content: "uc-brand-tracking",
+        shot: "uc-brand-tracking",
         title: "Brand Tracking & Health",
         body: "Track how people see your brand month over month, and what's driving the change.",
       },
       {
-        content: "uc-feature-priority",
+        shot: "uc-feature-priority",
         title: "Product & Feature Prioritization",
         body: "Hear which features matter most to customers, and why, before you build.",
       },
       {
-        content: "uc-usability",
+        shot: "uc-usability",
         title: "Usability & UX Testing",
         body: "Watch people use your product, hear what they're thinking, and see where they get stuck.",
       },
       {
-        content: "uc-churn",
+        shot: "uc-churn",
         title: "Churn, Retention & Activation",
         body: "Find out why customers stay, leave, or never get started.",
       },
       {
-        content: "uc-ad-testing",
+        shot: "uc-ad-testing",
         title: "Ad & Creative Testing",
         body: "See how people react to your ads, moment by moment, before you launch.",
       },
       {
-        content: "uc-pricing",
+        shot: "uc-pricing",
         title: "Pricing & Willingness-to-Pay",
         body: "Learn what people will pay, and the value that justifies the price.",
       },
       {
-        content: "uc-positioning",
+        shot: "uc-positioning",
         title: "Positioning & Messaging",
         body: "Find the words that land with your audience and the claims they believe.",
       },

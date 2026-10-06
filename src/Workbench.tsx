@@ -113,7 +113,7 @@ const WB_CSS = `
   .wb-switch { width: 34px; height: 20px; border-radius: 10px; background: #DDD6C8; border: none;
     position: relative; cursor: pointer; transition: background .15s ease; flex-shrink: 0; }
   .wb-switch.on { background: ${T.brand}; }
-  .wb-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+  .wb-switch::after { shot: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
     border-radius: 50%; background: #FFF; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .15s ease; }
   .wb-switch.on::after { left: 16px; }
   .wb-corner { display: grid; grid-template-columns: repeat(3, 10px); grid-auto-rows: 10px; gap: 5px;
@@ -319,7 +319,7 @@ function ShotSel(p: { v: string; set: (s: string) => void; custom?: boolean }): 
             : <option key={it.entry.key} value={it.entry.key}>{shortLabel(it.entry)}</option>)}
         </optgroup>
       ))}
-      {p.custom && <optgroup label="Other"><option value="custom">Custom crop…</option></optgroup>}
+      {p.custom && <optgroup label="Other"><option value="crop">Custom crop…</option></optgroup>}
     </select>
   )
 }
@@ -355,14 +355,14 @@ export default function Workbench(): JSX.Element {
 
   const set = <K extends keyof Cfg>(k: K) => (v: Cfg[K]) => setCfg((c) => ({ ...c, [k]: v }))
 
-  const entry = cfg.content === "custom" ? byKey(cfg.customScene) : byKey(cfg.content)
-  const rect: Rect = cfg.content === "custom" && cfg.cropW > 0
+  const entry = cfg.shot === "crop" ? byKey(cfg.cropScene) : byKey(cfg.shot)
+  const rect: Rect = cfg.shot === "crop" && cfg.cropW > 0
     ? { x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }
     : { x: 0, y: 0, w: entry.w, h: entry.h }
 
   // --- pin drag + wheel zoom over the live canvas ---------------------------
   const onPinDown = (e: React.MouseEvent) => {
-    if (cfg.fit !== "pinned" || !canvasRef.current || cropEdit) return
+    if (cfg.fit !== "pin" || !canvasRef.current || cropEdit) return
     const cb = canvasRef.current.getBoundingClientRect()
     const shotW = rect.w * cfg.zoom, shotH = rect.h * cfg.zoom
     const ax0 = anchorAxes(cfg.anchor)
@@ -392,7 +392,7 @@ export default function Workbench(): JSX.Element {
     const el = previewRef.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
-      if (cfg.fit !== "pinned" || cropEdit) return
+      if (cfg.fit !== "pin" || cropEdit) return
       e.preventDefault()
       setCfg((c) => ({ ...c, zoom: Math.round(Math.max(0.4, Math.min(2, c.zoom * (1 - e.deltaY * 0.0012))) * 100) / 100 }))
     }
@@ -434,38 +434,38 @@ export default function Workbench(): JSX.Element {
   const stageStyle = stepStyle === "stage"
   // list and stage edit their own card's fit and height; single edits the canvas's
   const framed = listStyle || stageStyle
-  const curFit = framed ? cfg.frameFit : cfg.fit
-  const fitKey = framed ? "frameFit" as const : "fit" as const
-  const curH = framed ? cfg.frameHeight : cfg.canvasHeight
-  const hKey = framed ? "frameHeight" as const : "canvasHeight" as const
+  const curFit = framed ? cfg.cardFit : cfg.fit
+  const fitKey = framed ? "cardFit" as const : "fit" as const
+  const curH = framed ? cfg.cardHeight : cfg.canvasHeight
+  const hKey = framed ? "cardHeight" as const : "canvasHeight" as const
   // one-line summaries for folded sections
   const secs = (ms: number) => +(ms / 1000).toFixed(1) + "s"
   const summary: Record<FoldKey, string> = {
     content: isMulti
       ? "Multi-step · " + (SEQUENCES.find((q) => q.key === cfg.sequence)?.title ?? cfg.sequence) + " · " + (listStyle ? "List" : stageStyle ? "Stage" : "Captions")
-      : "Single · " + (cfg.content === "custom" ? "Crop of " + label(byKey(cfg.customScene)) : label(byKey(cfg.content))),
+      : "Single · " + (cfg.shot === "crop" ? "Crop of " + label(byKey(cfg.cropScene)) : label(byKey(cfg.shot))),
     playback: isMulti
-      ? (cfg.autoCycle ? "Auto-advance · " + cfg.resumeDelay + "s pause" : "Manual")
-      : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.segEnd ? " · " + secs(cfg.segStart) + "–" + secs(cfg.segEnd) : ""),
+      ? (cfg.autoAdvance ? "Auto-advance · " + cfg.pauseAfterClick + "s pause" : "Manual")
+      : (cfg.loop ? "Loop · " + cfg.loopPause + "s" : "Once") + (cfg.loopTo ? " · " + secs(cfg.loopFrom) + "–" + secs(cfg.loopTo) : ""),
     state: (cfg.startCollapsed ? "Collapsed" : "Open") + " · " + (cfg.startTheme === "dark" ? "Dark" : "Light"),
     framing: (stageStyle ? "Stage · " : listStyle ? "List " + cfg.listStart + "–" + cfg.listEnd + " · card " + cfg.cardStart + "–12 · " : "")
-      + (curFit === "pinned" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%"
+      + (curFit === "pin" ? "Pin " + cfg.anchor.replace("-", " ") + " · " + Math.round(cfg.zoom * 100) + "%"
         : curFit === "bleed" ? "Bleed · " + cfg.bleedShow + "px across" : "Scale to fit")
       + " · " + (curH ? curH + "px" : "Auto"),
     canvas: (cfg.pattern === "none" ? "No pattern" : cfg.pattern[0].toUpperCase() + cfg.pattern.slice(1))
-      + " · " + cfg.bgColor.toUpperCase() + (cfg.radius ? " · r" + cfg.radius : ""),
+      + " · " + cfg.fill.toUpperCase() + (cfg.radius ? " · r" + cfg.radius : ""),
   }
 
   const setContent = (v: string) => {
     setCropEdit(false)
-    setCfg((c) => ({ ...c, content: v }))
+    setCfg((c) => ({ ...c, shot: v }))
   }
 
-  const punch = (k: "segStart" | "segEnd") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })) }
+  const punch = (k: "loopFrom" | "loopTo") => () => { setCfg((c) => ({ ...c, [k]: Math.round(t / 100) * 100 })) }
 
   const editCropStart = () => {
     setCfg((c) => ({
-      ...c, content: "custom", customScene: entry.key,
+      ...c, shot: "crop", cropScene: entry.key,
       cropX: rect.x, cropY: rect.y, cropW: rect.w, cropH: rect.h,
     }))
     if (!scrubOn) { setScrubOn(true); setPlayStart(null) }
@@ -501,10 +501,10 @@ export default function Workbench(): JSX.Element {
                     <input type="range" className="wb-slider grow" style={{ maxWidth: 280 }} min={0} max={25000} step={100}
                       value={t} onChange={(e) => { setPlayStart(null); setT(+e.target.value) }} />
                     <span className="wb-time">{(t / 1000).toFixed(1)}s</span>
-                    <button className="wb-btn" onClick={punch("segStart")} title="Set segment start from playhead">
+                    <button className="wb-btn" onClick={punch("loopFrom")} title="Set segment start from playhead">
                       <I name="arrow-left-to-line" size={12} /> In
                     </button>
-                    <button className="wb-btn" onClick={punch("segEnd")} title="Set segment end from playhead">
+                    <button className="wb-btn" onClick={punch("loopTo")} title="Set segment end from playhead">
                       <I name="arrow-right-to-line" size={12} /> Out
                     </button>
                     <button className="wb-btn" onClick={() => { setScrubOn(false); setPlayStart(null); setCropEdit(false); setRunNonce((n) => n + 1) }}>Live</button>
@@ -531,12 +531,12 @@ export default function Workbench(): JSX.Element {
             <div ref={previewRef}
               className={!isMulti && scrubOn && !playing ? "ll-noanim" : undefined}
               onMouseDown={!isMulti ? onPinDown : undefined}
-              style={{ position: "relative", cursor: !isMulti && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
+              style={{ position: "relative", cursor: !isMulti && cfg.fit === "pin" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
             >
               {isMulti ? (
                 <SceneCanvas key={runNonce} {...cfg} scrubber scrubberSlot={scrubSlot} maxWidth={4000} />
               ) : cropEdit ? (
-                <CropEditor sceneKey={cfg.customScene} holdT={t}
+                <CropEditor sceneKey={cfg.cropScene} holdT={t}
                   rect={{ x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }}
                   onChange={(r) => { setCfg((c) => ({ ...c, cropX: r.x, cropY: r.y, cropW: r.w, cropH: r.h })) }} />
               ) : (
@@ -547,7 +547,7 @@ export default function Workbench(): JSX.Element {
                     debugOnTime={scrubOn ? setT : undefined}
                     debugCanvasRef={canvasRef}
                   />
-                  {cfg.fit === "pinned" && (
+                  {cfg.fit === "pin" && (
                     <div className="wb-float">drag to reposition · scroll to zoom</div>
                   )}
                 </>
@@ -582,12 +582,12 @@ export default function Workbench(): JSX.Element {
             ) : (
               <>
                 <Field label="Shot">
-                  <ShotSel v={cfg.content} set={setContent} custom />
+                  <ShotSel v={cfg.shot} set={setContent} custom />
                 </Field>
-                {cfg.content === "custom" && (
+                {cfg.shot === "crop" && (
                   <div className="wb-sub">
                     <Field label="From scene">
-                      <ShotSel v={cfg.customScene} set={(v) => set("customScene")(v)} />
+                      <ShotSel v={cfg.cropScene} set={(v) => set("cropScene")(v)} />
                     </Field>
                     <Field label="Crop x · y">
                       <Num v={cfg.cropX} set={set("cropX")} /><Num v={cfg.cropY} set={set("cropY")} />
@@ -604,9 +604,9 @@ export default function Workbench(): JSX.Element {
           <Section n={2} title="Playback" open={fold.playback} onToggle={() => toggleFold("playback")} summary={summary.playback}>
             {isMulti ? (
               <>
-                <Field label="Auto-advance"><Toggle v={cfg.autoCycle} set={set("autoCycle")} /></Field>
+                <Field label="Auto-advance"><Toggle v={cfg.autoAdvance} set={set("autoAdvance")} /></Field>
                 <Field label="Pause after click">
-                  <Num v={cfg.resumeDelay} set={set("resumeDelay")} min={4} max={60} /><span className="wb-unit">s</span>
+                  <Num v={cfg.pauseAfterClick} set={set("pauseAfterClick")} min={4} max={60} /><span className="wb-unit">s</span>
                 </Field>
               </>
             ) : (
@@ -617,11 +617,11 @@ export default function Workbench(): JSX.Element {
                   <Num v={cfg.loopPause} set={set("loopPause")} min={0} max={20} step={0.5} /><span className="wb-unit">s</span>
                 </Field>
                 <Field label="Segment">
-                  <Secs v={cfg.segStart} set={set("segStart")} />
+                  <Secs v={cfg.loopFrom} set={set("loopFrom")} />
                   <span className="wb-label">→</span>
-                  <Secs v={cfg.segEnd} set={set("segEnd")} />
-                  <button className="wb-iconbtn" title="Play the whole session" disabled={!cfg.segStart && !cfg.segEnd}
-                    onClick={() => setCfg((c) => ({ ...c, segStart: 0, segEnd: 0 }))}><I name="rotate-cw" size={12} /></button>
+                  <Secs v={cfg.loopTo} set={set("loopTo")} />
+                  <button className="wb-iconbtn" title="Play the whole session" disabled={!cfg.loopFrom && !cfg.loopTo}
+                    onClick={() => setCfg((c) => ({ ...c, loopFrom: 0, loopTo: 0 }))}><I name="rotate-cw" size={12} /></button>
                 </Field>
                 <div className="wb-hint">Set In / Out from the playhead while scrubbing. Empty = whole session.</div>
               </>
@@ -654,7 +654,7 @@ export default function Workbench(): JSX.Element {
               <div className="wb-hint">One panel on a 12-column grid. The caption, progress, and arrows sit on columns 1–4; the shot takes column 5 onward (Bleed runs it off the right and bottom, like the Use Cases card).</div>
             )}
             <Field label="Mode">
-              <Seg v={curFit} set={(v) => set(fitKey)(v as Cfg["fit"])} options={[["responsive", "Scale to fit"], ["pinned", "Pin"], ["bleed", "Bleed"]]} />
+              <Seg v={curFit} set={(v) => set(fitKey)(v as Cfg["fit"])} options={[["scale", "Scale to fit"], ["pin", "Pin"], ["bleed", "Bleed"]]} />
             </Field>
             {curFit === "bleed" && (
               <div className="wb-sub">
@@ -666,7 +666,7 @@ export default function Workbench(): JSX.Element {
                 </Field>
               </div>
             )}
-            {curFit === "pinned" && (
+            {curFit === "pin" && (
               <div className="wb-sub">
                 <Field label="Anchor"><CornerPick v={cfg.anchor} set={(v) => set("anchor")(v as Cfg["anchor"])} /></Field>
                 <Field label="Insets x · y">
@@ -676,8 +676,8 @@ export default function Workbench(): JSX.Element {
                   <Slider v={cfg.zoom} set={set("zoom")} min={0.3} max={2} step={0.05} fmt={(n) => Math.round(n * 100) + "%"} />
                 </Field>
                 <Field label="Below">
-                  <Num v={cfg.fitBelow} set={set("fitBelow")} wide /><span className="wb-unit">px</span>
-                  <Seg v={cfg.smallBehavior} set={(v) => set("smallBehavior")(v as Cfg["smallBehavior"])} options={[["fit", "Fit"], ["mask", "Pin"]]} />
+                  <Num v={cfg.smallBelow} set={set("smallBelow")} wide /><span className="wb-unit">px</span>
+                  <Seg v={cfg.smallScreens} set={(v) => set("smallScreens")(v as Cfg["smallScreens"])} options={[["scale", "Fit"], ["pin", "Pin"]]} />
                 </Field>
               </div>
             )}
@@ -692,10 +692,10 @@ export default function Workbench(): JSX.Element {
           </Section>
           <Section n={5} title="Canvas" open={fold.canvas} onToggle={() => toggleFold("canvas")} summary={summary.canvas}>
             <Field label="Fill">
-              <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(cfg.bgColor) ? cfg.bgColor : "#EEE8DD"}
-                onChange={(e) => set("bgColor")(e.target.value)}
+              <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(cfg.fill) ? cfg.fill : "#EEE8DD"}
+                onChange={(e) => set("fill")(e.target.value)}
                 style={{ width: 28, height: 28, border: "1px solid #DDD6C8", borderRadius: 8, background: "none", padding: 2, cursor: "pointer" }} />
-              <input className="wb-input wide text" value={cfg.bgColor} onChange={(e) => set("bgColor")(e.target.value)} />
+              <input className="wb-input wide text" value={cfg.fill} onChange={(e) => set("fill")(e.target.value)} />
             </Field>
             <Field label="Pattern"><PatternPick v={cfg.pattern} set={(v) => set("pattern")(v)} /></Field>
             {cfg.pattern !== "none" && (
