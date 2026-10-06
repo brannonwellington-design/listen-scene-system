@@ -98,7 +98,8 @@ const hiwControls = sectionControls("how-it-works",
   Object.fromEntries(GRID_KEYS.map((k) => [k, { hiddenToo: (p: any) => p.pageGrid ?? true }])))
 
 addPropertyControls(HowItWorks, {
-  pageGrid: { type: ControlType.Boolean, title: "Page grid", enabledTitle: "On", disabledTitle: "Off", defaultValue: true },
+  pageGrid: { type: ControlType.Boolean, title: "Page grid", enabledTitle: "On", disabledTitle: "Off", defaultValue: true,
+    description: "Sets padding, radius, and rail bleed from the page's columns" },
   ...hiwControls,
 })
 addPropertyControls(UseCases, sectionControls("use-cases"))

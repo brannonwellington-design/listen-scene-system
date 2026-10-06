@@ -48,13 +48,17 @@ and every change still goes through a PR.
 - **SceneCanvas**: everything else, any shot or sequence (panel below).
 - Both sections offer SceneCanvas's controls minus the layout and sequence
   pickers and the single-shot controls: style (Auto / Captions / List /
-  Stage), auto-advance, scene state, framing, and canvas.
+  Stage), autoplay, scene state, framing, and canvas.
 
 **In the Framer editor** the shots don't play. Each shows a still (its
 registry `poster` frame, or the end of its session), and sequences hold on
 step 1. Preview and the published site play normally. The bundle loads Inter
 (400–700) itself, and its media (`media/…`) comes from the same tagged CDN
 folder, so there's nothing to upload.
+
+Panel labels are kept to about 10 characters (Framer's label column cuts
+off longer ones), with any detail in the control's `description`. Segmented
+controls are only used for three or fewer short options.
 
 **Releasing a change:**
 
@@ -75,8 +79,8 @@ rail uses the same five groups):
    Multi-step picks a **Sequence** such as How it works, or `Custom steps…`
    (shot + title + body each), and a style.
 2. **Playback**: single has loop, pause, and an optional time-slice (loop
-   from/to); multi-step has auto-advance and the pause after a visitor clicks
-   a step.
+   from/to); multi-step has autoplay and the pause after a visitor clicks a
+   step (Click pause).
 3. **Scene state**: how app-shell scenes start, sidebar open or collapsed and
    light or dark theme. Visitors can still change both.
 4. **Framing**: scale to fit, pin to a corner with insets and zoom while the
