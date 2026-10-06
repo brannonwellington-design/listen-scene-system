@@ -117,13 +117,14 @@ const CSS = `
 .hp-exp-row:first-child { padding-top: 0; }
 
 /* cta + footer */
-.hp-ctawrap { padding: var(--margin); }
+/* from How to use down, the page stays on surface/highlight until the band */
+.hp-ctawrap { padding: var(--margin); background: ${C.highlight}; }
 .hp-cta { position: relative; height: 800px; border-radius: 12px; overflow: hidden; }
 .hp-cta > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .hp-form { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 448px; max-width: calc(100% - 32px);
   padding: 24px; border-radius: 12px; background: ${C.bg}; display: flex; flex-direction: column; gap: 24px; }
 .hp-field { height: 48px; border: 1px solid ${C.ink}; border-radius: 8px; background: ${C.highlight}; padding: 0 12px; }
-.hp-foot { padding: 0 var(--margin) var(--margin); }
+.hp-foot { padding: 0 var(--margin) var(--margin); background: ${C.highlight}; }
 .hp-foot > .hp-grid { row-gap: 48px; }
 .hp-foot ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
 .hp-foot-bar { display: flex; justify-content: space-between; gap: 16px; }
