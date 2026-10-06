@@ -16,13 +16,65 @@ ready to paste into **Framer**.
 | `hero-widget/` | **The hero insight widget**, vendored from the private repo `brannonwellington-design/hero-insight-widget` by `scripts/sync-hero-widget.sh` (Vercel can't fetch a private repo at build time). Run `sh scripts/sync-hero-widget.sh [ref]` to pull the latest (or a branch, tag or commit), then commit. `VERSION` records the synced commit. The widget files are copied as-is; the script adds `embed.css` / `embed.js`, so `?embed=1` shows only the media stage filling its frame. `/home` embeds it as the hero image (`/hero-widget/index.html?embed=1&controls=0`), and the review panel can switch back to the mock's static photo (`?hero=image`). |
 | `src/ToolBar.tsx` | The thin bar across the top of both review views (workbench at `/`, homepage at `/home`) with a **Workbench \| Homepage** switch in the same top-right spot on each. Switching is client-side (history push, so links and Back work); the workbench keeps its config and the homepage its URL settings (width, styles, grid) across trips. On `/home` the mock's nav sticks just below the bar, and P hides the bar with the review panel for clean screenshots. |
 | `src/Home.tsx` | **`/home`: a 1:1 build of the homepage refresh mock** (Figma 864:744) with the live How it works and Use Cases `SceneCanvas` sections in place, for reviewing them in context. The rest of the page is static, built from the mock's styles and assets (`media/home`). Breakpoints are container queries on the page wrapper, so the review panel (bottom right; P hides it) can narrow the page to any width, 390 / 768 / 1024 / 1280 / 1440 or a slider, without resizing the window. The panel also switches each live section's style (Captions / List / Stage) and toggles the 12-column grid (G). Its state lives in the URL (`?w=390&uc=stage&grid=1`), so a setup can be shared. The page behaves like the site: nav dropdowns (Solutions, Features, Resources) and a full-height mobile menu, a hairline under the nav once scrolled, hover and keyboard-focus states, working (unsent) email and book-a-demo forms with validation and a thank-you state, an auto-advancing customers carousel (segments fill; click, swipe, or arrow keys; pauses on hover), a video lightbox stand-in, anchor links to its sections, the real page title and favicon, and lazy-loaded images below the fold. Layout is the mock's grid: 12 columns with 24px gutters and margins, content capped at 1392 and centered (backgrounds stay full width); 8 columns under 1024; 4 columns with 16px gutters and margins under 640. Every block is placed by column span, so it holds the grid at every width, and the overlay (G) follows the same grid. The mock is desktop-only (plus the mobile Use Cases frame), so the tablet and phone spans are our own. |
+| `src/ListenShot.tsx` + `src/ListenScene.tsx` | **ListenScene**, the single-shot Framer component: one `Config` box taking a JSON blob (the workbench's **Export JSON** writes it). `ListenShot` is the one-shot renderer (scene, fragment, or crop in the fit engine and canvas) that SceneCanvas's single layout and each multi-step step also use, plus `shotJson` / `parseShot`. Exported self-contained by `npm run export:framer`; previewed at `/framer`. |
 | `src/SceneCanvas.tsx` | **The universal Framer component**, with two layouts. `layout="single"` = one product shot: a scene, fragment, or **custom crop** of a scene, optionally **looping a time-slice** of its session (`segStart`/`segEnd`). `layout="multi-step"` = several shots cycling in one frame (auto-cycle, click to jump, dev scrubber); pick a named `sequence` or build `steps` by hand. Multi-step has three styles, set per sequence (or forced with `stepStyle`): `captions` puts a caption rail under the shot (How it works); under ~820px the shot becomes a cropped card (Figma 897:4431) and the captions become a looping swipe rail, 241px each, the active one full and the rest at 40% (01 follows 05 in both directions); advancing scrolls forward to the next caption, a tap goes to the caption tapped, a swipe that settles on another caption jumps to it, and `swipeBleed` runs the rail past the component's edges to the screen edge; `list` puts numbered rows beside a cropped card, the active row open with its body and its hairline filling as the shot plays, and stacks the card above the list under ~820px (Use Cases); `stage` shows one step at a time in a single big panel laid on the page's own columns (12 across its width with 24px gutters, or 8 under a 1024 page), with 24px inner padding and the counter, title, and body running from it to the end of column 4 (3 of 8), a segmented progress line (one segment per step, the active one filling as the shot plays) and prev/next arrows at their foot, and the shot starting at column 5 and running off the right and bottom, cropped like the Use Cases card; under ~820px the caption stacks above the card and the controls drop below it. List and Stage have their own framing, `frameFit` (Bleed by default, the mock's crop; or Scale to fit, or Pin with the usual anchor, insets, and zoom) and `frameHeight` (0 = auto: the list's height, or the panel's 640/1392 ratio); `bleedShow` sets how much shows across, and the bleed inset keeps scaling with the card. Below ~820px both keep their stacked bleed card. Side by side, `list` sits on a 12-column grid with 24px gutters: the list spans `listStart`–`listEnd` (default 2–5) and the card spans `cardStart`–12 (default 7–12), matching the mock at 1392. Every full product page, How it works, Use Cases (`uc-*` keys) and Interview at scale alike, is authored 1:1 in live px at `APP_W`×`APP_H` (1344×768), so flipping between shots, scaled or pinned, feels like one window; content past 768 runs off the bottom. Both layouts share the canvas system: surface-secondary container, optional background pattern, and the fit engine — `responsive` (scales with container), `pinned` (native pixels anchored to a corner with X/Y insets while the container flexes and masks; optional fall-back-to-fit below a breakpoint), or `bleed` (a card with the shot inset from its top-left and running off the right and bottom; `bleedShow` sets how many design px show across, so the crop holds at every width). |
 | `demo.html` + `src/demo.tsx` | Local demo page rendering everything outside Framer, including a SceneCanvas showcase (at ?demo=1; the root URL is the workbench). |
 
 ## Install in Framer
 
+### ListenScene: one shot per instance, configured by JSON
+
+For placing single shots on a page (no carousels), use **ListenScene**:
+one component, many instances, each told what to show by a JSON config.
+
+1. `npm run export:framer` writes the files Framer needs to `framer/`
+   (gitignored), and prints them in paste order. Media the scenes use
+   (`media/interview-clip.mp4`, `media/ad-its-fine.jpg`) is inlined as data
+   URIs, so nothing needs hosting or uploading.
+2. In Framer, **Assets → Code → Create Code File** for each, named exactly:
+   `ListenIcons.tsx`, `ListenKit.tsx`, `ListenClip.tsx`, `ListenScenes.tsx`,
+   `ListenRegistry.tsx`, `ListenShot.tsx`; then **Create Code Component**
+   `ListenScene.tsx`. Paste each from `framer/`. Re-export and re-paste when
+   scenes change.
+3. Compose a shot in the workbench (`/`) and click **Export JSON**. Drop a
+   ListenScene on the page and paste into its **Desktop** box. **Breakpoint**
+   is Auto by default: it picks the config by the instance's own width
+   (820+ Desktop, 572–819 Tablet, under 572 Mobile), so each Framer
+   breakpoint, canvas included, shows its own with no setup. Set it to
+   Desktop / Tablet / Mobile on a breakpoint to force one.
+   - Single: one config; it plays the same at every width, so Tablet and
+     Mobile can stay empty (they fall back to Desktop).
+   - Multi-step: **Export step JSON** copies the step on stage for all three
+     breakpoints in one blob, `{"desktop":{…},"tablet":{…},"mobile":{…}}`,
+     each framed the way the layout shows it at 1280 / 768 / 375
+     (`stepShotAt` in `SceneCanvas.tsx`). Paste it into Desktop; ListenScene
+     reads all three from it (the Tablet and Mobile boxes stay empty).
+   - A filled Tablet or Mobile box overrides; an empty one falls back to the
+     bundle, then the next size up.
+4. On the Framer canvas the shot holds still (**On canvas: Still**) on the
+   end of its segment, or of its session; **Still at** picks another moment.
+   Set **On canvas** to Animate to watch it play in the editor. The live site
+   always plays.
+
+The config holds only what differs from the defaults, e.g.
+`{"content":"design-study","segStart":8000,"segEnd":16000,"pattern":"dots","radius":16}`.
+Keys are SceneCanvas's single-shot controls (`SHOT_DEFAULTS` in
+`src/ListenShot.tsx`). A bad config shows a red note on the instance.
+
+`/framer` on the dev server previews ListenScene built from the exported
+`framer/` files, several instances down a page, each with the three configs
+and the Breakpoint switch (Auto follows the width), so you can test the export
+before pasting. `/framer?canvas=1` shows it as the Framer canvas would, held
+still.
+
+### SceneCanvas: everything, including multi-step
+
 1. In Framer: **Assets → Code → Create Code File**, named exactly:
-   - `ListenKit.tsx`, `ListenIcons.tsx`, `ListenScenes.tsx`, `ListenRegistry.tsx` — paste from `src/`
+   - `ListenKit.tsx`, `ListenIcons.tsx`, `ListenClip.tsx`, `ListenScenes.tsx`,
+     `ListenRegistry.tsx`, `ListenShot.tsx`, `ListenPresets.tsx` — paste from `src/`
+   - Upload `media/interview-clip.mp4` and `media/ad-its-fine.jpg` as assets
+     and point `INTERVIEW_CLIP.src` / `UC_AD_IMG` at them (or paste
+     `ListenClip.tsx` and `ListenScenes.tsx` from `framer/`, which inline them)
 2. **Create Code Component**: `SceneCanvas.tsx` — paste from `src/`
 3. Drag **SceneCanvas** anywhere. The properties panel follows the order you
    build a shot in (the workbench rail uses the same five groups):

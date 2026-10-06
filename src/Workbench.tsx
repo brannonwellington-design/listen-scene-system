@@ -4,10 +4,11 @@
 // scrub to the beat.
 // UI: a shadcn-style inspector kit hand-rolled on the Listen Labs tokens.
 import * as React from "react"
-import SceneCanvas, { CANVAS_DEFAULTS, ANCHORS, anchorAxes, Anchor } from "./SceneCanvas"
+import SceneCanvas, { CANVAS_DEFAULTS, ANCHORS, anchorAxes, Anchor, EXPORT_WIDTHS, stepShotAt } from "./SceneCanvas"
 import { byKey, grouped, label, shortLabel, SEQUENCES } from "./ListenRegistry"
 import { T, ScaleBox, PatternLayer, PatternType, APP_W } from "./ListenKit"
 import { I } from "./ListenIcons"
+import { shotJson, shotObject } from "./ListenShot"
 import ToolBar from "./ToolBar"
 
 type Cfg = typeof CANVAS_DEFAULTS
@@ -128,6 +129,9 @@ const WB_CSS = `
   .wb-swatch:hover { border-color: #B9B09B; }
   .wb-swatch.on { border-color: ${T.brand}; box-shadow: 0 0 0 2px rgba(0, 33, 204, 0.15); }
   .wb-time { font-variant-numeric: tabular-nums; font-size: 12px; color: ${T.inkSoft}; width: 42px; text-align: right; }
+  .wb-railhead { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 0; border-bottom: 1px solid #EEE8DD; margin: 0 0 0; }
+  .wb-railhead + .wb-group { border-top: none; }
   .wb-hint { font-size: 11.5px; color: ${T.inkFaint}; line-height: 1.5; }
   .wb-grab-w { position: absolute; right: -18px; top: 50%; transform: translateY(-50%);
     width: 10px; height: 56px; border-radius: 5px; background: #D8D1C2; cursor: ew-resize; transition: background .12s; }
@@ -327,10 +331,46 @@ function ShotSel(p: { v: string; set: (s: string) => void; custom?: boolean }): 
 
 let lastCfg: Cfg | null = null
 
+// the composition is saved per browser, so a reload picks up where you left
+// off; Reset to defaults puts it back to CFG_START
+const CFG_KEY = "llWorkbenchCfg"
+const CFG_START: Cfg = { ...CANVAS_DEFAULTS, layout: "multi-step" }
+const loadCfg = (): Cfg => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CFG_KEY) ?? "{}")
+    const out: any = { ...CFG_START }
+    // only known keys, only values of the default's type (old saves stay safe)
+    for (const k of Object.keys(CFG_START) as Array<keyof Cfg>) {
+      if (saved[k] !== undefined && typeof saved[k] === typeof CFG_START[k]) out[k] = saved[k]
+    }
+    return out
+  } catch { return { ...CFG_START } }
+}
+const isStart = (c: Cfg) => (Object.keys(CFG_START) as Array<keyof Cfg>).every((k) => c[k] === CFG_START[k])
+
 export default function Workbench(): JSX.Element {
   // the config outlives a trip to the Homepage view and back (module cache)
-  const [cfg, setCfgState] = React.useState<Cfg>(() => lastCfg ?? { ...CANVAS_DEFAULTS, layout: "multi-step" })
+  const [cfg, setCfgState] = React.useState<Cfg>(() => lastCfg ?? loadCfg())
   const setCfg: typeof setCfgState = (v) => setCfgState((c) => (lastCfg = typeof v === "function" ? (v as (c: Cfg) => Cfg)(c) : v))
+  React.useEffect(() => {
+    try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)) } catch { /* storage unavailable */ }
+  }, [cfg])
+  // Reset to defaults, with a few seconds to take it back
+  const [undoCfg, setUndoCfg] = React.useState<Cfg | null>(null)
+  const undoTimer = React.useRef<ReturnType<typeof setTimeout>>()
+  React.useEffect(() => () => clearTimeout(undoTimer.current), [])
+  const resetCfg = () => {
+    setUndoCfg(cfg)
+    setCfg({ ...CFG_START })
+    setCropEdit(false)
+    clearTimeout(undoTimer.current)
+    undoTimer.current = setTimeout(() => setUndoCfg(null), 6000)
+  }
+  const undoReset = () => {
+    if (undoCfg) setCfg(undoCfg)
+    setUndoCfg(null)
+    clearTimeout(undoTimer.current)
+  }
   // which rail sections are open — a per-browser convenience
   const [fold, setFold] = React.useState<Record<FoldKey, boolean>>(loadFold)
   const saveFold = (f: Record<FoldKey, boolean>) => {
@@ -348,6 +388,29 @@ export default function Workbench(): JSX.Element {
   const [playStart, setPlayStart] = React.useState<number | null>(null)
   const playing = playStart != null
   const [runNonce, setRunNonce] = React.useState(0)
+  // "Export JSON": the shot on stage as a ListenScene config, on the clipboard
+  const [exported, setExported] = React.useState<"" | "ok" | "fail">("")
+  // multi-step: the shot on stage (exported as a single shot)
+  const [stepShot, setStepShot] = React.useState("")
+  const exportTimer = React.useRef<ReturnType<typeof setTimeout>>()
+  React.useEffect(() => () => clearTimeout(exportTimer.current), [])
+  const exportJson = () => {
+    const flash = (v: "ok" | "fail") => {
+      setExported(v)
+      clearTimeout(exportTimer.current)
+      exportTimer.current = setTimeout(() => setExported(""), 1600)
+    }
+    // multi-step exports the step on stage at each breakpoint's width, framed
+    // and cropped the way this layout shows it there, in this canvas
+    // treatment; ListenScene fills Desktop / Tablet / Mobile from the one blob
+    const json = cfg.layout === "multi-step"
+      ? JSON.stringify(Object.fromEntries((Object.keys(EXPORT_WIDTHS) as Array<keyof typeof EXPORT_WIDTHS>).map((bp) =>
+          [bp, shotObject({ ...cfg, ...stepShotAt(cfg, stepShot || cfg.content, EXPORT_WIDTHS[bp]) })])))
+      : shotJson(cfg)
+    const done = navigator.clipboard?.writeText(json)
+    if (done) done.then(() => flash("ok"), () => { window.prompt("Copy this config:", json); flash("fail") })
+    else { window.prompt("Copy this config:", json); flash("fail") }
+  }
   const canvasRef = React.useRef<HTMLDivElement>(null)
   const previewRef = React.useRef<HTMLDivElement>(null)
 
@@ -517,6 +580,13 @@ export default function Workbench(): JSX.Element {
             <span style={{ flex: 1 }} />
             <Seg v={bpValue} set={(v) => setPreviewW(v === "full" ? "full" : +v)}
               options={[["375", "375"], ["768", "768"], ["1024", "1024"], ["full", "Full"]]} />
+            <button className="wb-btn" onClick={exportJson}
+              title={isMulti
+                ? "Copy the step on stage as a ListenScene config for all three breakpoints (paste into Desktop)"
+                : "Copy this shot as a ListenScene config (paste into Desktop)"}>
+              <I name={exported === "ok" ? "check" : "copy"} size={13} />
+              {exported === "ok" ? "Copied" : isMulti ? "Export step JSON" : "Export JSON"}
+            </button>
             {!isMulti && (
               <button className={"wb-btn" + (cropEdit ? " accent" : "")}
                 onClick={() => (cropEdit ? setCropEdit(false) : editCropStart())}>
@@ -534,7 +604,7 @@ export default function Workbench(): JSX.Element {
               style={{ position: "relative", cursor: !isMulti && cfg.fit === "pinned" && !cropEdit ? (dragging === "pin" ? "grabbing" : "grab") : undefined }}
             >
               {isMulti ? (
-                <SceneCanvas key={runNonce} {...cfg} scrubber scrubberSlot={scrubSlot} maxWidth={4000} />
+                <SceneCanvas key={runNonce} {...cfg} scrubber scrubberSlot={scrubSlot} maxWidth={4000} onStepChange={setStepShot} />
               ) : cropEdit ? (
                 <CropEditor sceneKey={cfg.customScene} holdT={t}
                   rect={{ x: cfg.cropX, y: cfg.cropY, w: cfg.cropW, h: cfg.cropH }}
@@ -563,6 +633,16 @@ export default function Workbench(): JSX.Element {
 
         {/* inspector: the five steps of building a shot */}
         <div className="wb-panel">
+          <div className="wb-railhead">
+            <span className="wb-hint">Saved in this browser</span>
+            {undoCfg ? (
+              <button className="wb-btn" onClick={undoReset}><I name="rotate-cw" size={12} /> Undo reset</button>
+            ) : (
+              <button className="wb-btn" onClick={resetCfg} disabled={isStart(cfg)} title="Put every setting back to its default">
+                Reset to defaults
+              </button>
+            )}
+          </div>
           <Section n={1} title="Content" open={fold.content} onToggle={() => toggleFold("content")} summary={summary.content}>
             <Field label="Layout">
               <Seg v={cfg.layout} set={(v) => { set("layout")(v as Cfg["layout"]); setCropEdit(false) }}

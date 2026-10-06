@@ -6,3 +6,9 @@ export const ControlType: Record<string, string> = new Proxy(
   {},
   { get: (_t, key) => String(key) },
 )
+
+/** Framer: true on the canvas and in export renders. Locally, `?canvas=1`
+ *  stands in for the canvas (the /framer preview uses it). */
+export function useIsStaticRenderer(): boolean {
+  return typeof location !== "undefined" && new URLSearchParams(location.search).get("canvas") === "1"
+}

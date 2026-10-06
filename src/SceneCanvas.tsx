@@ -15,32 +15,14 @@ import { addPropertyControls, ControlType } from "framer"
 import {
   T, PatternLayer, PatternType, ensureCss, ShellPrefs, useShellPrefs, APP_W, APP_H,
 } from "./ListenKit"
+import { Anchor, ANCHORS, SHOT_DEFAULTS, ShotConfig, Single } from "./ListenShot"
 import { REGISTRY, SEQUENCES, byKey, label, sequenceByKey, RegistryEntry, Step, StepStyle } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
 import { PRESETS, getPreset, presetNames } from "./ListenPresets"
 import { I } from "./ListenIcons"
 
-// ----------------------------------------------------------------- types ----
-/** 9-position pin grid: corners, edge midpoints, and dead center */
-export type Anchor =
-  | "top-left" | "top-center" | "top-right"
-  | "left-center" | "center" | "right-center"
-  | "bottom-left" | "bottom-center" | "bottom-right"
-
-export const ANCHORS: Anchor[] = [
-  "top-left", "top-center", "top-right",
-  "left-center", "center", "right-center",
-  "bottom-left", "bottom-center", "bottom-right",
-]
-
-/** split an anchor token into its vertical / horizontal axes */
-export const anchorAxes = (a: Anchor): { v: "top" | "center" | "bottom"; h: "left" | "center" | "right" } => {
-  if (a === "center") return { v: "center", h: "center" }
-  if (a === "left-center") return { v: "center", h: "left" }
-  if (a === "right-center") return { v: "center", h: "right" }
-  const [v, h] = a.split("-") as ["top" | "bottom", "left" | "center" | "right"]
-  return { v, h }
-}
+export { ANCHORS, anchorAxes } from "./ListenShot"
+export type { Anchor, CropRect } from "./ListenShot"
 
 export type SceneCanvasProps = {
   layout?: "single" | "multi-step"
@@ -114,23 +96,19 @@ export type SceneCanvasProps = {
   debugCanvasRef?: React.Ref<HTMLDivElement>
   /** multi-step: render the scrubber into this element (the workbench toolbar) */
   scrubberSlot?: HTMLElement | null
+  /** multi-step: told the shot key on stage whenever the step changes (the
+   *  workbench's Export step JSON exports it, via `stepShotAt`) */
+  onStepChange?: (content: string) => void
 }
 
 /** control defaults — single source for destructuring and preset merging */
 export const CANVAS_DEFAULTS = {
+  ...SHOT_DEFAULTS,
   layout: "single" as "single" | "multi-step", sequence: "how-it-works",
   stepStyle: "auto" as "auto" | StepStyle,
   autoCycle: true, resumeDelay: 14, scrubber: false, maxWidth: 1200,
   listStart: 2, listEnd: 5, cardStart: 7,
-  content: "design-study", customScene: "design-study",
-  cropX: 0, cropY: 0, cropW: 0, cropH: 0,
-  loop: true, loopPause: 3, segStart: 0, segEnd: 0,
-  startCollapsed: false, startTheme: "light" as "light" | "dark",
-  fit: "responsive" as "responsive" | "pinned" | "bleed", bleedShow: 880, bleedRatio: 0.76, anchor: "top-left" as Anchor, insetX: 40, insetY: 40,
-  zoom: 0.5, smallBehavior: "fit" as const, fitBelow: 480, canvasHeight: 0,
   frameFit: "bleed" as "responsive" | "pinned" | "bleed", frameHeight: 0, swipeBleed: 16,
-  pattern: "none" as PatternType, patternSpacing: 16, patternOpacity: 1,
-  bgColor: T.pageContainer, padX: 56, padY: 44, radius: 0,
 }
 
 /** preset values fill in wherever the instance still has the stock default */
@@ -144,198 +122,10 @@ function mergePreset(props: SceneCanvasProps): typeof CANVAS_DEFAULTS {
   return out
 }
 
-// ------------------------------------------------------------- shot unit ----
-/** a crop-window into a scene, in that scene's design space */
-export type CropRect = { x: number; y: number; w: number; h: number }
-
-/** Renders a registry entry (optionally cropped to a rect) at a given scale. */
-function ShotUnit(props: {
-  entry: RegistryEntry
-  crop?: CropRect
-  scale: number
-  sceneProps: SceneProps
-}): JSX.Element {
-  const { entry, crop, scale, sceneProps } = props
-  const r = crop ?? { x: 0, y: 0, w: entry.w, h: entry.h }
-  const Scene = entry.Scene
-  return (
-    <div className="ll" style={{ width: r.w * scale, height: r.h * scale, overflow: "hidden", position: "relative", flexShrink: 0 }}>
-      <div style={{ width: entry.w, height: entry.h, transform: `scale(${scale}) translate(${-r.x}px, ${-r.y}px)`, transformOrigin: "top left" }}>
-        <Scene {...sceneProps} />
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------- single -----
-function Single(props: typeof CANVAS_DEFAULTS & {
-  debugHold?: number
-  debugPlayFrom?: number
-  debugOnTime?: (t: number) => void
-  debugCanvasRef?: React.Ref<HTMLDivElement>
-  /** multi-step hands control here: called when the shot finishes instead of looping */
-  onFinish?: () => void
-  /** multi-step framing: "card" draws the hairline at every fit; "bare" drops
-   *  fill, radius, and line (the stage panel draws its own) */
-  frame?: "card" | "bare"
-}): JSX.Element {
-  const {
-    content, customScene, cropX, cropY, cropW, cropH,
-    loop, loopPause, segStart, segEnd,
-    fit, anchor, insetX, insetY, zoom, smallBehavior, fitBelow, canvasHeight,
-    bleedShow, bleedRatio,
-    pattern, patternSpacing, patternOpacity, bgColor, padX, padY, radius,
-    debugHold, debugPlayFrom, debugOnTime, debugCanvasRef, onFinish, frame,
-  } = props
-
-  const entry = byKey(content === "custom" ? customScene : content)
-  const crop: CropRect | undefined =
-    content === "custom" && cropW > 0 ? { x: cropX, y: cropY, w: cropW, h: cropH } : undefined
-  const rect = crop ?? { x: 0, y: 0, w: entry.w, h: entry.h }
-
-  // visibility + loop/segment playback
-  const rootRef = React.useRef<HTMLDivElement>(null)
-  const [inView, setInView] = React.useState(false)
-  const [runKey, setRunKey] = React.useState(0)
-  React.useEffect(() => {
-    const el = rootRef.current
-    if (!el || typeof IntersectionObserver === "undefined") { setInView(true); return }
-    const io = new IntersectionObserver((e) => setInView(e[0].isIntersecting), { threshold: 0.25 })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-
-  const restartTimer = React.useRef<ReturnType<typeof setTimeout>>()
-  React.useEffect(() => () => clearTimeout(restartTimer.current), [])
-  const scheduleRestart = React.useCallback(() => {
-    if (onFinish) { onFinish(); return }
-    if (!loop) return
-    clearTimeout(restartTimer.current)
-    restartTimer.current = setTimeout(() => setRunKey((k) => k + 1), loopPause * 1000)
-  }, [loop, loopPause, onFinish])
-
-  const segment = segEnd > 0
-  const onTime = React.useCallback((t: number) => {
-    if (segment && t >= segEnd) scheduleRestart()
-  }, [segment, segEnd, scheduleRestart])
-
-  const debugging = debugHold != null || debugPlayFrom != null
-  const sceneProps: SceneProps = debugging
-    ? {
-        active: true,
-        runKey,
-        hold: debugHold,
-        playFrom: debugHold == null ? debugPlayFrom : undefined,
-        onTime: debugOnTime,
-      }
-    : {
-        active: inView,
-        runKey,
-        onDone: segment ? undefined : scheduleRestart,
-        playFrom: segment ? segStart : undefined,
-        onTime: segment ? onTime : undefined,
-      }
-
-  // measure available width for responsive scale + pinned fallback (bleed
-  // ignores padding: the shot hangs off the card's edges instead)
-  const pad = fit === "bleed" ? 0 : padX
-  const [availW, setAvailW] = React.useState(0)
-  React.useLayoutEffect(() => {
-    const el = rootRef.current
-    if (!el) return
-    const ro = new ResizeObserver(() => setAvailW(el.clientWidth - pad * 2))
-    ro.observe(el)
-    setAvailW(el.clientWidth - pad * 2)
-    return () => ro.disconnect()
-  }, [pad])
-
-  const setRefs = (el: HTMLDivElement | null) => {
-    ;(rootRef as React.MutableRefObject<HTMLDivElement | null>).current = el
-    if (typeof debugCanvasRef === "function") debugCanvasRef(el)
-    else if (debugCanvasRef) (debugCanvasRef as React.MutableRefObject<HTMLDivElement | null>).current = el
-  }
-
-  const usePinned = fit === "pinned" && !(smallBehavior === "fit" && availW > 0 && availW + padX * 2 < fitBelow)
-
-  const bare = frame === "bare"
-  const containerStyle: React.CSSProperties = {
-    position: "relative", overflow: "hidden", background: bare ? "transparent" : bgColor, borderRadius: bare ? 0 : radius,
-    width: "100%", boxSizing: "border-box",
-    ...(!bare && (frame === "card" || fit === "bleed") ? { border: `1px solid ${T.pageLine}` } : {}),
-  }
-
-  if (fit === "bleed") {
-    // a card with the shot inset from its top-left corner and running off the
-    // right and bottom edges; scale follows the card width, so the crop reads
-    // the same at every size
-    // the larger of: `bleedShow` px across, or enough to still run off the
-    // bottom when the card is tall (most of the shot's height, never all of it)
-    const h = canvasHeight || availW * bleedRatio
-    const s = availW > 0 ? Math.max(0.1, (availW - insetX) / bleedShow, (h - insetY) / (rect.h * 0.95)) : 0
-    return (
-      <div ref={setRefs} style={{ ...containerStyle, height: h }}>
-        <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
-        {s > 0 && (
-          // one stroke, drawn here at 1 screen px in the card's own color
-          // (the mock gives card and shot the same surface-tertiary); the
-          // app's scaled border (a blurry ~0.6px at this size) is hidden, and
-          // the radius is the app's 12, scaled with it
-          <div key={runKey} className="ll-scene-fade ll-bleed" style={{
-            position: "absolute", left: insetX - 1, top: insetY - 1,
-            border: `1px solid ${T.pageLine}`, borderRadius: 12 * s, overflow: "hidden",
-          }}>
-            <ShotUnit entry={entry} crop={crop} scale={s} sceneProps={sceneProps} />
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  if (usePinned) {
-    // centered axes self-center (insets apply only to edge-pinned axes)
-    const ax = anchorAxes(anchor)
-    const pos: React.CSSProperties = { position: "absolute" }
-    if (ax.v === "top") pos.top = insetY
-    else if (ax.v === "bottom") pos.bottom = insetY
-    else pos.top = "50%"
-    if (ax.h === "left") pos.left = insetX
-    else if (ax.h === "right") pos.right = insetX
-    else pos.left = "50%"
-    if (ax.v === "center" || ax.h === "center") {
-      pos.transform = `translate(${ax.h === "center" ? "-50%" : "0"}, ${ax.v === "center" ? "-50%" : "0"})`
-    }
-    return (
-      <div ref={setRefs} style={{ ...containerStyle, height: canvasHeight || 420 }}>
-        <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
-        {/* keyed fade so loop restarts read as intentional, not a flicker */}
-        <div key={runKey} className="ll-scene-fade" style={pos}>
-          <ShotUnit entry={entry} crop={crop} scale={zoom} sceneProps={sceneProps} />
-        </div>
-      </div>
-    )
-  }
-
-  // responsive: scale to width; when canvasHeight is set (>0) the container is
-  // fixed-height and the shot is contained + centered, so rows of shots align
-  const fixedH = canvasHeight > 0
-  const availH = fixedH ? canvasHeight - padY * 2 : Infinity
-  const scale = availW > 0 ? Math.min(availW / rect.w, availH / rect.h) : 1
-  return (
-    <div ref={setRefs} style={{
-      ...containerStyle, padding: `${padY}px ${padX}px`,
-      ...(fixedH ? { height: canvasHeight, display: "flex", alignItems: "center", justifyContent: "center" } : {}),
-    }}>
-      <PatternLayer type={pattern} spacing={patternSpacing} opacity={patternOpacity} />
-      <div key={runKey} className="ll-scene-fade" style={{ position: "relative" }}>
-        <ShotUnit entry={entry} crop={crop} scale={scale} sceneProps={sceneProps} />
-      </div>
-    </div>
-  )
-}
 
 // ------------------------------------------------------------ multi-step -----
-function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlot?: HTMLElement | null }): JSX.Element {
-  const { sequence, stepStyle, autoCycle, resumeDelay, scrubber, maxWidth, listStart, listEnd, cardStart, frameFit, frameHeight, swipeBleed, steps: customSteps, scrubberSlot, ...canvas } = props
+function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlot?: HTMLElement | null; onStepChange?: (content: string) => void }): JSX.Element {
+  const { sequence, stepStyle, autoCycle, resumeDelay, scrubber, maxWidth, listStart, listEnd, cardStart, frameFit, frameHeight, swipeBleed, steps: customSteps, scrubberSlot, onStepChange, ...canvas } = props
   const seq = sequenceByKey(sequence)
   const steps = sequence === "custom" && customSteps?.length ? customSteps : seq.steps
   const style: StepStyle = stepStyle !== "auto" ? stepStyle : sequence === "custom" ? "captions" : seq.style
@@ -357,6 +147,8 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
 
   // a shorter custom list can leave the index past the end
   const at = index % steps.length
+  const stepContent = steps[at].content
+  React.useEffect(() => { onStepChange?.(stepContent) }, [stepContent, onStepChange])
 
   const advance = React.useCallback(() => {
     setIndex((i) => (i + 1) % steps.length)
@@ -572,8 +364,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
     const CAP = COLS === 12 ? 4 : 3
     const colW = (width - (COLS - 1) * GUTTER) / COLS
     const capW = Math.round(CAP * colW + (CAP - 1) * GUTTER) - P
-    const cardInset = Math.max(12, Math.round(width * 16 / 370))
-    const stackedCard = { fit: "bleed" as const, bleedShow: showPx, bleedRatio: 200 / 370, insetX: cardInset, insetY: cardInset, radius: 12, canvasHeight: 0 }
+    const stackedCard = { fit: "bleed" as const, bleedShow: showPx, bleedRatio: 200 / 370, bleedInset: 16 / 370, radius: 12, canvasHeight: 0 }
     const H = frameHeight > 0 ? frameHeight : Math.round(width * 640 / 1392)
     const col5 = Math.round(CAP * (colW + GUTTER))
     // the shot's region in the panel, per mode: bleed hangs off the right and
@@ -665,15 +456,15 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
     const cs = Math.max(le + 1, Math.min(12, Math.round(cardStart)))
     const colW = (width - 11 * GUTTER) / 12
     const cardW = stacked ? width : (13 - cs) * colW + (12 - cs) * GUTTER
-    const inset = Math.max(12, Math.round(cardW * (stacked ? 16 / 370 : 48 / 684)))
+    const insetFrac = stacked ? 16 / 370 : 48 / 684
     // side by side, the card matches the list's height at every width (it
     // follows the rows opening and closing); stacked, it keeps the mock's ratio
     const cardH = frameHeight > 0 ? frameHeight : listH
     const card = stacked
-      ? { fit: "bleed" as const, bleedShow: showPx, bleedRatio: 200 / 370, insetX: inset, insetY: inset, radius: 12, canvasHeight: 0 }
+      ? { fit: "bleed" as const, bleedShow: showPx, bleedRatio: 200 / 370, bleedInset: insetFrac, radius: 12, canvasHeight: 0 }
       : frameFit === "responsive" ? { fit: "responsive" as const, radius: 12, canvasHeight: cardH }
       : frameFit === "pinned" ? { fit: "pinned" as const, radius: 12, canvasHeight: cardH }
-      : { fit: "bleed" as const, bleedShow: showPx, bleedRatio: 520 / 684, insetX: inset, insetY: inset, radius: 12, canvasHeight: cardH }
+      : { fit: "bleed" as const, bleedShow: showPx, bleedRatio: 520 / 684, bleedInset: insetFrac, radius: 12, canvasHeight: cardH }
     const rowGap = 16
     const list = (
       <div ref={listRef} style={{ display: "flex", flexDirection: "column", gap: rowGap, width: "100%", gridColumn: stacked ? undefined : `${ls} / ${le + 1}` }}>
@@ -744,12 +535,11 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
     // Figma "Homepage Refresh" 897:4431: a 252-of-370 card with the shot inset
     // 16 and shown at 493 of 1344 (~965 design px across), then 241px
     // captions 16 apart, the active one full and the rest at 40%
-    const inset = Math.max(12, Math.round(width * 16 / 370))
     const capW = Math.min(241, Math.round(width * 241 / 370))
     return (
       <div ref={rootRef} className="ll" style={{ width: "100%", maxWidth, margin: "0 auto" }}>
         {scrubBar}
-        {shot({ fit: "bleed", bleedShow: 965, bleedRatio: 252 / 370, insetX: inset, insetY: inset, radius: 12, canvasHeight: 0 }, "card")}
+        {shot({ fit: "bleed", bleedShow: 965, bleedRatio: 252 / 370, bleedInset: 16 / 370, radius: 12, canvasHeight: 0 }, "card")}
         <div ref={railRef} className="ll-swipe" onScroll={onRailScroll} style={{
           display: "flex", gap: 16, marginTop: 16, overflowX: "auto", scrollSnapType: "x mandatory",
           marginLeft: -swipeBleed, marginRight: -swipeBleed, padding: `0 ${swipeBleed}px`, scrollPaddingLeft: swipeBleed,
@@ -798,6 +588,61 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
   )
 }
 
+// ---------------------------------------------------------- step export ----
+/** the widths "Export step JSON" frames a step at, one per Framer breakpoint */
+export const EXPORT_WIDTHS = { desktop: 1280, tablet: 768, mobile: 375 }
+
+/**
+ * A multi-step step as a standalone single shot at a given component width:
+ * its shot plus the framing its style gives it there, the same math as the
+ * style branches in MultiStep. Two things can't come from the width alone,
+ * so they take the mock's values: the list card's auto height (it follows
+ * the list's rows live; here 520/684) and the stage region's crop becomes
+ * its own card at the region's ratio.
+ */
+export function stepShotAt(p: typeof CANVAS_DEFAULTS, content: string, width: number): Partial<ShotConfig> {
+  const style: StepStyle = p.stepStyle !== "auto" ? p.stepStyle : p.sequence === "custom" ? "captions" : sequenceByKey(p.sequence).style
+  const showPx = byKey(content).bleedShow ?? p.bleedShow
+  const stacked = width < 820
+  const GUTTER = 24
+  const stackedCard = { fit: "bleed" as const, bleedShow: showPx, bleedRatio: 200 / 370, bleedInset: 16 / 370, radius: 12, canvasHeight: 0 }
+  let frame: Partial<ShotConfig> = {}
+  if (style === "captions") {
+    // wide: the shot in the canvas as set; narrow: the swipe layout's card
+    if (stacked) frame = { fit: "bleed", bleedShow: 965, bleedRatio: 252 / 370, bleedInset: 16 / 370, radius: 12, canvasHeight: 0 }
+  } else if (style === "stage") {
+    if (stacked) frame = stackedCard
+    else {
+      const P = GUTTER, B = 1
+      const COLS = width + 2 * GUTTER > 1024 ? 12 : 8
+      const CAP = COLS === 12 ? 4 : 3
+      const colW = (width - (COLS - 1) * GUTTER) / COLS
+      const col5 = Math.round(CAP * (colW + GUTTER))
+      const H = p.frameHeight > 0 ? p.frameHeight : Math.round(width * 640 / 1392)
+      const regionW = width - (col5 - B)
+      frame = p.frameFit === "responsive" ? { fit: "responsive", padX: 0, padY: 0, canvasHeight: H - 2 * P, pattern: "none" }
+        : p.frameFit === "pinned" ? { fit: "pinned", canvasHeight: H, pattern: "none" }
+        : { fit: "bleed", bleedShow: showPx, insetX: 1, insetY: 1, pattern: "none", radius: 12,
+            canvasHeight: p.frameHeight > 0 ? H - P : 0, bleedRatio: (H - P) / Math.max(1, regionW) }
+    }
+  } else {
+    if (stacked) frame = stackedCard
+    else {
+      const ls = Math.max(1, Math.min(11, Math.round(p.listStart)))
+      const le = Math.max(ls, Math.min(11, Math.round(p.listEnd)))
+      const cs = Math.max(le + 1, Math.min(12, Math.round(p.cardStart)))
+      const colW = (width - 11 * GUTTER) / 12
+      const cardW = (13 - cs) * colW + (12 - cs) * GUTTER
+      const cardH = p.frameHeight > 0 ? p.frameHeight : Math.round(cardW * 520 / 684)
+      frame = p.frameFit === "responsive" ? { fit: "responsive", radius: 12, canvasHeight: cardH }
+        : p.frameFit === "pinned" ? { fit: "pinned", radius: 12, canvasHeight: cardH }
+        : { fit: "bleed", bleedShow: showPx, bleedRatio: 520 / 684, bleedInset: 48 / 684, radius: 12, canvasHeight: p.frameHeight }
+    }
+  }
+  // steps play whole, so the export loops the whole session
+  return { content, ...frame, loop: true, segStart: 0, segEnd: 0 }
+}
+
 // ------------------------------------------------------------- component ----
 /**
  * @framerSupportedLayoutWidth any
@@ -814,7 +659,7 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   return (
     <ShellPrefs.Provider value={prefs}>
       {merged.layout === "multi-step" ? (
-        <MultiStep {...merged} steps={props.steps} scrubberSlot={props.scrubberSlot} />
+        <MultiStep {...merged} steps={props.steps} scrubberSlot={props.scrubberSlot} onStepChange={props.onStepChange} />
       ) : (
         <Single {...merged}
           debugHold={props.debugHold}
