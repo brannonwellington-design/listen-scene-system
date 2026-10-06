@@ -289,9 +289,26 @@ button.ll-iconbtn:hover { background:${T.hover}; }
 }
 `
 
+/** where repo files are served from: "" (relative to the site root) for the
+ *  local builds; the Framer bundle bakes in its versioned CDN root */
+declare const __LL_MEDIA_BASE__: string | undefined
+const MEDIA_BASE = typeof __LL_MEDIA_BASE__ === "string" ? __LL_MEDIA_BASE__ : ""
+/** a repo-relative path ("media/…") as a URL that works wherever the bundle runs */
+export const media = (path: string): string => MEDIA_BASE + path
+
+/** Inter in every weight the scenes use; loaded once, here, so the component
+ *  brings its own type wherever it's placed */
+const FONT_HREF = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+
 export function ensureCss(): void {
   if (typeof document === "undefined") return
   if (document.getElementById("listen-kit-css")) return
+  if (!document.querySelector(`link[href="${FONT_HREF}"]`)) {
+    const font = document.createElement("link")
+    font.rel = "stylesheet"
+    font.href = FONT_HREF
+    document.head.appendChild(font)
+  }
   const el = document.createElement("style")
   el.id = "listen-kit-css"
   el.textContent = CSS

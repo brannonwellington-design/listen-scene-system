@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!-- Smoke test for framer/listen-scenes.js before tagging a release. It loads
+     the bundle the way Framer does: as an ES module whose react, react-dom, and
+     framer imports resolve through an import map. The framer stand-in reports
+     the render target from ?target= (canvas shows the stills Framer's editor
+     will), and applies each component's own property-control defaults.
+     Local dev server: /framer/harness.html?target=canvas -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Framer bundle harness</title>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+    "react-dom": "https://esm.sh/react-dom@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "framer": "data:text/javascript,const t=new URLSearchParams(location.search).get('target')||'preview';export const RenderTarget={canvas:'CANVAS',export:'EXPORT',thumbnail:'THUMBNAIL',preview:'PREVIEW',current:()=>t.toUpperCase()};export const ControlType=new Proxy({},{get:(_,k)=>String(k)});export function addPropertyControls(c,p){c.propertyControls=p}"
+  }
+}
+</script>
+<style>
+  body { margin: 0; background: #F9F4EB; font-family: Inter, sans-serif; color: #0021CC; }
+  section { max-width: 1392px; margin: 0 auto; padding: 48px 24px; }
+  h2 { font-weight: 400; font-size: 14px; opacity: .6; margin: 0 0 16px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module">
+import * as React from "react"
+import { createRoot } from "react-dom/client"
+import { HowItWorks, UseCases, SceneCanvas } from "./listen-scenes.js"
+
+// Framer passes every control's default as a prop
+const defaults = (C) => Object.fromEntries(Object.entries(C.propertyControls ?? {})
+  .filter(([, c]) => c.defaultValue !== undefined).map(([k, c]) => [k, c.defaultValue]))
+const h = React.createElement
+const block = (title, C, extra = {}) => h("section", null, h("h2", null, title), h(C, { ...defaults(C), ...extra }))
+
+createRoot(document.getElementById("root")).render(h(React.Fragment, null,
+  block("HowItWorks", HowItWorks),
+  block("UseCases", UseCases),
+  block("SceneCanvas · single · Use Cases ad testing (media)", SceneCanvas, { shot: "uc-ad-testing", canvasHeight: 420 }),
+))
+window.__controls = { HowItWorks: Object.keys(HowItWorks.propertyControls ?? {}), UseCases: Object.keys(UseCases.propertyControls ?? {}), SceneCanvas: Object.keys(SceneCanvas.propertyControls ?? {}) }
+</script>
+</body>
+</html>

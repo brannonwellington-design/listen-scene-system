@@ -12,11 +12,11 @@
 // Multi-step is literally the single layout per step, plus the rail.
 import * as React from "react"
 import { createPortal } from "react-dom"
-import { addPropertyControls, ControlType } from "framer"
+import { addPropertyControls, ControlType, RenderTarget } from "framer"
 import {
   T, PatternLayer, PatternType, ensureCss, ShellPrefs, useShellPrefs, APP_W, APP_H,
 } from "./ListenKit"
-import { REGISTRY, SEQUENCES, byKey, label, sequenceByKey, RegistryEntry, Step, StepStyle } from "./ListenRegistry"
+import { REGISTRY, SEQUENCES, byKey, label, posterOf, sequenceByKey, RegistryEntry, Step, StepStyle } from "./ListenRegistry"
 import { SceneProps } from "./ListenScenes"
 import { PRESETS, getPreset, presetNames } from "./ListenPresets"
 import { I } from "./ListenIcons"
@@ -150,6 +150,14 @@ function mergePreset(props: SceneCanvasProps): typeof CANVAS_DEFAULTS {
   return out
 }
 
+/** true where shots can't play: the Framer canvas and its thumbnails and
+ *  exports. Those show each shot as a still (its registry poster) and never
+ *  advance, so the editor stays light and the frame is predictable. */
+function isStill(): boolean {
+  const t = RenderTarget.current()
+  return t === RenderTarget.canvas || t === RenderTarget.thumbnail || t === RenderTarget.export
+}
+
 // ------------------------------------------------------------- shot unit ----
 /** a crop-window into a scene, in that scene's design space */
 export type CropRect = { x: number; y: number; w: number; h: number }
@@ -225,12 +233,13 @@ function Single(props: typeof CANVAS_DEFAULTS & {
     if (segment && t >= loopTo) scheduleRestart()
   }, [segment, loopTo, scheduleRestart])
 
-  const debugging = debugHold != null || debugPlayFrom != null
+  const still = debugHold == null && debugPlayFrom == null && isStill()
+  const debugging = still || debugHold != null || debugPlayFrom != null
   const sceneProps: SceneProps = debugging
     ? {
         active: true,
         runKey,
-        hold: debugHold,
+        hold: still ? posterOf(entry) : debugHold,
         playFrom: debugHold == null ? debugPlayFrom : undefined,
         onTime: debugOnTime,
       }
@@ -353,6 +362,9 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
   const [playStart, setPlayStart] = React.useState<number | null>(null)
   const scrubPlay = playStart != null
   const lastClick = React.useRef(0)
+  // a still frame: the Framer canvas, or the scrubber parked on a time
+  const still = isStill()
+  const frozen = still || (scrubOn && !scrubPlay)
   const resumeTimer = React.useRef<ReturnType<typeof setTimeout>>()
 
   React.useEffect(() => {
@@ -488,11 +500,11 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
   // each step is the single layout, remounted per step so it fades in fresh;
   // steps always play whole (no loop, no segment) and report back to advance
   const shot = (over: Partial<typeof CANVAS_DEFAULTS> = {}, frame?: "card" | "bare") => (
-    <div className={scrubOn && !scrubPlay ? "ll-noanim" : undefined} style={frame === "bare" ? { height: "100%" } : undefined}>
+    <div className={frozen ? "ll-noanim" : undefined} style={frame === "bare" ? { height: "100%" } : undefined}>
       <Single key={stepKey} {...canvas} {...over} frame={frame}
         shot={steps[at].shot} loop={false} loopFrom={0} loopTo={0}
         onFinish={style === "captions" ? onStepDone : onShotDone}
-        debugHold={scrubOn && !scrubPlay ? scrubT : undefined}
+        debugHold={still ? posterOf(byKey(steps[at].shot)) : scrubOn && !scrubPlay ? scrubT : undefined}
         debugPlayFrom={scrubOn && scrubPlay ? playStart! : undefined}
         debugOnTime={scrubOn ? setScrubT : undefined}
       />
@@ -620,7 +632,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
             <button key={i} onClick={() => onStepClick(i)} aria-label={"Step " + (i + 1)} aria-pressed={i === at}
               style={{ flex: 1, height: 16, padding: 0, border: "none", background: "none", cursor: "pointer", display: "flex", alignItems: "center" }}>
               <span style={{ display: "block", width: "100%", height: 2, borderRadius: 1, background: i < at ? T.brand : T.brandSoft, position: "relative", overflow: "hidden" }}>
-                {i === at && !(scrubOn && !scrubPlay) && (
+                {i === at && !frozen && (
                   <span key={stepKey + "/" + viewRun} className="ll-fill" style={{
                     position: "absolute", inset: 0, background: T.brand,
                     animationDuration: `${stepMs}ms`,
@@ -713,7 +725,7 @@ function MultiStep(props: typeof CANVAS_DEFAULTS & { steps?: Step[]; scrubberSlo
                   row's has no track, so it only shows while filling */}
               <div style={{ height: 8, display: "flex", alignItems: "center", marginBottom: last ? -8 - rowGap : 0 }}>
                 <div style={{ height: 1, width: "100%", background: last ? "transparent" : T.brandFaint, position: "relative", overflow: "hidden" }}>
-                  {on && !(scrubOn && !scrubPlay) && (
+                  {on && !frozen && (
                     <div key={stepKey + "/" + viewRun} className="ll-fill" style={{
                       position: "absolute", inset: 0, background: T.brand,
                       animationDuration: `${stepMs}ms`,
@@ -817,7 +829,7 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
   // the scene)
   const prefs = useShellPrefs({ collapsed: merged.startCollapsed, dark: merged.startTheme === "dark" })
 
-  return (
+  const body = (
     <ShellPrefs.Provider value={prefs}>
       {merged.layout === "multi-step" ? (
         <MultiStep {...merged} steps={props.steps} scrubberSlot={props.scrubberSlot} />
@@ -831,6 +843,8 @@ export default function SceneCanvas(props: SceneCanvasProps): JSX.Element {
       )}
     </ShellPrefs.Provider>
   )
+  // stills drop entrance animations too, so the canvas shows the settled frame
+  return isStill() ? <div className="ll-noanim" style={{ display: "contents" }}>{body}</div> : body
 }
 
 const isSingle = (p: SceneCanvasProps) => (p.layout ?? "single") === "single"
@@ -847,7 +861,8 @@ const modeOf = (p: SceneCanvasProps) => isFramed(p) ? p.cardFit ?? "bleed" : p.f
 const stepContentKeys = REGISTRY.map((e) => e.key)
 const stepContentTitles = REGISTRY.map(label)
 
-addPropertyControls(SceneCanvas, {
+/** the Framer panel; the section components reuse it (ListenSections) */
+export const CANVAS_CONTROLS: Record<string, any> = {
   // 1 content
   layout: { type: ControlType.Enum, title: "Layout", options: ["single", "multi-step"], optionTitles: ["Single", "Multi-step"], defaultValue: "single", displaySegmentedControl: true },
   preset: { type: ControlType.Enum, title: "Preset", options: ["none", ...presetNames()], optionTitles: ["None", ...presetNames()], defaultValue: "none" },
@@ -907,4 +922,6 @@ addPropertyControls(SceneCanvas, {
   padX: { type: ControlType.Number, title: "Padding X", defaultValue: 56, min: 0, max: 160 },
   padY: { type: ControlType.Number, title: "Padding Y", defaultValue: 44, min: 0, max: 160 },
   radius: { type: ControlType.Number, title: "Radius", defaultValue: 0, min: 0, max: 16 },
-})
+}
+
+addPropertyControls(SceneCanvas, CANVAS_CONTROLS)

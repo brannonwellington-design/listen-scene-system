@@ -15,7 +15,7 @@
 // block is placed by column span (`sp(desktop, tablet, mobile)`), so it stays
 // on the grid at every width.
 import * as React from "react"
-import SceneCanvas from "./SceneCanvas"
+import { HowItWorks as LiveHowItWorks, UseCases as LiveUseCases } from "./ListenSections"
 import { StepStyle } from "./ListenRegistry"
 import { I } from "./ListenIcons"
 import ToolBar, { TOOLBAR_H, rememberHomeSearch } from "./ToolBar"
@@ -516,25 +516,17 @@ function LogoWall(): JSX.Element {
   )
 }
 
-/** How it works: the mock frames the shot on columns 3–10 of the 1392
- *  container (236 / 40 padding); on 8 columns it takes 2–7; narrower, the
- *  captions style switches to its stacked card and the padding doesn't apply */
+/** How it works: the live section is the same component Framer places
+ *  (ListenSections), which sets its own grid framing from its width */
 function HowItWorks({ style }: { style: StepStyle }): JSX.Element {
-  const [ref, w] = useWidth()
-  const page = w + 48
-  const cols = page > 1024 ? 12 : 8
-  const colW = (w - (cols - 1) * 24) / cols
-  const padX = Math.round((cols === 12 ? 2 : 1) * (colW + 24))
-  const padY = Math.round(w * 40 / 1392)
   return (
     <section className="hp-sec" id="how-it-works"><div className="hp-grid">
       <div className="hp-head" style={sp("5 / 9", "2 / 8")}>
         <p className="hp-h2">A single place to run your research end-to-end.</p>
         <p className="hp-lede">From first question to insights that compound. Enterprise-grade controls throughout.</p>
       </div>
-      <div ref={ref} className="hp-live">
-        {w > 0 && <SceneCanvas layout="multi-step" sequence="how-it-works" stepStyle={style} maxWidth={1392} padX={padX} padY={padY} radius={12}
-          swipeBleed={w <= 608 ? 16 : 24} />}
+      <div className="hp-live">
+        <LiveHowItWorks stepStyle={style} />
       </div>
     </div></section>
   )
@@ -634,7 +626,7 @@ function UseCases({ style }: { style: StepStyle }): JSX.Element {
         <p className="hp-lede">Designed for your research needs. From AI sentiment and adoption to concept tests and brand tracking.</p>
       </div>
       <div className="hp-live">
-        <SceneCanvas layout="multi-step" sequence="use-cases" stepStyle={style} maxWidth={1392} />
+        <LiveUseCases stepStyle={style} />
       </div>
     </div></section>
   )

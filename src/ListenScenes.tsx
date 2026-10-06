@@ -7,7 +7,7 @@
 import * as React from "react"
 import {
   T, BareFrame, Chip, Caret, Donut, Waveform, DotSpinner, EmotionTag,
-  EMOTIONS, useScene, useCursor, ensureCss,
+  EMOTIONS, useScene, useCursor, ensureCss, media,
   IPhoneScreen, APP_W,
   AppShell, workspaceNav, studyEditNav, studyNav, chatNav,
 } from "./ListenKit"
@@ -696,7 +696,7 @@ function ClipVideo({ t, playing }: { t: number; playing: boolean }): JSX.Element
     }
   }, [t, playing, ready])
   return (
-    <video ref={ref} src={INTERVIEW_CLIP.src} muted playsInline preload="auto"
+    <video ref={ref} src={media(INTERVIEW_CLIP.src)} muted playsInline preload="auto"
       onLoadedData={() => setReady(true)} onError={() => setReady(false)}
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: ready ? 1 : 0, transition: "opacity .3s ease" }} />
   )
@@ -1789,9 +1789,9 @@ function UCBar({ label, emotion, f, e }: { label: string; emotion: keyof typeof 
 
 const UC_AD_Q = "What comes to mind when you see this ad?"
 // the creative under test: the "It's fine." Listen Labs ad (tested in the UK
-// LED Truck Ad Copy Test). Relative to the site root; in Framer, upload
-// media/ad-its-fine.jpg as an asset and paste its URL here.
-const UC_AD_IMG = "media/ad-its-fine.jpg"
+// LED Truck Ad Copy Test). `media()` points it at the site root locally and
+// at the bundle's CDN copy in Framer.
+const UC_AD_IMG = media("media/ad-its-fine.jpg")
 // verbatim, UK LED Truck Ad Copy Test, participant 463, on this line
 // (https://listenlabs.ai/response/d75d9924-bef2-4997-97a5-03e53cf2f83f?message=20)
 const UC_AD_WHO = "Participant 463"

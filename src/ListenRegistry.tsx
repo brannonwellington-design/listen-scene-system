@@ -45,13 +45,19 @@ export type RegistryEntry = {
   /** in a bleed card (the Use Cases list), how many design px show across;
    *  set it when the shot's subject sits further right than the default */
   bleedShow?: number
+  /** the frame (virtual ms) shown as a still where the shot can't play, like
+   *  the Framer canvas; omit to show the end of the session */
+  poster?: number
 }
+
+/** a shot's still frame: its `poster`, or past the end of any session */
+export const posterOf = (e: RegistryEntry): number => e.poster ?? 60000
 
 export const REGISTRY: RegistryEntry[] = [
   // --- How it works (homepage) ----------------------------------------------
   { key: "design-study", title: "Design the study", group: "How it works", n: 1, Scene: SceneDesignStudy, w: APP_W, h: APP_H, kind: "scene" },
   { key: "reach-people", title: "Reach the right people", group: "How it works", n: 2, Scene: SceneReachPeople, w: APP_W, h: APP_H, kind: "scene" },
-  { key: "interview-scale", title: "Interview at scale", group: "How it works", n: 3, Scene: SceneInterviewScale, w: APP_W, h: APP_H, kind: "scene" },
+  { key: "interview-scale", title: "Interview at scale", group: "How it works", n: 3, Scene: SceneInterviewScale, w: APP_W, h: APP_H, kind: "scene", poster: 6000 },
   { key: "deliver-results", title: "Deliver meaningful results", group: "How it works", n: 4, Scene: SceneDeliverResults, w: APP_W, h: APP_H, kind: "scene" },
   { key: "compound", title: "Compound your learnings", group: "How it works", n: 5, Scene: SceneCompound, w: APP_W, h: APP_H, kind: "scene" },
 
