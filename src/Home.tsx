@@ -129,7 +129,11 @@ const CSS = `
 .hp-foot-bar { display: flex; justify-content: space-between; gap: 16px; }
 
 /* brand band */
-.hp-band { position: relative; height: clamp(520px, 55.5cqw, 800px); background: ${C.ink}; color: ${C.onBrand}; overflow: hidden; }
+/* reveal footer: the page above is an opaque layer that scrolls up off the
+   band, which has been stuck to the bottom of the screen underneath all along */
+.hp-main { position: relative; z-index: 1; background: ${C.bg}; }
+.hp-band { position: sticky; bottom: 0; z-index: 0; height: min(clamp(520px, 55.5cqw, 800px), calc(100dvh - var(--hp-top, 0px)));
+  background: ${C.ink}; color: ${C.onBrand}; overflow: hidden; }
 .hp-band .art { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(450px, 60cqw); aspect-ratio: 3 / 2; object-fit: cover; }
 .hp-band .word { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(912px, calc(100cqw - 48px)); }
 .hp-bandin { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 1440px; }
@@ -895,6 +899,7 @@ export default function Home(): JSX.Element {
       {s.panel && <ToolBar view="home" sticky />}
       <div ref={pageRef} className="hp" style={{ ["--hp-top" as string]: s.panel ? TOOLBAR_H + "px" : "0px", width: s.w ? Math.min(s.w, vw) : "100%", boxShadow: s.w ? "0 0 0 1px #C9C1B2" : undefined }}>
         {s.grid && <div className="hp-gridov">{Array.from({ length: 12 }, (_, i) => <div key={i} />)}</div>}
+        <div className="hp-main">
         <Nav />
         <Hero widget={s.hero === "widget"} />
         <LogoWall />
@@ -904,6 +909,7 @@ export default function Home(): JSX.Element {
         <HowToUse />
         <Experts />
         <CtaFooter />
+        </div>
         <Band />
       </div>
       {s.panel ? (
