@@ -2,7 +2,7 @@
 // named "UseCases". The component itself lives in the listen-scene-system repo;
 // to update, change the tag in the URL to the newest release (README › Framer).
 import { addPropertyControls } from "framer"
-import { UseCases as Live } from "https://cdn.jsdelivr.net/gh/brannonwellington-design/listen-scene-system@framer-v1/framer/listen-scenes.js"
+import { UseCases as Live } from "https://cdn.jsdelivr.net/gh/brannonwellington-design/listen-scene-system@framer-v2/framer/listen-scenes.js"
 
 /**
  * @framerSupportedLayoutWidth any
