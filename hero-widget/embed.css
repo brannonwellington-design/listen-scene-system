@@ -1,0 +1,6 @@
+/* added by scripts/sync-hero-widget.sh: ?embed=1 shows only the media stage,
+   filling the iframe, for the homepage mock's hero */
+html.embed, html.embed body { background: transparent; height: 100%; overflow: hidden; }
+html.embed .nav, html.embed .hero-copy, html.embed .controls { display: none !important; }
+html.embed .hero { display: block; padding: 0; height: 100%; }
+html.embed .stage { aspect-ratio: auto !important; width: 100%; height: 100%; }

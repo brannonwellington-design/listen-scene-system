@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero Insight Widget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Listen Labs — Paper / Light */
+  --content-primary: #120F08;
+  --content-secondary: #6B6861;
+  --content-inverse-primary: #F9F4EB;
+  --content-inverse-secondary: #9E9B94;
+  --content-disabled: #B6B4AF;
+  --content-brand: #0021CC;
+  --content-brand-secondary: #7A85B8;
+  --surface-highlight: #FBF9F4;
+  --surface-primary: #F9F4EB;
+  --surface-secondary: #EEE8DD;
+  --surface-tertiary: #E2DCCF;
+  --surface-inverse-primary: #120F08;
+  --surface-inverse-secondary: #1F1B14;
+  --surface-brand-primary: #0021CC;
+  --surface-brand-secondary: #D9DDF2;
+  --emotion-anger-primary: #BF4040;
+  --emotion-anger-secondary: rgba(191, 64, 64, 0.10);
+
+  --loop-ms: 4000;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: 'Inter', 'Helvetica Neue', Arial, system-ui, sans-serif;
+  font-weight: 400;
+  background: var(--surface-primary);
+  color: var(--content-brand);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; }
+
+/* ---------- Page chrome — 1:1 with Figma "Homepage V2" (desktop 1112:306, mobile 1112:346 / 1112:354) ---------- */
+:root {
+  --fg: #0021CC;          /* content/primary in the Figma file */
+  --fg-2: #7586D7;        /* content/secondary in the Figma file */
+  --input-bg: #FBF9F4;    /* surface/highlight */
+  --on-brand: #F9F4EB;    /* content/brand contrast */
+}
+a { color: inherit; text-decoration: none; }
+
+.nav {
+  position: sticky; top: 0; z-index: 5;
+  height: 68px; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface-primary);
+  color: var(--fg);
+}
+.logo { display: block; width: 148px; height: 20px; color: var(--fg); }
+.logo-svg { display: block; width: 148.033px; height: 20px; }
+.nav-links, .nav-right { display: flex; align-items: center; gap: 24px; }
+.nav-links a, .nav-right a { font-size: 14px; line-height: 20px; letter-spacing: -0.02em; white-space: nowrap; }
+.nav-links .has-menu { display: flex; align-items: center; gap: 4px; }
+.chev { display: block; width: 12px; height: 12px; flex: none; }
+.btn-demo {
+  height: 32px; padding: 8px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-brand-primary); color: var(--on-brand);
+  font-size: 14px; line-height: 20px; letter-spacing: -0.02em; border: 0;
+}
+.nav-menu { display: none; width: 24px; height: 24px; padding: 0; border: 0; background: none; color: var(--fg); }
+.nav-menu svg { display: block; }
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 24px;
+  align-items: center;
+  padding: 0 24px 24px;
+}
+.hero-copy { display: flex; flex-direction: column; gap: 24px; margin-bottom: 32px; color: var(--fg); }
+.hero-text { display: flex; flex-direction: column; gap: 12px; }
+.hero-copy h1 {
+  margin: 0; font-weight: 400;
+  font-size: min(58px, 4.03vw);   /* 58px at the 1440 frame */
+  line-height: 1;
+  letter-spacing: -0.04em;        /* -2.32px @ 58px */
+}
+.hero-copy p {
+  margin: 0; color: var(--fg-2);
+  font-size: 20px; line-height: 1.4; letter-spacing: -0.02em;
+}
+.cta {
+  display: flex; width: 448px; max-width: 100%; height: 48px;
+  border: 1px solid var(--surface-brand-primary); border-radius: 8px; overflow: hidden;
+  background: var(--input-bg);
+}
+.cta input {
+  flex: 1 0 0; min-width: 0; height: 100%; border: 0; outline: 0; background: var(--input-bg);
+  padding: 8px 12px; color: var(--fg);
+  font-size: 16px; line-height: 22px; letter-spacing: -0.02em;
+}
+.cta input::placeholder { color: var(--fg-2); opacity: 1; }
+.cta button {
+  flex: none; height: 100%; border: 0; padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-brand-primary); color: var(--on-brand);
+  font-size: 16px; line-height: 22px; letter-spacing: -0.02em; white-space: nowrap;
+}
+.cta button svg { display: block; flex: none; }
+
+@media (max-width: 860px) {
+  .nav { height: 56px; padding: 0 16px; }
+  .nav-links, .nav-right .signin { display: none; }
+  .nav-right { gap: 16px; }
+  .btn-demo { height: 24px; padding: 2px 8px; }
+  .nav-menu { display: block; }
+  .hero { grid-template-columns: minmax(0, 1fr); row-gap: 16px; padding: 48px 16px 16px; }
+  .hero-copy { gap: 16px; margin-bottom: 0; }
+  .hero-copy h1 { font-size: 32px; letter-spacing: -0.04em; }   /* -1.28px @ 32px */
+  .hero-copy p { font-size: 14px; line-height: 20px; }
+  .cta { width: 100%; }
+}
+
+/* ---------- Media stage ---------- */
+.stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #5FA0BF;
+  container-type: inline-size;
+  container-name: stage;
+}
+/* Desktop frame is 684 × 708 (fills the 800px fold under the 68px nav); mobile is 1:1 */
+@media (min-width: 861px) { .stage { aspect-ratio: 684 / 708; } }
+.stage .media {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+.stage .media.is-active { opacity: 1; }
+/* Fakes the "ever so slight" movement of the 4s loop on still placeholders */
+.stage img.media.is-active { animation: breathe calc(var(--loop-ms) * 1ms) ease-in-out infinite alternate; }
+@keyframes breathe {
+  from { transform: scale(1.00) translate(0, 0); }
+  to   { transform: scale(1.02) translate(-0.4%, -0.3%); }
+}
+.slot-tag {
+  position: absolute; top: 12px; right: 12px;
+  font-size: 10px; line-height: 12px;
+  padding: 4px 6px; border-radius: 4px;
+  background: rgba(18,15,8,.5); color: var(--content-inverse-primary);
+  display: none;
+}
+body.show-guides .slot-tag { display: block; }
+.guide-face {
+  position: absolute; display: none;
+  border: 1px dashed rgba(249,244,235,.9);
+  border-radius: 50%;
+  pointer-events: none;
+}
+body.show-guides .guide-face { display: block; }
+
+/* ---------- Insight widget ----------
+   Size tiers (by stage width): phone (default) · desktop (≥520) · small phone (≤330).
+   Every tier has a fixed height: tile + 2 × pad, with text rows that sum to the tile height. */
+.widget {
+  --pad: 8px;
+  --tile: 64px;
+  --inset: 16px;
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  border-radius: 12px;
+  background: var(--surface-highlight);
+  color: var(--content-primary);
+  box-shadow: 0 1px 2px rgba(18,15,8,.06), 0 4px 12px rgba(18,15,8,.08);
+  overflow: hidden;
+}
+
+/* Layout A — bar: tile left, text right */
+.widget[data-layout="bar"] {
+  grid-template-columns: var(--tile) 1fr;
+  column-gap: 10px;
+  align-items: center;
+  padding: var(--pad);
+  width: min(calc(100% - var(--inset) * 2), 400px);
+  height: calc(var(--tile) + var(--pad) * 2);
+}
+/* Layout B — card: visual on top, text under */
+.widget[data-layout="card"] {
+  grid-template-rows: auto auto;
+  row-gap: 10px;
+  padding: var(--pad);
+  width: 216px;
+}
+.widget[data-layout="card"] .tile { width: 100%; height: var(--tile); }
+
+.widget[data-pos="bl"] { left: var(--inset); bottom: var(--inset); }
+.widget[data-pos="br"] { right: var(--inset); bottom: var(--inset); }
+.widget[data-pos="tl"] { left: var(--inset); top: var(--inset); }
+.widget[data-pos="bc"] { left: 50%; bottom: var(--inset); transform: translateX(-50%); }
+.widget[data-pos="tr"] { right: var(--inset); top: var(--inset); }
+
+@container stage (min-width: 520px) {
+  .widget { --pad: 12px; --tile: 80px; }
+  .widget[data-layout="bar"] { width: 400px; column-gap: 12px; }
+  .widget[data-layout="card"] { width: 248px; row-gap: 12px; }
+  .widget[data-layout="card"] .tile { height: 72px; }
+}
+
+/* Small phones (≤ ~360px viewports): smaller tile + 12px text so two lines still fit */
+@container stage (max-width: 330px) {
+  .widget { --tile: 52px; --pad: 8px; }
+  .widget[data-layout="bar"] { width: calc(100% - var(--inset) * 2); height: auto; }
+  .insight, .transcript { font-size: 12px; line-height: 16px; }
+  .lines { height: 32px; }
+  .widget[data-layout="card"] .lines { height: 48px; }
+}
+
+/* User-tunable shape: --inset (distance from the frame edge) and --r (corner radius) are set from the controls */
+.widget { border-radius: var(--r, 12px); }
+.tile { border-radius: calc(var(--r, 12px) * 2 / 3); }   /* concentric: inner < outer */
+
+/* Flush tile: the visual runs edge-to-edge on the card's leading side (Figma concept-test tiles) */
+.widget[data-tile="flush"][data-layout="bar"] {
+  padding: 0 var(--pad) 0 0;
+  grid-template-columns: calc(var(--tile) + var(--pad) * 2) 1fr;
+}
+.widget[data-tile="flush"][data-layout="bar"] .tile { width: 100%; height: 100%; border-radius: 0; }
+.widget[data-tile="flush"][data-layout="bar"] .body { padding: var(--pad) 0; }
+.widget[data-tile="flush"][data-layout="card"] { padding: 0; }
+.widget[data-tile="flush"][data-layout="card"] .tile { height: calc(var(--tile) + var(--pad)); border-radius: 0; }
+.widget[data-tile="flush"][data-layout="card"] .body { padding: 0 var(--pad) var(--pad); }
+
+/* Big-number tile */
+.stat-bg { position: absolute; inset: 0; background: var(--surface-brand-primary); }
+.tile-viz:has(.stat) { color: var(--content-inverse-primary); }
+
+/* Stimulus tile */
+.stim { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+  animation: stimIn 700ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes stimIn { from { opacity: 0; transform: scale(1.08); } }
+.tile-viz:has(.stim)::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, rgba(18,15,8,.55), rgba(18,15,8,0) 55%); }
+.stim-badge { position: absolute; left: 6px; bottom: 5px; z-index: 1;
+  font-size: 14px; line-height: 16px; letter-spacing: -0.02em; color: var(--content-inverse-primary); }
+@container stage (min-width: 520px) { .stim-badge { left: 8px; bottom: 6px; font-size: 18px; line-height: 20px; } }
+.stat { position: absolute; inset: 0; padding: 8px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; }
+.stat-v { font-size: 24px; line-height: 1; letter-spacing: -0.04em; }
+.stat-c { font-size: 8px; line-height: 10px; color: rgba(249,244,235,.72); }
+.stat-v.q { font-size: 48px; line-height: 24px; height: 24px; }
+.widget[data-layout="card"] .stat { flex-direction: row; align-items: flex-end; gap: 8px; padding: 10px 12px; }
+.widget[data-layout="card"] .stat-c { padding-bottom: 2px; }
+@container stage (min-width: 520px) {
+  .stat { padding: 10px; }
+  .stat-v { font-size: 32px; }
+  .stat-v.q { font-size: 64px; line-height: 32px; height: 32px; }
+  .stat-c { font-size: 10px; line-height: 12px; }
+}
+
+/* Dot matrix: no tile fill — the 19×19 field itself is the shape, drawn on the card surface.
+   The canvas stays visible through every phase; only individual dots change. */
+.widget[data-viz-now="dots"] .tile { background: transparent; }
+.widget[data-viz-now="dots"] .tile-viz { display: none; }
+.widget[data-viz-now="dots"] .tile-talk { opacity: 1 !important; }
+.widget[data-viz-now="dots"] .tile-talk canvas { inset: 0; width: 100%; height: 100%; }
+.widget[data-viz-now="dots"][data-tile="flush"] .tile-talk canvas { inset: var(--pad); width: calc(100% - var(--pad) * 2); height: calc(100% - var(--pad) * 2); }
+/* (legacy) */
+.tile-viz svg.dm { inset: 6px; width: calc(100% - 12px); height: calc(100% - 12px); }
+.pop { transform-box: fill-box; transform-origin: center; animation: pop 360ms cubic-bezier(.2,.8,.2,1.4) both; animation-delay: var(--d, 0ms); }
+@keyframes pop { from { transform: scale(0); opacity: 0; } }
+
+/* Surfaces */
+.widget[data-surface="glass"] {
+  background: rgba(251,249,244,.84);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.45), 0 1px 2px rgba(18,15,8,.06), 0 4px 12px rgba(18,15,8,.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+}
+.widget[data-surface="dark"] {
+  background: rgba(18,15,8,.86);
+  color: var(--content-inverse-primary);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.tile {
+  width: var(--tile); height: var(--tile);
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  position: relative;
+  overflow: hidden;
+}
+.widget[data-surface="dark"] .tile { background: var(--surface-inverse-secondary); }
+.tile svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tile-viz, .tile-talk { position: absolute; inset: 0; transition: opacity 300ms ease; }
+
+/* ---------- Story: transcript → insight pull ----------
+   Phases on .widget[data-phase]: talk → hl → dim → pull.
+   "insight" is the plain insight-only mode. */
+.transcript, .tile-talk { opacity: 0; pointer-events: none; }
+.widget:is([data-phase="talk"], [data-phase="hl"], [data-phase="dim"]) .transcript,
+.widget:is([data-phase="talk"], [data-phase="hl"], [data-phase="dim"]) .tile-talk { opacity: 1; }
+.widget:is([data-phase="talk"], [data-phase="hl"], [data-phase="dim"]) .insight,
+.widget:is([data-phase="talk"], [data-phase="hl"], [data-phase="dim"]) .tile-viz { opacity: 0; }
+.insight { transition: opacity 360ms ease, transform 360ms cubic-bezier(.2,.8,.2,1); }
+.transcript { transition: opacity 260ms ease, transform 360ms cubic-bezier(.2,.8,.2,1); }
+.widget[data-phase="pull"] .insight { animation: rise 420ms cubic-bezier(.2,.8,.2,1) both; animation-delay: 40ms; }
+.widget[data-phase="pull"] .transcript { transform: translateY(-8px); }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* words type on one at a time */
+.transcript .w { animation: wIn 240ms ease both; animation-delay: calc(var(--i) * var(--step, 120ms)); transition: color 400ms ease; }
+@keyframes wIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; } }
+/* the extracted phrase gets marked, then everything else drops away */
+.transcript .hl {
+  background: linear-gradient(var(--surface-brand-secondary), var(--surface-brand-secondary)) no-repeat 0 0 / 0% 100%;
+  border-radius: 2px;
+  transition: background-size 500ms cubic-bezier(.4,0,.2,1), color 300ms ease;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.widget:is([data-phase="hl"], [data-phase="dim"], [data-phase="pull"]) .transcript .hl { background-size: 100% 100%; color: var(--content-brand); }
+.widget:is([data-phase="dim"], [data-phase="pull"]) .transcript > .w { color: var(--content-disabled); }
+.widget[data-surface="dark"]:is([data-phase="dim"], [data-phase="pull"]) .transcript > .w { color: rgba(249,244,235,.25); }
+.widget[data-surface="dark"] .transcript .hl { background-image: linear-gradient(rgba(217,221,242,.18), rgba(217,221,242,.18)); }
+.widget[data-surface="dark"]:is([data-phase="hl"], [data-phase="dim"], [data-phase="pull"]) .transcript .hl { color: #C3CAF0; }
+
+/* Dot-grid voice visualizer (canvas) shown in the tile while the transcript plays */
+.tile-talk canvas { position: absolute; inset: 6px; width: calc(100% - 12px); height: calc(100% - 12px); display: block; }
+.meta .type .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #CF2617; margin-right: 4px; vertical-align: 0; animation: blink 1s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+
+.body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.widget[data-layout="card"] .body { gap: 4px; }
+
+/* One meta line, no chip: type in brand blue · study in secondary */
+.meta {
+  display: flex; align-items: center;
+  font-size: 10px; line-height: 12px;
+  color: var(--content-secondary);
+  white-space: nowrap; overflow: hidden;
+}
+.meta .type { flex: none; color: var(--content-brand); }
+.meta .type::after { content: '·'; color: var(--content-secondary); margin: 0 4px; }
+.meta .study { overflow: hidden; text-overflow: ellipsis; }
+.widget[data-surface="dark"] .meta { color: var(--content-inverse-secondary); }
+.widget[data-surface="dark"] .meta .type { color: #A9B3F2; }
+.widget[data-surface="dark"] .meta .type::after { color: var(--content-inverse-secondary); }
+
+.lines { position: relative; height: 36px; }
+.widget[data-layout="card"] .lines { height: 54px; }
+.insight, .transcript {
+  font-size: 14px; line-height: 18px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.widget[data-layout="card"] :is(.insight, .transcript) { -webkit-line-clamp: 3; }
+.transcript { position: absolute; inset: 0; }
+
+/* Attribution row: who said it, plus where we are in the rotation */
+.who-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.who { font-size: 12px; line-height: 12px; color: var(--content-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.who b { font-weight: 400; color: var(--content-primary); }
+.widget[data-surface="dark"] .who { color: var(--content-inverse-secondary); }
+.widget[data-surface="dark"] .who b { color: var(--content-inverse-primary); }
+
+/* Participant pager: one dot per person; the current one stretches and fills over its loop */
+.pager { flex: none; display: flex; align-items: center; gap: 3px; }
+.pager i { position: relative; overflow: hidden; width: 4px; height: 4px; border-radius: 2px; background: rgba(18,15,8,.14); transition: width 300ms cubic-bezier(.2,.8,.2,1); }
+.pager i.done { background: rgba(18,15,8,.36); }
+.pager i.on { background: rgba(0,33,204,.16); }
+.pager i.on { width: 12px; }
+.pager i.on::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: var(--surface-brand-primary);
+  transform-origin: left; transform: scaleX(0);
+  animation: pagerFill calc(var(--loop-ms) * 1ms) linear forwards;
+}
+.pager.paused i.on::after { animation-play-state: paused; }
+@keyframes pagerFill { to { transform: scaleX(1); } }
+.widget[data-surface="dark"] .pager i { background: rgba(249,244,235,.18); }
+.widget[data-surface="dark"] .pager i.on { background: rgba(169,179,242,.22); }
+.widget[data-surface="dark"] .pager i.done { background: rgba(249,244,235,.4); }
+.widget[data-surface="dark"] .pager i.on::after { background: #A9B3F2; }
+
+@container stage (min-width: 520px) {
+  .meta { font-size: 12px; line-height: 16px; }
+  .body { gap: 4px; }
+  .who { line-height: 16px; }
+  .insight, .transcript { font-size: 16px; line-height: 20px; }
+  .lines { height: 40px; }
+  .widget[data-layout="card"] .lines { height: 60px; }
+  .pager i.on { width: 16px; }
+}
+
+/* Content swap: fields fade/rise in with a small stagger */
+.swap { transition: opacity 220ms ease, transform 220ms ease; }
+.widget.out .swap { opacity: 0; transform: translateY(4px); }
+.widget.out .swap:nth-child(2) { transition-delay: 20ms; }
+.widget.out .swap:nth-child(3) { transition-delay: 40ms; }
+.body .swap:nth-child(2) { transition-delay: 40ms; }
+.who-row .swap { transition-delay: 80ms; }
+
+/* Chart primitives animate in */
+.grow-y { transform-box: fill-box; transform-origin: bottom; animation: growY 700ms cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 120ms); }
+.grow-x { transform-box: fill-box; transform-origin: left; animation: growX 700ms cubic-bezier(.2,.8,.2,1) both; animation-delay: var(--d, 120ms); }
+.fade  { animation: fadeIn 500ms ease both; animation-delay: var(--d, 300ms); }
+.draw  { stroke-dasharray: 200; stroke-dashoffset: 200; animation: draw 1100ms ease-out forwards; animation-delay: var(--d, 120ms); }
+@keyframes growY { from { transform: scaleY(0); } }
+@keyframes growX { from { transform: scaleX(0); } }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .stage img.media.is-active, .grow-y, .grow-x, .fade, .draw, .pop, .transcript .w, .dot { animation: none; stroke-dashoffset: 0; opacity: 1; }
+  .swap { transition: none; }
+}
+
+/* ---------- Prototype controls (not part of the design) ---------- */
+.controls {
+  position: fixed; right: 16px; bottom: 16px; z-index: 10;
+  background: var(--surface-inverse-primary); color: var(--content-inverse-primary);
+  border-radius: 12px; padding: 12px; width: 268px;
+  font-size: 12px; line-height: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+}
+.controls.collapsed .ctl-body { display: none; }
+.ctl-head { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  margin: -12px -12px 0; padding: 12px; cursor: grab;
+  position: sticky; top: -12px; z-index: 1; background: var(--surface-inverse-primary); border-radius: 12px 12px 0 0; touch-action: none; user-select: none; }
+.ctl-head .grip { display: inline-flex; align-items: center; gap: 6px; }
+.ctl-head .grip::before { content: ''; width: 10px; height: 10px; flex: none; opacity: .5;
+  background: radial-gradient(circle, currentColor 1px, transparent 1.5px) 0 0 / 5px 5px; }
+.controls.dragging { box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+.controls.dragging .ctl-head { cursor: grabbing; }
+.ctl-head button { background: none; border: 0; color: var(--content-inverse-secondary); cursor: pointer; padding: 0; font-size: 12px; }
+.ctl-body { display: grid; gap: 10px; margin-top: 10px; }
+.ctl-row { display: grid; gap: 4px; }
+.ctl-row label { color: var(--content-inverse-secondary); }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button {
+  background: var(--surface-inverse-secondary); color: var(--content-inverse-primary);
+  border: 1px solid #36322A; border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--surface-brand-primary); border-color: var(--surface-brand-primary); }
+.people { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.people button { aspect-ratio: 1; padding: 0; font-size: 10px; }
+.ctl-check { display: flex; gap: 6px; align-items: center; color: var(--content-inverse-primary); }
+.controls { max-height: calc(100vh - 32px); overflow: auto; }
+.ctl-range { display: grid; grid-template-columns: 1fr 40px; align-items: center; gap: 8px; }
+.ctl-range input { width: 100%; accent-color: var(--surface-brand-primary); }
+.ctl-range output { text-align: right; color: var(--content-inverse-primary); font-variant-numeric: tabular-nums; }
+.corners { display: grid; grid-template-columns: repeat(3, 28px); grid-template-rows: repeat(2, 20px); gap: 4px; }
+.corners button { padding: 0; }
+</style>
+<link rel="stylesheet" href="embed.css"><script src="embed.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="logo" href="#" aria-label="Listen Labs">
+    <svg class="logo-svg" width="148" height="20" viewBox="0 0 148.033 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<g id="Group 1000006300">
+<g id="Group 1000006350">
+<path id="Vector" d="M13.5921 0.363525H7.47487C7.03876 0.363525 6.68555 0.717211 6.68555 1.15388V7.27916C6.68555 7.71584 7.03876 8.06952 7.47487 8.06952H13.5921C14.0282 8.06952 14.3814 7.71584 14.3814 7.27916V1.15388C14.3814 0.717211 14.0282 0.363525 13.5921 0.363525Z" fill="currentColor"/>
+<path id="Vector_2" d="M5.93609 8.0686H0.789712C0.338812 8.0686 -0.0252651 8.44698 0.00137453 8.8985C0.272704 13.5152 2.79163 17.5361 6.47579 19.8776C6.85171 20.1167 7.35095 19.9941 7.5769 19.6099L10.1876 15.1828C10.4007 14.8212 10.2941 14.3559 9.94484 14.1237C8.1679 12.9451 6.93656 11.0058 6.72147 8.77202C6.68299 8.37091 6.33963 8.0686 5.93708 8.0686H5.93609Z" fill="currentColor"/>
+</g>
+<g id="Vector_3">
+<path d="M23.1139 18.1631V0H25.8067V15.8514H33.7835V18.1631H23.1139Z" fill="currentColor"/>
+<path d="M35.8204 4.82655H38.3862V18.1631H35.8204V4.82655ZM35.7696 2.89593V0H38.437V2.89593H35.7696Z" fill="currentColor"/>
+<path d="M40.5727 14.0986H43.1131C43.545 15.5212 44.4849 16.3849 46.3394 16.3849C47.8636 16.3849 48.956 15.699 48.956 14.505C48.956 13.2603 47.6858 12.9301 45.8059 12.4728L44.866 12.2188C42.6558 11.6853 41.0046 10.6946 41.0046 8.38295C41.0046 6.02048 43.1385 4.47091 46.1108 4.47091C49.0576 4.47091 50.9883 5.74105 51.2932 8.35755H48.8544C48.4733 7.16361 47.5842 6.50314 46.0346 6.50314C44.4087 6.50314 43.6212 7.16361 43.6212 8.15433C43.6212 9.24665 44.4087 9.55148 46.0346 10.0341L47.4572 10.4406C50.1246 11.2027 51.5218 12.0156 51.5218 14.251C51.5218 16.8167 49.3117 18.4679 46.2632 18.4679C43.0115 18.4679 41.1062 17.0707 40.5727 14.0986Z" fill="currentColor"/>
+<path d="M57.0581 1.21934V4.82655H59.5476V6.80797H57.0581V14.8099C57.0581 16.1054 57.6932 16.4611 58.6839 16.4611C58.8617 16.4611 59.1412 16.4357 59.319 16.4103V18.3155C58.938 18.3917 58.6585 18.4171 58.3283 18.4171C55.9657 18.4171 54.4669 17.6296 54.4669 14.9623V6.80797H52.46V4.82655H54.4669V1.21934H57.0581Z" fill="currentColor"/>
+<path d="M73.6057 12.168H63.1647C63.2409 14.505 64.816 16.3595 67.3564 16.3595C69.1854 16.3595 70.0746 15.4958 70.7605 14.3526H73.3263C72.5896 16.7659 70.4302 18.4933 67.2548 18.4933C63.1393 18.4933 60.5735 15.7244 60.5735 11.5583C60.5735 7.39224 63.2663 4.4455 67.2548 4.4455C71.5988 4.4455 73.6057 7.74788 73.6057 11.3297V12.168ZM63.2663 10.1357H70.9383C70.7097 8.00191 69.4141 6.52854 67.2039 6.52854C65.0954 6.52854 63.5458 7.9003 63.2663 10.1357Z" fill="currentColor"/>
+<path d="M78.3535 4.82655V6.63015C79.0394 5.48702 80.3604 4.4455 82.5959 4.4455C85.6698 4.4455 87.2702 6.50314 87.2702 9.95793V18.1631H84.679V10.9232C84.679 8.28134 83.8153 6.63015 81.7068 6.63015C79.5729 6.63015 78.4043 8.35755 78.4043 10.466V18.1631H75.8385V5.84266C75.8385 5.51243 75.8385 5.15679 75.8131 4.82655H78.3535Z" fill="currentColor"/>
+<path d="M96.5913 18.1631V0H99.2841V15.8514H107.261V18.1631H96.5913Z" fill="currentColor"/>
+<path d="M120.476 18.1631H118.062C117.986 17.6296 117.961 17.3248 117.935 16.3341C116.919 17.782 115.573 18.4171 113.439 18.4171C110.644 18.4171 108.612 17.0453 108.612 14.5559C108.612 11.7107 111.356 10.7454 114.912 10.2628C115.801 10.1357 116.767 10.0341 117.656 9.95793C117.656 7.26522 116.538 6.50314 114.785 6.50314C112.854 6.50314 111.94 7.39224 111.762 8.99262H109.247C109.374 6.1475 111.66 4.47091 114.836 4.47091C117.681 4.47091 120.145 5.41081 120.145 10.6184V13.2095C120.145 15.3687 120.247 16.9437 120.476 18.1631ZM117.706 11.8123C113.362 12.2188 111.381 12.7014 111.381 14.5304C111.381 15.7752 112.397 16.5627 114.023 16.5627C116.436 16.5627 117.681 15.1401 117.681 12.5236V12.1172C117.681 11.9902 117.681 11.8885 117.706 11.8123Z" fill="currentColor"/>
+<path d="M122.663 18.1631V0H125.254V5.20759C125.254 5.61404 125.254 6.04589 125.229 6.52854C126.016 5.43622 127.439 4.4201 129.573 4.4201C133.333 4.4201 135.797 7.41764 135.797 11.4567C135.797 15.6228 133.256 18.4679 129.598 18.4679C127.286 18.4679 125.864 17.4772 125.076 16.2832V18.1631H122.663ZM129.065 6.57935C126.601 6.57935 125.102 8.63698 125.102 11.4821C125.102 14.4288 126.55 16.3595 129.09 16.3595C131.605 16.3595 133.028 14.4542 133.028 11.4821C133.028 8.63698 131.58 6.57935 129.065 6.57935Z" fill="currentColor"/>
+<path d="M137.084 14.0986H139.624C140.056 15.5212 140.996 16.3849 142.851 16.3849C144.375 16.3849 145.467 15.699 145.467 14.505C145.467 13.2603 144.197 12.9301 142.317 12.4728L141.377 12.2188C139.167 11.6853 137.516 10.6946 137.516 8.38295C137.516 6.02048 139.65 4.47091 142.622 4.47091C145.569 4.47091 147.5 5.74105 147.804 8.35755H145.366C144.985 7.16361 144.095 6.50314 142.546 6.50314C140.92 6.50314 140.132 7.16361 140.132 8.15433C140.132 9.24665 140.92 9.55148 142.546 10.0341L143.968 10.4406C146.636 11.2027 148.033 12.0156 148.033 14.251C148.033 16.8167 145.823 18.4679 142.774 18.4679C139.523 18.4679 137.617 17.0707 137.084 14.0986Z" fill="currentColor"/>
+</g>
+</g>
+</svg>
+  </a>
+  <div class="nav-links">
+    <a href="#" class="has-menu">Solutions <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <a href="#" class="has-menu">Features <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <a href="#">Customers</a>
+    <a href="#" class="has-menu">Resources <svg class="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <a href="#">Careers</a>
+  </div>
+  <div class="nav-right">
+    <a href="#" class="signin">Sign in</a>
+    <a href="#" class="btn-demo">Demo</a>
+    <button class="nav-menu" aria-label="Menu"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+<g id="grip">
+<g id="Vector">
+<path d="M12 6C12.5523 6 13 5.55228 13 5C13 4.44772 12.5523 4 12 4C11.4477 4 11 4.44772 11 5C11 5.55228 11.4477 6 12 6Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M19 6C19.5523 6 20 5.55228 20 5C20 4.44772 19.5523 4 19 4C18.4477 4 18 4.44772 18 5C18 5.55228 18.4477 6 19 6Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5 6C5.55228 6 6 5.55228 6 5C6 4.44772 5.55228 4 5 4C4.44772 4 4 4.44772 4 5C4 5.55228 4.44772 6 5 6Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M19 13C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11C18.4477 11 18 11.4477 18 12C18 12.5523 18.4477 13 19 13Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5 13C5.55228 13 6 12.5523 6 12C6 11.4477 5.55228 11 5 11C4.44772 11 4 11.4477 4 12C4 12.5523 4.44772 13 5 13Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12 20C12.5523 20 13 19.5523 13 19C13 18.4477 12.5523 18 12 18C11.4477 18 11 18.4477 11 19C11 19.5523 11.4477 20 12 20Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M19 20C19.5523 20 20 19.5523 20 19C20 18.4477 19.5523 18 19 18C18.4477 18 18 18.4477 18 19C18 19.5523 18.4477 20 19 20Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5 20C5.55228 20 6 19.5523 6 19C6 18.4477 5.55228 18 5 18C4.44772 18 4 18.4477 4 19C4 19.5523 4.44772 20 5 20Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</svg></button>
+  </div>
+</nav>
+
+<main class="hero">
+  <div class="hero-copy">
+    <div class="hero-text">
+      <h1>Customer Understanding,<br>Loud and Clear.</h1>
+      <p>What people think, why they think it, and what to do about it. From real interviews, not anecdotes.</p>
+    </div>
+    <form class="cta" onsubmit="return false">
+      <input type="email" placeholder="What’s your work email?" aria-label="Work email">
+      <button type="submit">Book A Demo <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4.16667 10H15.8333M10 15.8333L15.8333 10L10 4.16667" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </form>
+  </div>
+
+  <div class="stage" id="stage" aria-roledescription="carousel" aria-label="Interview participants and their insights">
+    <!-- media layers injected here -->
+    <div class="guide-face" id="guideFace"></div>
+    <span class="slot-tag" id="slotTag"></span>
+
+    <article class="widget" id="widget" data-layout="bar" data-pos="bl" data-surface="light" aria-live="polite">
+      <div class="tile swap"><div class="tile-viz" id="tile"></div><div class="tile-talk" id="talk"><canvas id="wave"></canvas></div></div>
+      <div class="body">
+        <div class="meta swap"><span class="type" id="type"></span><span class="study" id="study"></span></div>
+        <div class="lines swap"><div class="insight" id="insight"></div><div class="transcript" id="transcript" aria-hidden="true"></div></div>
+        <div class="who-row"><div class="who swap" id="who"></div><div class="pager" id="pager" aria-hidden="true"></div></div>
+      </div>
+    </article>
+  </div>
+</main>
+
+<aside class="controls" id="controls">
+  <div class="ctl-head" id="ctlHead" title="Drag to move · double-click to reset"><span class="grip">Prototype controls</span><button id="ctlToggle">Hide</button></div>
+  <div class="ctl-body">
+    <div class="ctl-row"><label>Story</label><div class="seg" data-key="story">
+      <button data-v="insight">Insight only</button><button data-v="pull">Transcript → insight</button></div></div>
+    <div class="ctl-row"><label>Layout</label><div class="seg" data-key="layout">
+      <button data-v="bar">Bar</button><button data-v="card">Card</button></div></div>
+    <div class="ctl-row"><label>Visual</label><div class="seg" data-key="viz">
+      <button data-v="chart">Chart</button><button data-v="number">Big number</button><button data-v="dots">Dot matrix</button><button data-v="stimulus">Stimulus</button><button data-v="hybrid">Hybrid</button></div></div>
+    <div class="ctl-row"><label>Tile</label><div class="seg" data-key="tile">
+      <button data-v="inset">Inset</button><button data-v="flush">Flush</button></div></div>
+    <div class="ctl-row"><label>Corner</label><div class="seg corners" data-key="pos">
+      <button data-v="tl" title="Top left">↖</button><span></span><button data-v="tr" title="Top right">↗</button>
+      <button data-v="bl" title="Bottom left">↙</button><button data-v="bc" title="Bottom center">↓</button><button data-v="br" title="Bottom right">↘</button></div></div>
+    <div class="ctl-row"><label>Inset from frame edge</label><div class="ctl-range"><input type="range" min="0" max="48" step="4" data-key="inset"><output></output></div></div>
+    <div class="ctl-row"><label>Corner radius</label><div class="ctl-range"><input type="range" min="0" max="24" step="2" data-key="radius"><output></output></div></div>
+    <div class="ctl-row"><label>Surface</label><div class="seg" data-key="surface">
+      <button data-v="light">Paper</button><button data-v="glass">Glass</button><button data-v="dark">Dark</button></div></div>
+    <div class="ctl-row"><label>Seconds per person</label><div class="seg" data-key="secs">
+      <button data-v="4">4s (1 loop)</button><button data-v="6">6s</button><button data-v="8">8s (2 loops)</button></div></div>
+    <div class="ctl-row"><label>Jump to person</label><div class="seg people" id="peopleBtns"></div></div>
+    <label class="ctl-check"><input type="checkbox" id="pauseBox"> Pause rotation</label>
+    <label class="ctl-check"><input type="checkbox" id="guidesBox"> Show face keep-clear guide</label>
+  </div>
+</aside>
+
+<script>
+/* ============================================================
+   CONTENT — edit this array to add people / insights.
+   media: swap for "media/katie.mp4" etc. when footage is ready.
+   face:  keep-clear ellipse for the guide, in % of the frame.
+   ============================================================ */
+const PEOPLE = [
+  {
+    name: 'Katie Nolan', age: 34, sex: 'F',
+    type: 'Concept test', study: 'Sneaker colorway test',
+    insight: 'Prefers concept A by 70%',
+    transcript: { time: '04:12', text: 'The white one with the gum sole just looks cleaner.', hl: 'just looks cleaner.' },
+    stimulus: 'media/stimulus/sneaker.jpg',
+    viz: { kind: 'ab', a: 70, b: 30 },
+    stat: ['70%', 'chose concept A'], hybrid: 'stimulus',
+  },
+  {
+    name: 'Diane Whitaker', age: 58, sex: 'F',
+    media: 'media/person-2.mp4', poster: 'media/person-2.jpg', face: { x: 56, y: 31, w: 30, h: 40 },
+    type: 'Behavior', study: 'Retirement savings habits',
+    insight: '34-point say-do gap on monthly saving',
+    transcript: { time: '09:37', text: 'I put money aside every month. Well… most months.', hl: 'Well… most months.' },
+    viz: { kind: 'saydo', say: 82, do: 48 },
+    stat: ['34', 'point say-do gap'], hybrid: 'dots',
+  },
+  {
+    name: 'Melissa Bartles', age: 41, sex: 'F',
+    type: 'Interview quote', study: 'Grocery delivery churn',
+    insight: '“Substitutions felt like a guessing game.”',
+    transcript: { time: '12:41', text: 'I quit because substitutions felt like a guessing game.', hl: 'substitutions felt like a guessing game' },
+    viz: { kind: 'quote', time: '12:41' },
+    stat: ['“', 'in her words'], hybrid: 'dots',
+  },
+  {
+    name: 'Priya Raman', age: 28, sex: 'F',
+    type: 'Emotion', study: 'Banking app onboarding',
+    insight: 'Frustration peaked at ID verification',
+    transcript: { time: '06:58', text: 'Why does it need my ID again? That’s the third time.', hl: 'That’s the third time.' },
+    viz: { kind: 'emotion', peakAt: 0.62 },
+    stat: ['3×', 'asked for ID'], hybrid: 'chart',
+  },
+  {
+    name: 'Jordan Okafor', age: 23, sex: 'M',
+    type: 'Pricing', study: 'Leather weekender pricing',
+    insight: 'Would pay $240, drops off at $300',
+    transcript: { time: '03:20', text: '$240, sure. At $300 I’d wait for a sale.', hl: 'At $300 I’d wait for a sale.' },
+    stimulus: 'media/stimulus/handbag.jpg',
+    viz: { kind: 'price', points: [['$180', 96], ['$240', 88], ['$300', 41], ['$360', 18]], pick: 1 },
+    stat: ['$240', 'price ceiling'], hybrid: 'stimulus',
+  },
+  {
+    name: 'Elena Vasquez', age: 63, sex: 'F',
+    type: 'Ranking', study: 'Hotel loyalty perks',
+    insight: 'Late checkout beat lounge access and free breakfast',
+    transcript: { time: '11:05', text: 'Late checkout. That’s the only perk I actually use.', hl: 'the only perk I actually use.' },
+    viz: { kind: 'rank', bars: [92, 64, 51] },
+    stat: ['#1', 'of 8 perks'], hybrid: 'number',
+  },
+  {
+    name: 'Theo Lindqvist', age: 38, sex: 'M',
+    type: 'Ad test', study: 'Holiday gift campaign',
+    insight: 'Purchase intent up 22 pts after the ad',
+    transcript: { time: '08:44', text: 'Before the ad, no. Now I’d actually buy one as a gift.', hl: 'I’d actually buy one as a gift.' },
+    stimulus: 'media/stimulus/star.jpg',
+    viz: { kind: 'lift', before: 31, after: 53 },
+    stat: ['+22', 'point intent lift'], hybrid: 'stimulus',
+  },
+  {
+    name: 'Aiko Tanaka', age: 47, sex: 'F',
+    type: 'Shelf test', study: 'Skincare bottle designs',
+    insight: 'The blue cap made design C stand out on the shelf',
+    transcript: { time: '02:16', text: 'The tall white one with the blue cap caught my eye first.', hl: 'caught my eye first.' },
+    viz: { kind: 'shelf', pick: 2 },
+    stat: ['2.1s', 'to spot design C'], hybrid: 'number',
+  },
+].map(p => ({ media: 'media/placeholder.mp4', poster: 'media/placeholder.jpg', face: { x: 47, y: 41, w: 36, h: 42 }, ...p }));
+// Footage so far: slot 2 = person-2.mp4; every other slot reuses placeholder.mp4.
+
+/* ============================================================
+   VISUALS — three interchangeable styles for the tile, picked by
+   widget[data-viz]:
+     chart  — minimal SVG charts, no micro-labels (the insight line carries the numbers)
+     number — one big stat on a brand-blue tile (from the Figma "Point gap" tiles)
+     dots   — every chart drawn on the voice visualizer's 16×15 dot grid
+   ============================================================ */
+const BLUE = '#0021CC', BLUE_3 = '#B9C0E3', ANGER = '#BF4040';
+
+function vizChart(v, dark) {
+  const track = dark ? 'rgba(249,244,235,.12)' : 'rgba(18,15,8,.08)';
+  const svg = inner => `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${inner}</svg>`;
+  const vbar = (x, w, pct, c, d, base = 84, H = 68) =>
+    `<rect class="grow-y" style="--d:${d}" x="${x}" y="${base - H * pct / 100}" width="${w}" height="${H * pct / 100}" rx="3" fill="${c}"/>`;
+  const hbar = (y, pct, c, d, x0 = 16, W = 68, h = 12) =>
+    `<rect x="${x0}" y="${y}" width="${W}" height="${h}" rx="3" fill="${track}"/>` +
+    `<rect class="grow-x" style="--d:${d}" x="${x0}" y="${y}" width="${W * pct / 100}" height="${h}" rx="3" fill="${c}"/>`;
+
+  switch (v.kind) {
+    case 'ab':    return svg(vbar(20, 26, v.a, BLUE, '80ms') + vbar(54, 26, v.b, BLUE_3, '180ms'));
+    case 'lift':  return svg(vbar(20, 26, v.before, BLUE_3, '80ms') + vbar(54, 26, v.after, BLUE, '240ms') +
+                    `<line class="fade" style="--d:700ms" x1="46" x2="80" y1="${84 - 68 * v.before / 100 + 0.5}" y2="${84 - 68 * v.before / 100 + 0.5}" stroke="${BLUE}" stroke-dasharray="2 2"/>`);
+    case 'saydo': return svg(hbar(30, v.say, BLUE_3, '80ms') + hbar(58, v.do, BLUE, '200ms') +
+                    `<rect class="fade" style="--d:700ms" x="${16 + 68 * v.do / 100}" y="58" width="${68 * (v.say - v.do) / 100}" height="12" rx="3" fill="none" stroke="${BLUE}" stroke-dasharray="2 2"/>`);
+    case 'rank':  return svg(v.bars.map((pct, i) => hbar(24 + i * 20, pct, i ? BLUE_3 : BLUE, `${80 + i * 90}ms`)).join(''));
+    case 'price': return svg(v.points.map(([, pct], i) => vbar(14 + i * 19, 15, pct, i === v.pick ? BLUE : BLUE_3, `${80 + i * 70}ms`)).join(''));
+    case 'quote': {
+      const bars = [8, 16, 28, 12, 36, 22, 44, 16, 30, 10, 24, 36, 14, 18, 8];
+      return svg(bars.map((h, i) => `<rect class="grow-y" style="--d:${60 + i * 30}ms;transform-origin:center" x="${13 + i * 5}" y="${50 - h / 2}" width="3" height="${h}" rx="1.5" fill="${i < 9 ? BLUE : BLUE_3}"/>`).join(''));
+    }
+    case 'emotion': {
+      const pts = [[12, 74], [24, 70], [36, 72], [48, 58], [60, 32], [68, 22], [78, 50], [88, 62]];
+      const d = 'M' + pts.map(p => p.join(',')).join(' L');
+      return svg(`<path d="${d} L88,84 L12,84 Z" fill="rgba(191,64,64,.12)" class="fade" style="--d:500ms"/>` +
+        `<path class="draw" d="${d}" fill="none" stroke="${ANGER}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` +
+        `<circle class="fade" style="--d:800ms" cx="68" cy="22" r="4" fill="${ANGER}"/>`);
+    }
+    case 'shelf': {
+      return svg([14, 34, 54, 74].map((x, i) => {
+        const c = i === v.pick ? BLUE : BLUE_3;
+        return `<g class="fade" style="--d:${60 + i * 60}ms"><rect x="${x + 4}" y="20" width="4" height="8" rx="1" fill="${c}"/><rect x="${x}" y="28" width="12" height="54" rx="3" fill="${c}"/></g>`;
+      }).join('') + `<rect class="fade" style="--d:700ms" x="${[14, 34, 54, 74][v.pick] - 4}" y="14" width="20" height="74" rx="5" fill="none" stroke="${BLUE}"/>`);
+    }
+  }
+  return svg('');
+}
+
+function vizNumber(p) {
+  const [value, caption] = p.stat || ['', ''];
+  return `<div class="stat-bg"></div><div class="stat"><span class="stat-v fade${value === '“' ? ' q' : ''}" style="--d:60ms">${value}</span><span class="stat-c fade" style="--d:200ms">${caption}</span></div>`;
+}
+
+/* Dot matrix: patterns for the shared 19×19 dot field (see DotField below).
+   Each kind returns a level per dot: 0 off · 1 light · 2 strong · 3 gap · 4 emotion line · 5 emotion fill. */
+const DM = { cols: 19, rows: 19 };
+function dotLevels(v) {
+  const C = DM.cols, R = DM.rows, base = R - 2; // baseline row
+  const g = Array.from({ length: R }, () => new Array(C).fill(0));
+  const col = (c0, w, pct, lvl, H = R - 3) => { const h = Math.round(H * pct / 100); for (let c = c0; c < c0 + w; c++) for (let r = base; r > base - h; r--) g[r][c] = lvl; };
+  const row = (r0, h, pct, lvl, W = C - 2) => { const w = Math.round(W * pct / 100); for (let r = r0; r < r0 + h; r++) for (let c = 1; c < 1 + w; c++) g[r][c] = lvl; };
+  switch (v.kind) {
+    case 'ab':   col(2, 6, v.a, 2); col(11, 6, v.b, 1); break;
+    case 'lift': col(2, 6, v.before, 1); col(11, 6, v.after, 2); break;
+    case 'saydo': {
+      row(4, 3, v.say, 1); row(11, 3, v.do, 2);
+      const a = 1 + Math.round((C - 2) * v.do / 100), b = 1 + Math.round((C - 2) * v.say / 100);
+      for (let r = 11; r < 14; r++) for (let c = a; c < b; c++) g[r][c] = 3;
+      break;
+    }
+    case 'rank':  v.bars.forEach((pct, i) => row(3 + i * 5, 3, pct, i ? 1 : 2)); break;
+    case 'price': v.points.forEach(([, pct], i) => col(1 + i * 5, 2, pct, i === v.pick ? 2 : 1)); break;
+    case 'quote': {
+      const hs = [1, 2, 4, 2, 6, 3, 7, 2, 5, 1, 3, 6, 2, 4, 1, 2, 3, 1, 1], mid = 9;
+      hs.forEach((h, c) => { for (let r = mid - h; r <= mid + h; r++) g[r][c] = c < 11 ? 2 : 1; });
+      break;
+    }
+    case 'emotion': {
+      const ys = [14, 14, 13, 13, 14, 12, 11, 9, 6, 3, 2, 4, 7, 10, 11, 12, 12, 13, 13];
+      ys.forEach((y, c) => { g[y][c] = 4; for (let r = y + 1; r <= base; r++) g[r][c] = 5; });
+      break;
+    }
+    case 'shelf': [2, 6, 10, 14].forEach((c0, i) => {
+      const lvl = i === v.pick ? 2 : 1;
+      for (let r = 7; r <= base; r++) for (let c = c0; c < c0 + 3; c++) g[r][c] = lvl;
+      for (let r = 4; r < 7; r++) g[r][c0 + 1] = lvl;
+    }); break;
+  }
+  return g;
+}
+
+/* Stimulus: the thing participants reacted to, with the headline stat on top.
+   People without an image yet fall back to the big-number tile so the rotation stays consistent. */
+function vizStimulus(p) {
+  if (!p.stimulus) return vizNumber(p);
+  const [value] = p.stat || [''];
+  return `<img class="stim" src="${p.stimulus}" alt="">` +
+    `<span class="stim-badge fade" style="--d:280ms">${value}</span>`;
+}
+
+/* Hybrid picks the best-fitting style per person (PEOPLE[].hybrid); every other option applies one style to all. */
+function styleFor(p) {
+  const v = widget.dataset.viz || 'chart';
+  return v === 'hybrid' ? (p.hybrid || 'chart') : v;
+}
+
+function viz(p, dark) {
+  const style = styleFor(p);
+  if (style === 'number') return vizNumber(p);
+  if (style === 'stimulus') return vizStimulus(p);
+  if (style === 'dots') return ''; // drawn by the shared DotField canvas
+  return vizChart(p.viz, dark);
+}
+
+/* ============================================================
+   ROTATION
+   ============================================================ */
+const stage = document.getElementById('stage');
+const widget = document.getElementById('widget');
+const els = {
+  tile: document.getElementById('tile'),
+  type: document.getElementById('type'),
+  study: document.getElementById('study'),
+  insight: document.getElementById('insight'),
+  transcript: document.getElementById('transcript'),
+  talk: document.getElementById('talk'),
+  who: document.getElementById('who'),
+  pager: document.getElementById('pager'),
+  slotTag: document.getElementById('slotTag'),
+  face: document.getElementById('guideFace'),
+};
+
+const mediaEls = PEOPLE.map((p, i) => {
+  const isVideo = /\.(mp4|webm|mov)$/i.test(p.media);
+  const el = document.createElement(isVideo ? 'video' : 'img');
+  el.className = 'media';
+  el.src = p.media;
+  el.alt = isVideo ? '' : `${p.name}, interview participant`;
+  if (isVideo) { if (p.poster) el.poster = p.poster; el.muted = true; el.loop = true; el.playsInline = true; el.preload = 'auto'; }
+  stage.insertBefore(el, stage.firstChild);
+  return el;
+});
+
+const state = { i: 0, secs: 4, paused: false, timer: null, phaseTimers: [] };
+
+/* Transcript markup: one span per word (for the type-on), with the
+   extracted phrase wrapped in .hl so it can be marked and kept. */
+function transcriptHTML({ text, hl }) {
+  const start = hl ? text.indexOf(hl) : -1;
+  let n = 0;
+  const words = str => str.split(/(\s+)/).map(t => /^\s+$/.test(t) || !t ? t : `<span class="w" style="--i:${n++}">${t}</span>`).join('');
+  if (start < 0) return { html: words(text), count: n };
+  const html = words(text.slice(0, start)) + `<span class="hl">${words(hl)}</span>` + words(text.slice(start + hl.length));
+  return { html, count: n };
+}
+/* ============================================================
+   DOT WAVE — port of the "chronological" mode from
+   github.com/brannonwellington-design/audio-visualizer
+   (DotGridVisualizer.tsx: columnDots, edge tapers, binary dots).
+   The hero has no audio, so instead of the mic analyzer a
+   synthetic speech envelope is generated from the transcript —
+   one burst per word, in step with the type-on.
+   ============================================================ */
+const WAVE = {
+  columns: DM.cols, rows: DM.rows, dotScale: 0.75,
+  scrollMs: 50,            // ms per column (repo default 30 at 140 cols)
+  taper: 0.2,              // fraction of columns faded at each edge
+  attackMs: 10, releaseMs: 70,
+};
+
+const smoothstep = t => t * t * (3 - 2 * t);
+const hash01 = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); };
+
+function speechSource(text, stepMs) {
+  const words = text.split(/\s+/).filter(Boolean);
+  return t => {
+    const k = Math.floor(t / stepMs);
+    if (k < 0 || k >= words.length) return 0;
+    const w = words[k];
+    const local = (t - k * stepMs) / stepMs;
+    const voiced = /[.,?!…]["”’]?$/.test(w) ? 0.55 : 0.78; // breath after punctuation, small gap between words
+    if (local > voiced) return 0;
+    const syl = Math.max(1, Math.round(w.replace(/[^a-z]/gi, '').length / 3));
+    const ph = (local / voiced) * syl;
+    const amp = 0.2 + 0.8 * Math.pow(hash01(k * 7.3 + Math.floor(ph)), 0.8);
+    return amp * Math.pow(Math.sin(Math.PI * (ph % 1)), 1.4);
+  };
+}
+
+/* One persistent field of dots. The same 19×19 dots render the live voice, the paused frame
+   and (in Dot matrix mode) every insight pattern — dots never move or resize, they only fade
+   between colors. Codes: 0 off · 1–5 pattern levels (see dotLevels) · 6 live voice · 7 paused voice. */
+const PALETTE = {
+  light: { 0: [18, 15, 8, .08], 1: [185, 192, 227, 1], 2: [0, 33, 204, 1], 3: [0, 33, 204, .28], 4: [191, 64, 64, 1], 5: [191, 64, 64, .3], 6: [207, 38, 23, 1], 7: [18, 15, 8, 1] },
+  dark:  { 0: [249, 244, 235, .1], 1: [169, 179, 242, .4], 2: [169, 179, 242, 1], 3: [169, 179, 242, .25], 4: [222, 110, 110, 1], 5: [222, 110, 110, .3], 6: [235, 74, 58, 1], 7: [249, 244, 235, 1] },
+};
+
+class DotField {
+  constructor(canvas) {
+    this.canvas = canvas; this.ctx = canvas.getContext('2d');
+    this.C = WAVE.columns; this.R = WAVE.rows; const n = this.C * this.R;
+    this.code = new Uint8Array(n);            // target color code per dot
+    this.cur = new Float32Array(n * 4);       // current RGBA per dot
+    this.due = new Float64Array(n);           // per-dot start time for staggered changes
+    this.state = 'idle'; this.raf = 0; this.tau = 120;
+    this.resetVoice();
+  }
+  resetVoice() { this.values = new Array(this.C).fill(0); this.env = 0; this.accum = 0; this.maxSince = 0; }
+  get showOff() { return widget.dataset.vizNow === 'dots'; }   // unlit dots draw the square only when the dot matrix is showing
+  start(source) {
+    this.resetVoice(); this.source = source; this.t0 = performance.now(); this.last = this.t0;
+    this.due.fill(0); this.state = 'live'; this.tau = 30; this.loop();
+  }
+  freeze() {
+    if (this.state !== 'live') return;
+    this.state = 'frozen'; this.tau = 220;
+    for (let i = 0; i < this.code.length; i++) if (this.code[i] === 6) this.code[i] = 7;
+    this.loop();
+  }
+  setPattern(levels, instant = false) {
+    const now = performance.now();
+    this.state = 'pattern'; this.tau = 140;
+    for (let r = 0; r < this.R; r++) for (let c = 0; c < this.C; c++) {
+      const i = r * this.C + c;
+      this.code[i] = levels[r][c];
+      this.due[i] = instant ? 0 : now + 30 + c * 26 + (this.R - 1 - r) * 5;   // left-to-right, bottom-up sweep
+    }
+    this.loop();
+  }
+  stop() { this.state = 'idle'; cancelAnimationFrame(this.raf); this.raf = 0; }
+  loop() {
+    if (this.raf) return;
+    this.last = performance.now();
+    const frame = now => {
+      this.raf = 0;
+      const busy = this.tick(now);
+      if (busy || this.state === 'live') this.raf = requestAnimationFrame(frame);
+    };
+    this.raf = requestAnimationFrame(frame);
+  }
+  tick(now) {
+    const dt = Math.min(100, now - this.last); this.last = now;
+    if (this.state === 'live') this.stepVoice(now, dt);
+    const theme = widget.dataset.surface === 'dark' ? 'dark' : 'light';
+    const pal = PALETTE[theme], showOff = this.showOff;
+    const k = 1 - Math.exp(-dt / this.tau);
+    let busy = false;
+    for (let i = 0; i < this.code.length; i++) {
+      if (now < this.due[i]) { busy = true; continue; }
+      const t = pal[this.code[i]], j = i * 4;
+      const ta = this.code[i] === 0 && !showOff ? 0 : t[3];
+      for (let ch = 0; ch < 4; ch++) {
+        const target = ch === 3 ? ta : t[ch];
+        const d = target - this.cur[j + ch];
+        if (Math.abs(d) > (ch === 3 ? 0.004 : 0.5)) { this.cur[j + ch] += d * k; busy = true; }
+        else this.cur[j + ch] = target;
+      }
+    }
+    this.draw();
+    return busy;
+  }
+  stepVoice(now, dt) {
+    // asymmetric envelope: fast attack, slower release (speechAnalyzer.ts)
+    const raw = this.source(now - this.t0);
+    const tau = raw > this.env ? WAVE.attackMs : WAVE.releaseMs;
+    this.env += (raw - this.env) * (1 - Math.exp(-dt / tau));
+    this.maxSince = Math.max(this.maxSince, this.env);
+    this.accum += dt;
+    while (this.accum >= WAVE.scrollMs) {
+      this.values.push(this.maxSince); this.values.shift();
+      this.maxSince = this.env; this.accum -= WAVE.scrollMs;
+    }
+    const values = this.values.slice();
+    values[values.length - 1] = Math.max(values[values.length - 1], this.env);
+    const n = Math.max(1, Math.round(values.length * WAVE.taper));
+    for (let c = 0; c < n; c++) { const f = smoothstep(c / n); values[c] *= f; values[values.length - 1 - c] *= f; }
+    // columnDots: dots light outward from the always-on center line
+    const center = (this.R - 1) / 2;
+    for (let c = 0; c < this.C; c++) for (let r = 0; r < this.R; r++) {
+      const threshold = Math.abs(r - center) / center;
+      this.code[r * this.C + c] = values[c] >= threshold && (threshold === 0 || values[c] > 0) ? 6 : 0;
+    }
+  }
+  draw() {
+    const { canvas, ctx } = this;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const cw = w / this.C, chh = h / this.R, rad = Math.min(cw, chh) / 2 * WAVE.dotScale;
+    for (let r = 0; r < this.R; r++) for (let c = 0; c < this.C; c++) {
+      const j = (r * this.C + c) * 4, a = this.cur[j + 3];
+      if (a < 0.01) continue;
+      ctx.fillStyle = `rgba(${this.cur[j] | 0},${this.cur[j + 1] | 0},${this.cur[j + 2] | 0},${a})`;
+      ctx.beginPath(); ctx.arc((c + 0.5) * cw, (r + 0.5) * chh, rad, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+const wave = new DotField(document.getElementById('wave'));
+const isDots = p => styleFor(p) === 'dots';
+
+function showInsight(p, instant = false) {
+  widget.dataset.vizNow = styleFor(p);
+  els.type.textContent = p.type;
+  els.tile.innerHTML = viz(p, widget.dataset.surface === 'dark');
+  if (isDots(p)) wave.setPattern(dotLevels(p.viz), instant || matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+/* Sequence, as fractions of the time each person is on screen (D):
+   type on the quote → mark the phrase → fade the rest → pull the insight. */
+function playPull(p) {
+  const D = state.secs * 1000;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const { html, count } = transcriptHTML(p.transcript);
+  const step = Math.min(220, (D * 0.30) / count);
+  els.transcript.style.setProperty('--step', step + 'ms');
+  els.transcript.innerHTML = html;
+  wave.start(reduce ? () => 0 : speechSource(p.transcript.text, step));
+  els.tile.innerHTML = '';
+  els.type.innerHTML = `<span class="dot"></span>Interview ${p.transcript.time}`;
+  widget.dataset.vizNow = styleFor(p);
+  widget.dataset.phase = 'talk';
+
+  const typed = reduce ? 0 : count * step + 240;
+  const tHl = Math.max(typed + 200, D * 0.34);
+  const tDim = tHl + D * 0.12;
+  const tPull = tDim + D * 0.07;
+  const at = (ms, fn) => state.phaseTimers.push(setTimeout(fn, ms));
+  at(tHl, () => { widget.dataset.phase = 'hl'; });
+  at(tDim, () => { widget.dataset.phase = 'dim'; wave.freeze(); });
+  at(tPull, () => { widget.dataset.phase = 'pull'; showInsight(p); });
+  at(tPull + 400, () => { if (!isDots(p)) wave.stop(); });
+}
+
+function render(i, animate = true) {
+  const p = PEOPLE[i];
+  mediaEls.forEach((m, j) => {
+    const on = j === i;
+    m.classList.toggle('is-active', on);
+    if (m.tagName === 'VIDEO') { if (on) { m.currentTime = 0; m.play().catch(() => {}); } else m.pause(); }
+  });
+
+  state.phaseTimers.forEach(clearTimeout); state.phaseTimers = [];
+
+  const apply = () => {
+    if (widget.dataset.story === 'pull' && p.transcript) playPull(p);
+    else { widget.dataset.phase = 'insight'; if (!isDots(p)) wave.stop(); showInsight(p); }
+    els.study.textContent = p.study;
+    els.insight.textContent = p.insight;
+    els.who.innerHTML = `<b>${p.name}</b> · ${p.age}${p.sex}`;
+    els.slotTag.textContent = `Slot ${i + 1} · ${p.media.split('/').pop()}`;
+    Object.assign(els.face.style, {
+      left: (p.face.x - p.face.w / 2) + '%', top: (p.face.y - p.face.h / 2) + '%',
+      width: p.face.w + '%', height: p.face.h + '%',
+    });
+    widget.classList.remove('out');
+    state.shown = i;
+    restartProgress();
+  };
+
+  if (animate) { widget.classList.add('out'); setTimeout(apply, 220); }
+  else apply();
+
+  document.querySelectorAll('#peopleBtns button').forEach((b, j) => b.setAttribute('aria-pressed', j === i));
+}
+
+function restartProgress() {
+  els.pager.innerHTML = PEOPLE.map((_, j) => `<i class="${j < state.shown ? 'done' : j === state.shown ? 'on' : ''}"></i>`).join('');
+  els.pager.classList.toggle('paused', state.paused);
+}
+
+function schedule() {
+  clearTimeout(state.timer);
+  if (state.paused) return;
+  state.timer = setTimeout(() => { go(state.i + 1); }, state.secs * 1000);
+}
+function go(i) {
+  state.i = (i + PEOPLE.length) % PEOPLE.length;
+  render(state.i);
+  schedule();
+}
+
+/* ---------- Controls ---------- */
+const prefs = (() => { try { return JSON.parse(localStorage.getItem('heroWidgetPrefs') || '{}'); } catch { return {}; } })();
+const savePrefs = () => { try { localStorage.setItem('heroWidgetPrefs', JSON.stringify(prefs)); } catch {} };
+
+function setPref(key, v, persist = true) {
+  if (key === 'secs') {
+    state.secs = +v;
+    document.documentElement.style.setProperty('--loop-ms', state.secs * 1000);
+    restartProgress(); schedule();
+  } else if (key === 'inset' || key === 'radius') {
+    widget.style.setProperty(key === 'inset' ? '--inset' : '--r', v + 'px');
+    const input = document.querySelector(`input[data-key="${key}"]`);
+    input.value = v; input.nextElementSibling.textContent = v + 'px';
+  } else {
+    widget.dataset[key] = v;
+    if ((key === 'surface' || key === 'viz') && booted) {
+      const ph = widget.dataset.phase, p = PEOPLE[state.shown ?? state.i];
+      if (ph === 'insight' || ph === 'pull') showInsight(p, true);
+      wave.loop();   // repaint the field in the new surface / mode
+    }
+    if (key === 'story' && booted) { if (persist && v === 'pull' && state.secs < 6) setPref('secs', '8'); go(state.i); }
+  }
+  document.querySelectorAll(`.seg[data-key="${key}"] button`).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === String(v)));
+  if (persist) { prefs[key] = v; savePrefs(); }
+}
+
+let booted = false;
+document.querySelectorAll('input[type="range"][data-key]').forEach(inp => {
+  inp.addEventListener('input', () => setPref(inp.dataset.key, inp.value));
+});
+document.querySelectorAll('.seg[data-key]').forEach(seg => {
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setPref(seg.dataset.key, b.dataset.v); });
+});
+
+const peopleBtns = document.getElementById('peopleBtns');
+PEOPLE.forEach((p, i) => {
+  const b = document.createElement('button');
+  b.textContent = i + 1; b.title = `${p.name} — ${p.type}`;
+  b.addEventListener('click', () => go(i));
+  peopleBtns.appendChild(b);
+});
+
+document.getElementById('pauseBox').addEventListener('change', e => {
+  state.paused = e.target.checked; restartProgress(); schedule();
+});
+document.getElementById('guidesBox').addEventListener('change', e => document.body.classList.toggle('show-guides', e.target.checked));
+const controls = document.getElementById('controls');
+
+/* Drag the panel by its header; position is remembered per browser. Double-click the header to reset. */
+(() => {
+  const head = document.getElementById('ctlHead');
+  const KEY = 'heroWidgetPanelPos';
+  const clamp = (x, y) => {
+    const r = controls.getBoundingClientRect();
+    return [Math.min(Math.max(8, x), innerWidth - r.width - 8), Math.min(Math.max(8, y), innerHeight - Math.min(r.height, 48) - 8)];
+  };
+  const place = (x, y) => {
+    [x, y] = clamp(x, y);
+    Object.assign(controls.style, { left: x + 'px', top: y + 'px', right: 'auto', bottom: 'auto', maxHeight: (innerHeight - y - 8) + 'px' });
+    return [x, y];
+  };
+  try { const p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p) place(p[0], p[1]); } catch {}
+  let start = null;
+  head.addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    const r = controls.getBoundingClientRect();
+    start = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    head.setPointerCapture(e.pointerId);
+    controls.classList.add('dragging');
+  });
+  head.addEventListener('pointermove', e => { if (start) place(e.clientX - start.dx, e.clientY - start.dy); });
+  const end = () => {
+    if (!start) return; start = null; controls.classList.remove('dragging');
+    const r = controls.getBoundingClientRect();
+    try { localStorage.setItem(KEY, JSON.stringify([r.left, r.top])); } catch {}
+  };
+  head.addEventListener('pointerup', end);
+  head.addEventListener('pointercancel', end);
+  head.addEventListener('dblclick', e => {
+    if (e.target.closest('button')) return;
+    Object.assign(controls.style, { left: '', top: '', right: '', bottom: '', maxHeight: '' });
+    try { localStorage.removeItem(KEY); } catch {}
+  });
+  addEventListener('resize', () => { if (controls.style.left) { const r = controls.getBoundingClientRect(); place(r.left, r.top); } });
+})();
+document.getElementById('ctlToggle').addEventListener('click', e => {
+  controls.classList.toggle('collapsed');
+  e.target.textContent = controls.classList.contains('collapsed') ? 'Show' : 'Hide';
+});
+
+// URL params win over saved prefs: ?story=pull&viz=dots&tile=flush&layout=card&pos=tr&inset=0&radius=16&surface=dark&secs=8&person=3
+const qs = new URLSearchParams(location.search);
+['story', 'viz', 'tile', 'layout', 'pos', 'inset', 'radius', 'surface', 'secs'].forEach(k => {
+  const v = qs.get(k) || prefs[k] || { story: 'insight', viz: 'chart', tile: 'inset', layout: 'bar', pos: 'bl', inset: '16', radius: '12', surface: 'light', secs: '4' }[k];
+  setPref(k, v, !qs.get(k));
+});
+if (qs.has('controls') && qs.get('controls') === '0') controls.style.display = 'none';
+state.i = Math.max(0, Math.min(PEOPLE.length - 1, (+qs.get('person') || 1) - 1));
+
+booted = true;
+render(state.i, false);
+schedule();
+</script>
+</body>
+</html>

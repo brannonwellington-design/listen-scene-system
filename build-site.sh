@@ -11,4 +11,6 @@ sed 's#src="/dist/demo.js"#src="/demo.js"#' demo.html > site/index.html
 cp -R "image examples" "site/image examples"
 # the interview scene's webcam clip (scripts/prep-interview-clip.py)
 cp -R media site/media
+# the hero insight widget, vendored by scripts/sync-hero-widget.sh (/home embeds it)
+cp -R hero-widget site/hero-widget
 echo SITE_OK
