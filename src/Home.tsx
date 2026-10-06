@@ -417,35 +417,78 @@ function Hero({ widget }: { widget: boolean }): JSX.Element {
   )
 }
 
+// customer logos: the live site's one-color marks (listenlabs.com, pulled
+// 2026-10-05 from its logo components), all 40 units tall; each entry is the
+// mark's width in those units. Drawn as a mask so they take the page's ink.
+const LOGOS: Record<string, number> = {
+  "Microsoft": 187, "Skims": 179, "SoFi": 150, "Nestle": 148, "Google": 123, "Sony": 227, "Keurig Dr. Pepper": 134,
+  "Anthropic": 355, "ByteDance": 232, "Cognition": 187, "Clear": 149, "Chobani": 206, "Morse": 270, "Calendly": 166,
+  "Swarovski": 297, "Perplexity": 166, "Sweetgreen": 276, "Okta": 121, "Chubbies": 178, "Levis": 96, "Square": 40,
+  "Bissell": 214, "Robinhood": 209,
+}
+const logoFile = (c: string) => M + "logos/" + c.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".svg"
+
 // the logo wall's feature tiles: the live site's four case studies
-// (listenlabs.ai, 2026-10-05). Only Microsoft's logo file is in hand, so the
-// others show their name until their logos arrive.
-type CaseTile = { company: string; logo?: string; stat: string; label: string }
+type CaseTile = { company: string; stat: string; label: string }
 const CASE_TILES: CaseTile[] = [
-  { company: "Microsoft", logo: "microsoft.svg", stat: "150+", label: "Global, multilingual interviews" },
+  { company: "Microsoft", stat: "150+", label: "Global, multilingual interviews" },
   { company: "Sweetgreen", stat: "300+", label: "Locations tested" },
   { company: "Anthropic", stat: "100", label: "Studies in the time of 5" },
   { company: "Simple Modern", stat: "4x", label: "Larger sample size" },
 ]
-/** a company's logo, or its name until the logo file exists */
-function Wordmark({ company, logo, h = 20 }: { company: string; logo?: string; h?: number }): JSX.Element {
-  return logo ? <img src={M + logo} alt={company} loading="lazy" style={{ height: h, display: "block" }} />
-    : <span style={{ fontSize: h * 0.8, lineHeight: h + "px", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>{company}</span>
+/** a company's mark at height h, capped to maxW; its name if there's no mark
+ *  (Simple Modern has none on the live site) */
+function Wordmark({ company, h = 20, maxW = 160 }: { company: string; h?: number; maxW?: number }): JSX.Element {
+  const units = LOGOS[company]
+  if (!units) return <span style={{ fontSize: h * 0.8, lineHeight: h + "px", letterSpacing: "-0.02em", whiteSpace: "nowrap" }}>{company}</span>
+  const w = Math.min(maxW, units * h / 40)
+  const url = `url("${logoFile(company)}")`
+  return <span role="img" aria-label={company} style={{
+    display: "block", width: w, height: h, background: "currentColor",
+    WebkitMask: `${url} center / contain no-repeat`, mask: `${url} center / contain no-repeat`,
+  }} />
 }
 
 function Feature({ tile }: { tile: CaseTile }): JSX.Element {
   return (
     <a className="hp-feat" href="#customers" onClick={(e) => jump(e, "#customers")} aria-label={tile.company + " case study"}>
-      <span className="hp-ms"><Wordmark company={tile.company} logo={tile.logo} /></span>
+      <span className="hp-ms"><Wordmark company={tile.company} /></span>
       <img className="hp-up" src={M + "arrow-up-right.svg"} alt="" loading="lazy" />
       <div><p className="hp-big">{tile.stat}</p><p className="hp-t12">{tile.label}</p></div>
     </a>
   )
 }
-function Quad(): JSX.Element {
+// the small tiles: every other mark, two per cell, flipping like the live
+// site's (each cell on its own beat)
+const WALL = Object.keys(LOGOS).filter((c) => !CASE_TILES.some((t) => t.company === c))
+const FLIP_MS = 3200
+
+function LogoCell({ a, b, delay }: { a: string; b: string; delay: number }): JSX.Element {
+  const [front, setFront] = React.useState(true)
+  React.useEffect(() => {
+    let iv: ReturnType<typeof setInterval> | undefined
+    const t = setTimeout(() => { setFront((f) => !f); iv = setInterval(() => setFront((f) => !f), FLIP_MS * 2) }, FLIP_MS + delay)
+    return () => { clearTimeout(t); if (iv) clearInterval(iv) }
+  }, [delay])
+  const layer = (c: string, on: boolean) => (
+    <span aria-hidden={!on} style={{
+      position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+      clipPath: on ? "inset(0 0 0 0)" : "inset(100% 0 0 0)", opacity: on ? 1 : 0,
+      transition: "clip-path .6s cubic-bezier(.22,1,.36,1), opacity .4s ease",
+    }}><Wordmark company={c} h={20} maxW={110} /></span>
+  )
+  return <span style={{ position: "relative", color: C.ink }}>{layer(a, front)}{layer(b, !front)}</span>
+}
+
+/** one 2×2 block of cells; `at` is its place in the wall (0–3), so the 16
+ *  marks showing at once are all different */
+function Quad({ at }: { at: number }): JSX.Element {
   return (
     <div className="hp-quad">
-      {["a", "b", "a", "b"].map((v, i) => <span key={i}><img src={M + `google-${v}.svg`} alt="Google" loading="lazy" /></span>)}
+      {[0, 1, 2, 3].map((i) => {
+        const k = at * 4 + i
+        return <LogoCell key={i} a={WALL[k % WALL.length]} b={WALL[(k + 16) % WALL.length]} delay={(k * 397) % FLIP_MS} />
+      })}
     </div>
   )
 }
@@ -456,12 +499,12 @@ function LogoWall(): JSX.Element {
       <p className="hp-h2" style={sp("4 / 10", "2 / 8")}>The research partner for hundreds of leading brands</p>
       <div className="hp-wall">
         <div className="hp-half">
-          <div className="hp-row"><Feature tile={CASE_TILES[0]} /><Quad /></div>
-          <div className="hp-row"><Quad /><Feature tile={CASE_TILES[1]} /></div>
+          <div className="hp-row"><Feature tile={CASE_TILES[0]} /><Quad at={0} /></div>
+          <div className="hp-row"><Quad at={1} /><Feature tile={CASE_TILES[1]} /></div>
         </div>
         <div className="hp-half">
-          <div className="hp-row"><Feature tile={CASE_TILES[2]} /><Quad /></div>
-          <div className="hp-row"><Quad /><Feature tile={CASE_TILES[3]} /></div>
+          <div className="hp-row"><Feature tile={CASE_TILES[2]} /><Quad at={2} /></div>
+          <div className="hp-row"><Quad at={3} /><Feature tile={CASE_TILES[3]} /></div>
         </div>
       </div>
     </div></section>
@@ -492,14 +535,13 @@ function HowItWorks({ style }: { style: StepStyle }): JSX.Element {
   )
 }
 
-type Testimonial = { quote: string; name: string; role: string; company: string; logo?: string; img: string; stat: string; statLabel: string }
+type Testimonial = { quote: string; name: string; role: string; company: string; img: string; stat: string; statLabel: string }
 // the live site's three customer stories (listenlabs.ai, 2026-10-05). Romani
 // keeps the mock's photo and wording; the others use their case-study poster.
-// Logos fall back to the company name until their files exist.
 const TESTIMONIALS: Testimonial[] = [
   {
     quote: "“AI removes the drudgery of my work so that I can focus on things that really matter... focusing more on the strategic work, focusing more in talking to the customers, and it makes my day-to-day work a little bit more fun.”",
-    name: "Romani Patel", role: "Director of Data Science", company: "Microsoft", logo: "customer-logo.svg", img: "customer.jpg", stat: "150+", statLabel: "Global, Multilingual Interviews",
+    name: "Romani Patel", role: "Director of Data Science", company: "Microsoft", img: "customer.jpg", stat: "150+", statLabel: "Global, Multilingual Interviews",
   },
   {
     quote: "“Think about it as 100 studies for the price, at least in terms of time, of five or six. Our researchers’ time is one of the scarcest commodities.”",
@@ -560,7 +602,7 @@ function Customers(): JSX.Element {
           <div className="hp-cust-meta">
             <div style={{ width: 495, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
               <div className="hp-t16"><p>{t.name}</p><p className="hp-soft">{t.role}</p></div>
-              <span style={{ height: 24, display: "flex", alignItems: "center" }}><Wordmark company={t.company} logo={t.logo} h={24} /></span>
+              <span style={{ height: 24, display: "flex", alignItems: "center" }}><Wordmark company={t.company} h={24} maxW={200} /></span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <p className="hp-big">{t.stat}</p><p className="hp-t16">{t.statLabel}</p>
@@ -642,7 +684,6 @@ const ERIC: Expert = { name: "Eric Knoben", role: "Head of Insights", prev: ["Em
 const EXPERTS: Expert[] = [
   { name: "Camille Le", role: "Lead Insights Strategist", prev: ["Morning Consult", "The Concord Group"], photo: "camille-le" },
   { name: "Andya Pakpahan", role: "Senior Insights Strategist", prev: ["Morning Consult", "MarketCast"], photo: "andya-pakpahan" },
-  { name: "Jill Graver", role: "Insights Strategist", prev: ["Cisco", "Harvard Decision Science Lab"], photo: "jill-graver" },
   { name: "Amanda Harrop", role: "Insights Strategist", prev: ["Morning Consult", "Kantar Millward Brown"], photo: "amanda-harrop" },
   { name: "Ryan Kelly", role: "Insights Strategist", prev: ["Quadrant Strategies"], photo: "ryan-kelly" },
   { name: "Katie McIntyre", role: "Insights Strategist", prev: MOCK_PREV },
