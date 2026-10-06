@@ -96,9 +96,7 @@ const CSS = `
 .hp-cust-img img.ghost { opacity: .2; }
 .hp-quote { font-size: clamp(22px, 1.95cqw, 28px); line-height: 1.2; letter-spacing: -0.02em; }
 .hp-cust-meta { display: flex; gap: 95px; align-items: flex-start; }
-.hp-segs { display: flex; gap: 8px; height: 1px; }
-.hp-segs span { flex: 1; background: ${C.tertiary}; }
-.hp-segs span:first-child { background: ${C.ink}; }
+.hp-segs { display: flex; gap: 8px; }
 
 /* how to use */
 .hp-video { display: flex; flex-direction: column; gap: 24px; }
@@ -123,7 +121,7 @@ const CSS = `
 .hp-cta > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .hp-form { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 448px; max-width: calc(100% - 32px);
   padding: 24px; border-radius: 12px; background: ${C.bg}; display: flex; flex-direction: column; gap: 24px; }
-.hp-field { height: 48px; border: 1px solid ${C.ink}; border-radius: 8px; background: ${C.highlight}; display: flex; align-items: center; padding: 0 12px; color: ${C.soft}; }
+.hp-field { height: 48px; border: 1px solid ${C.ink}; border-radius: 8px; background: ${C.highlight}; padding: 0 12px; }
 .hp-foot { padding: 0 var(--margin) var(--margin); }
 .hp-foot > .hp-grid { row-gap: 48px; }
 .hp-foot ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
@@ -156,7 +154,7 @@ const CSS = `
   .hp-lede { font-size: 16px; line-height: 22px; letter-spacing: -0.32px; }
   .hp-nav-right .hp-signin { display: none; }
   .hp-hero { padding-top: 32px; padding-bottom: 16px; }
-  .hp-hero-img { aspect-ratio: 4 / 3; }
+  .hp-hero-img { aspect-ratio: 1 / 1; }
   .hp-hero-img img { object-position: 50% 35%; }
   .hp-row { flex-direction: column; height: auto; }
   .hp-feat { height: 180px; flex: none; }
@@ -168,6 +166,84 @@ const CSS = `
   .hp-cta { height: 640px; }
   .hp-foot-bar { flex-direction: column; }
 }
+
+/* ---- interaction states ---- */
+.hp a { color: inherit; text-decoration: none; }
+.hp a.hp-btn, .hp button.hp-btn { color: ${C.onBrand}; }
+.hp button { font: inherit; color: inherit; background: none; border: none; padding: 0; cursor: pointer; }
+.hp [id] { scroll-margin-top: var(--hp-top, 0px); }
+.hp :focus-visible { outline: 2px solid ${C.ink}; outline-offset: 2px; border-radius: 4px; }
+.hp-btn { transition: background-color .15s ease; cursor: pointer; }
+.hp-btn:hover { background: #0019A3; }
+.hp-link { transition: opacity .15s ease; }
+.hp-link:hover { opacity: .6; }
+.hp-nav { transition: box-shadow .2s ease; }
+.hp-nav.scrolled { box-shadow: 0 1px 0 ${C.tertiary}; }
+.hp-feat { cursor: pointer; transition: background-color .2s ease; }
+.hp-feat:hover { background: #FFFFFF; }
+.hp-feat .hp-up { transition: transform .2s ease; }
+.hp-feat:hover .hp-up { transform: translate(3px, -3px); }
+.hp-quad span { transition: background-color .2s ease; cursor: pointer; }
+.hp-quad span:hover { background: #FFFFFF; }
+.hp-exp-row { transition: background-color .15s ease; }
+.hp-exp-row:hover { background: rgba(0, 33, 204, 0.03); }
+.hp-foot a:hover { opacity: .6; }
+.hp-foot a { transition: opacity .15s ease; }
+@keyframes hp-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.hp-in { animation: hp-in .45s cubic-bezier(.22,1,.36,1) both; }
+@keyframes hp-grow { from { transform: scaleX(0); } to { transform: none; } }
+
+/* nav menus */
+.hp-nav-links button { display: inline-flex; gap: 4px; align-items: center; transition: opacity .15s ease; }
+.hp-nav-links button:hover, .hp-nav-links button[aria-expanded="true"] { opacity: .6; }
+.hp-nav-links button svg { transition: transform .2s ease; }
+.hp-nav-links button[aria-expanded="true"] svg { transform: rotate(180deg); }
+.hp-drop { position: absolute; top: calc(100% - 8px); left: 50%; transform: translateX(-50%); z-index: 50;
+  background: ${C.highlight}; border: 1px solid ${C.tertiary}; border-radius: 12px; padding: 20px 24px;
+  box-shadow: 0 12px 32px rgba(0, 33, 204, .08); display: grid; grid-auto-flow: column; gap: 40px; white-space: nowrap; }
+.hp-drop h5 { font: inherit; font-size: 12px; line-height: 16px; color: ${C.soft}; margin: 0 0 10px; font-weight: 400; }
+.hp-drop a { display: block; font-size: 14px; line-height: 20px; padding: 4px 0; }
+.hp-sheet { position: absolute; left: 0; right: 0; top: 100%; height: calc(100dvh - 68px - var(--hp-top, 0px)); overflow-y: auto;
+  background: ${C.bg}; padding: 8px var(--margin) 32px; border-top: 1px solid ${C.tertiary}; display: flex; flex-direction: column; }
+.hp-sheet details { border-bottom: 1px solid ${C.tertiary}; }
+.hp-sheet summary, .hp-sheet > a { list-style: none; display: flex; justify-content: space-between; align-items: center; padding: 16px 0; font-size: 20px; line-height: 1.4; letter-spacing: -0.4px; cursor: pointer; }
+.hp-sheet > a { border-bottom: 1px solid ${C.tertiary}; }
+.hp-sheet summary::-webkit-details-marker { display: none; }
+.hp-sheet details[open] summary svg { transform: rotate(180deg); }
+.hp-sheet details a { display: block; padding: 6px 0; font-size: 16px; line-height: 22px; color: ${C.soft}; }
+.hp-sheet details > div { padding-bottom: 16px; }
+
+/* forms */
+.hp-email input, .hp-field { font: inherit; color: ${C.ink}; }
+.hp-email input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; padding: 0 12px; }
+.hp-email input::placeholder, .hp-field::placeholder { color: ${C.soft}; opacity: 1; }
+.hp-email:focus-within { box-shadow: 0 0 0 3px rgba(0, 33, 204, .15); }
+.hp-email button.hp-btn { border-radius: 0; padding: 0 12px; height: 100%; }
+.hp-field { width: 100%; outline: 0; transition: box-shadow .15s ease; }
+.hp-field:focus { box-shadow: 0 0 0 3px rgba(0, 33, 204, .15); }
+.hp-field.bad, .hp-email.bad { border-color: #C2261B; }
+.hp-err { font-size: 12px; line-height: 16px; color: #C2261B; margin-top: 6px; }
+
+/* customers carousel */
+.hp-cust-img { touch-action: pan-y; user-select: none; }
+.hp-cust-img img { transition: transform .7s cubic-bezier(.22,1,.36,1), opacity .7s ease; }
+.hp-segs button { flex: 1; height: 13px; display: flex; align-items: center; }
+.hp-segs button span { display: block; width: 100%; height: 1px; background: ${C.tertiary}; position: relative; overflow: hidden; }
+.hp-segs button span i { position: absolute; inset: 0; background: ${C.ink}; transform-origin: left center; }
+
+/* video */
+.hp-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(249, 244, 235, .92); display: flex; align-items: center; justify-content: center; transition: transform .2s ease; }
+.hp-videobtn { position: relative; display: block; width: 100%; border-radius: 12px; overflow: hidden; }
+.hp-videobtn:hover .hp-play { transform: translate(-50%, -50%) scale(1.08); }
+.hp-lightbox { position: fixed; inset: 0; z-index: 200; background: rgba(4, 10, 46, .82); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.hp-lightbox > div { position: relative; width: min(1040px, 100%); aspect-ratio: 16 / 9; border-radius: 12px; background: #0E0F14;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: ${C.onBrand}; }
+.hp-lightbox .x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.12); color: #FFF;
+  display: flex; align-items: center; justify-content: center; }
+
+/* hero widget frame */
+.hp-hero-img iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
 
 /* review panel (not part of the page) */
 .hp-panel { position: fixed; right: 16px; bottom: 16px; z-index: 100; width: 300px; font: 13px/1.4 'Inter', sans-serif; color: #1F1D1A;
@@ -205,29 +281,116 @@ function useWidth(): [React.RefObject<HTMLDivElement>, number] {
   return [ref, w]
 }
 
-const NAV = [["Solutions", true], ["Features", true], ["Customers", false], ["Resources", true], ["Careers", false]] as const
+const USE_CASE_LINKS = ["Consumer Journey Map", "Multi-Market Segmentation", "Brand Perception", "Concept & Prototype Testing", "Creative Testing", "Usability Testing"]
+const ROLE_LINKS = ["Consumer Insights", "Brand Marketers", "Product Managers", "UX Researchers", "Agencies", "Investors"]
+const INDUSTRY_LINKS = ["Consumer Packaged Goods", "Technology", "E-commerce", "Healthcare", "Financial Services", "Hospitality & Travel"]
+const RESOURCE_LINKS = ["Personality Test", "Compare", "Blog", "Docs & Guides", "Media Requests"]
+/** the nav's menus: columns of [heading, links]; links named here are the
+ *  footer's, plus the product surfaces for Features */
+const MENUS: Record<string, Array<[string, string[]]>> = {
+  Solutions: [["By use case", USE_CASE_LINKS], ["By role", ROLE_LINKS], ["By industry", INDUSTRY_LINKS]],
+  Features: [["Platform", ["Research Agent", "Emotional Intelligence", "Active Observation", "Listen Twins", "Research Library"]]],
+  Resources: [["Learn", RESOURCE_LINKS]],
+}
+const NAV: Array<[string, string]> = [["Solutions", ""], ["Features", ""], ["Customers", "#customers"], ["Resources", ""], ["Careers", "#"]]
+/** where a menu or footer link goes: the sections this page has, else nowhere */
+const hrefFor = (label: string) => USE_CASE_LINKS.includes(label) || label === "Use cases" ? "#use-cases"
+  : label === "Customers" ? "#customers" : "#"
+const jump = (e: React.MouseEvent, href: string) => {
+  if (!href.startsWith("#")) return
+  e.preventDefault()
+  if (href === "#") return
+  document.querySelector(href)?.scrollIntoView({ behavior: "smooth" })
+}
 
 function Nav(): JSX.Element {
+  const [open, setOpen] = React.useState("")
+  const [sheet, setSheet] = React.useState(false)
+  const [scrolled, setScrolled] = React.useState(false)
+  const ref = React.useRef<HTMLElement>(null)
+  React.useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4)
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(""); setSheet(false) } }
+    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen("") }
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    window.addEventListener("keydown", onKey)
+    window.addEventListener("mousedown", onDown)
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("keydown", onKey); window.removeEventListener("mousedown", onDown) }
+  }, [])
+  const go = (e: React.MouseEvent, href: string) => { setOpen(""); setSheet(false); jump(e, href) }
   return (
-    <nav className="hp-nav"><div className="hp-navin">
-      <img src={M + "logo.svg"} alt="Listen Labs" style={{ height: 20, display: "block" }} />
+    <nav ref={ref} className={"hp-nav" + (scrolled || sheet ? " scrolled" : "")} onMouseLeave={() => setOpen("")}><div className="hp-navin">
+      <a href="#top" onClick={(e) => { e.preventDefault(); setSheet(false); window.scrollTo({ top: 0, behavior: "smooth" }) }} aria-label="Listen Labs home">
+        <img src={M + "logo.svg"} alt="Listen Labs" style={{ height: 20, display: "block" }} />
+      </a>
       <div className="hp-nav-links hp-t14">
-        {NAV.map(([l, chev]) => <span key={l}>{l}{chev && <I name="chevron-down" size={12} />}</span>)}
+        {NAV.map(([l, href]) => MENUS[l] ? (
+          <div key={l} style={{ position: "relative" }} onMouseEnter={() => setOpen(l)}>
+            <button aria-expanded={open === l} aria-haspopup="true" onClick={() => setOpen(open === l ? "" : l)}>{l}<I name="chevron-down" size={12} /></button>
+            {open === l && (
+              <div className="hp-drop hp-in" role="menu" style={{ paddingTop: 20 }}>
+                {MENUS[l].map(([h, links]) => (
+                  <div key={h}><h5>{h}</h5>{links.map((x) => <a key={x} role="menuitem" href={hrefFor(x)} className="hp-link" onClick={(e) => go(e, hrefFor(x))}>{x}</a>)}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : <a key={l} href={href} className="hp-link" onMouseEnter={() => setOpen("")} onClick={(e) => go(e, href)}>{l}</a>)}
       </div>
       <div className="hp-nav-right hp-t14">
-        <span className="hp-signin">Sign in</span>
-        <span className="hp-btn" style={{ height: 32, padding: "0 8px" }}>Demo</span>
-        <span className="hp-menu" aria-label="Menu">
-          <svg width="18" height="12" viewBox="0 0 18 12" stroke={C.ink} strokeWidth="1.5"><path d="M0 1h18M0 6h18M0 11h18" /></svg>
-        </span>
+        <a href="#" className="hp-signin hp-link" onClick={(e) => e.preventDefault()}>Sign in</a>
+        <a href="#demo" className="hp-btn" style={{ height: 32, padding: "0 8px" }} onClick={(e) => go(e, "#demo")}>Demo</a>
+        <button className="hp-menu" aria-label={sheet ? "Close menu" : "Menu"} aria-expanded={sheet} onClick={() => setSheet(!sheet)}>
+          {sheet ? <I name="x" size={20} />
+            : <svg width="18" height="12" viewBox="0 0 18 12" stroke={C.ink} strokeWidth="1.5"><path d="M0 1h18M0 6h18M0 11h18" /></svg>}
+        </button>
       </div>
-    </div></nav>
+    </div>
+    {sheet && (
+      <div className="hp-sheet hp-in">
+        {NAV.map(([l, href]) => MENUS[l] ? (
+          <details key={l}>
+            <summary>{l}<I name="chevron-down" size={16} /></summary>
+            <div>{MENUS[l].flatMap(([, links]) => links).map((x) => <a key={x} href={hrefFor(x)} onClick={(e) => go(e, hrefFor(x))}>{x}</a>)}</div>
+          </details>
+        ) : <a key={l} href={href} onClick={(e) => go(e, href)}>{l}</a>)}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 32 }}>
+          <a href="#demo" className="hp-btn hp-t16" style={{ height: 48, justifyContent: "center" }} onClick={(e) => go(e, "#demo")}>Book a demo</a>
+          <a href="#" className="hp-t16" style={{ height: 48, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.ink}`, borderRadius: 8 }} onClick={(e) => e.preventDefault()}>Sign in</a>
+        </div>
+      </div>
+    )}
+    </nav>
   )
 }
 
-function Hero(): JSX.Element {
+/** an email check good enough for a mock form */
+const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim())
+
+/** the hero's email capture: validates, then thanks */
+function HeroEmail(): JSX.Element {
+  const [v, setV] = React.useState("")
+  const [err, setErr] = React.useState("")
+  const [done, setDone] = React.useState("")
+  if (done) return <p className="hp-t16 hp-in" style={{ maxWidth: 448, minHeight: 48, display: "flex", alignItems: "center" }}>Thanks, we’ll be in touch at {done}.</p>
   return (
-    <section className="hp-hero"><div className="hp-grid">
+    <form noValidate onSubmit={(e) => { e.preventDefault(); if (!isEmail(v)) setErr(v ? "Enter a valid work email." : "Enter your work email."); else setDone(v.trim()) }}>
+      <div className={"hp-email hp-t16" + (err ? " bad" : "")}>
+        <input type="email" value={v} placeholder="What’s your work email?" aria-label="Work email" aria-invalid={!!err}
+          onChange={(e) => { setV(e.target.value); setErr("") }} />
+        <button type="submit" className="hp-btn">Book a demo <I name="arrow-right" size={20} stroke={1.25} /></button>
+      </div>
+      {err && <p className="hp-err">{err}</p>}
+    </form>
+  )
+}
+
+/** the hero image: the live insight widget (hero-widget/, synced from its
+ *  repo), or the mock's static photo */
+function Hero({ widget }: { widget: boolean }): JSX.Element {
+  return (
+    <section className="hp-hero" id="top"><div className="hp-grid">
       <div style={{ ...sp("1 / 7", "1 / 5"), display: "flex", flexDirection: "column", gap: 24 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <h1>Customer Understanding,<br />Loud and Clear.</h1>
@@ -235,14 +398,17 @@ function Hero(): JSX.Element {
             What people think, why they think it, and what to do about it. From real interviews, not anecdotes.
           </p>
         </div>
-        <div className="hp-email hp-t16">
-          <span>What’s your work email?</span>
-          <span className="hp-btn">Book A Demo <I name="arrow-right" size={20} stroke={1.25} /></span>
-        </div>
+        <HeroEmail />
       </div>
-      <div className="hp-hero-img" style={sp("7 / 13", "5 / 9")}>
-        <img src={M + "hero.jpg"} alt="" />
-        <div className="hp-chip hp-t14"><p>Amanda Watterson</p><p className="hp-soft">34 years old</p><p className="hp-soft">New York City, NY</p></div>
+      <div className="hp-hero-img" style={{ ...sp("7 / 13", "5 / 9"), background: "#5FA0BF" }}>
+        {widget ? (
+          <iframe src="/hero-widget/index.html?embed=1&controls=0" title="Participant insights" allow="autoplay" />
+        ) : (
+          <>
+            <img src={M + "hero.jpg"} alt="" />
+            <div className="hp-chip hp-t14"><p>Amanda Watterson</p><p className="hp-soft">34 years old</p><p className="hp-soft">New York City, NY</p></div>
+          </>
+        )}
       </div>
     </div></section>
   )
@@ -251,8 +417,8 @@ function Hero(): JSX.Element {
 function Feature(): JSX.Element {
   return (
     <div className="hp-feat">
-      <img className="hp-ms" src={M + "microsoft.svg"} alt="Microsoft" />
-      <img className="hp-up" src={M + "arrow-up-right.svg"} alt="" />
+      <img className="hp-ms" src={M + "microsoft.svg"} alt="Microsoft" loading="lazy" />
+      <img className="hp-up" src={M + "arrow-up-right.svg"} alt="" loading="lazy" />
       <div><p className="hp-big">150+</p><p className="hp-t12">Global, Multilingual interviews</p></div>
     </div>
   )
@@ -260,7 +426,7 @@ function Feature(): JSX.Element {
 function Quad(): JSX.Element {
   return (
     <div className="hp-quad">
-      {["a", "b", "a", "b"].map((v, i) => <span key={i}><img src={M + `google-${v}.svg`} alt="Google" /></span>)}
+      {["a", "b", "a", "b"].map((v, i) => <span key={i}><img src={M + `google-${v}.svg`} alt="Google" loading="lazy" /></span>)}
     </div>
   )
 }
@@ -307,27 +473,78 @@ function HowItWorks({ style }: { style: StepStyle }): JSX.Element {
   )
 }
 
+type Testimonial = { quote: string; name: string; role: string; logo: string; img: string; stat: string; statLabel: string }
+const ROMANI: Testimonial = {
+  quote: "“AI removes the drudgery of my work so that I can focus on things that really matter... focusing more on the strategic work, focusing more in talking to the customers, and it makes my day-to-day work a little bit more fun.”",
+  name: "Romani Patel", role: "Director of Data Science", logo: "customer-logo.svg", img: "customer.jpg", stat: "150+", statLabel: "Global, Multilingual Interviews",
+}
+// one real testimonial so far; the carousel has the mock's four slots, so it
+// repeats until the others exist
+const TESTIMONIALS: Testimonial[] = [ROMANI, ROMANI, ROMANI, ROMANI]
+const SLIDE_MS = 7000
+
+/** the customers carousel: auto-advances (pausing on hover, off-screen, and
+ *  for a beat after you interact), with the segments filling as it goes;
+ *  click a segment, swipe the photo, or use the arrow keys */
 function Customers(): JSX.Element {
+  const n = TESTIMONIALS.length
+  const [at, setAt] = React.useState(0)
+  const [run, setRun] = React.useState(0)
+  const [hold, setHold] = React.useState(false)
+  const [seen, setSeen] = React.useState(false)
+  const ref = React.useRef<HTMLDivElement>(null)
+  const drag = React.useRef<number | null>(null)
+  const go = (i: number) => { setAt(((i % n) + n) % n); setRun((r) => r + 1) }
+  React.useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver((e) => setSeen(e[0].isIntersecting), { threshold: 0.3 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  const playing = seen && !hold
+  React.useEffect(() => {
+    if (!playing) return
+    const t = setTimeout(() => go(at + 1), SLIDE_MS)
+    return () => clearTimeout(t)
+  }, [playing, at, run])
+  const t = TESTIMONIALS[at]
+  // each slide's offset from the current one, wrapped so neighbors show both sides
+  const off = (k: number) => ((k - at + n + Math.floor(n / 2)) % n) - Math.floor(n / 2)
   return (
-    <section className="hp-sec" style={{ overflow: "hidden" }}><div className="hp-grid">
+    <section className="hp-sec" id="customers" style={{ overflow: "hidden" }}><div className="hp-grid">
       <p className="hp-h2">Hear it from our customers</p>
-      <div className="hp-cust" style={sp("3 / 11")}>
-        <div className="hp-cust-img">
-          <img className="ghost" src={M + "customer.jpg"} alt="" style={{ left: "calc(-100% - 24px)", right: "calc(100% + 24px)" }} />
-          <img src={M + "customer.jpg"} alt="" />
-          <img className="ghost" src={M + "customer.jpg"} alt="" style={{ left: "calc(100% + 24px)", right: "calc(-100% - 24px)" }} />
+      <div ref={ref} className="hp-cust" style={sp("3 / 11")} tabIndex={0} aria-roledescription="carousel" aria-label="Customer stories"
+        onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)}
+        onKeyDown={(e) => { if (e.key === "ArrowRight") go(at + 1); if (e.key === "ArrowLeft") go(at - 1) }}>
+        <div className="hp-cust-img"
+          onPointerDown={(e) => { drag.current = e.clientX }}
+          onPointerUp={(e) => { if (drag.current == null) return; const dx = e.clientX - drag.current; drag.current = null; if (Math.abs(dx) > 40) go(at + (dx < 0 ? 1 : -1)) }}>
+          {TESTIMONIALS.map((x, k) => {
+            const d = off(k)
+            return <img key={k} src={M + x.img} alt="" loading="lazy" draggable={false}
+              style={{ transform: `translateX(calc(${d} * (100% + 24px)))`, opacity: d === 0 ? 1 : 0.2, visibility: Math.abs(d) > 1 ? "hidden" : "visible" }} />
+          })}
         </div>
-        <p className="hp-quote">“AI removes the drudgery of my work so that I can focus on things that really matter... focusing more on the strategic work, focusing more in talking to the customers, and it makes my day-to-day work a little bit more fun.”</p>
-        <div className="hp-cust-meta">
-          <div style={{ width: 495, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-            <div className="hp-t16"><p>Romani Patel</p><p className="hp-soft">Director of Data Science</p></div>
-            <img src={M + "customer-logo.svg"} alt="Microsoft" style={{ height: 24, width: 113 }} />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <p className="hp-big">150+</p><p className="hp-t16">Global, Multilingual Interviews</p>
+        <div key={at} className="hp-in" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <p className="hp-quote">{t.quote}</p>
+          <div className="hp-cust-meta">
+            <div style={{ width: 495, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
+              <div className="hp-t16"><p>{t.name}</p><p className="hp-soft">{t.role}</p></div>
+              <img src={M + t.logo} alt="" loading="lazy" style={{ height: 24, width: 113 }} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <p className="hp-big">{t.stat}</p><p className="hp-t16">{t.statLabel}</p>
+            </div>
           </div>
         </div>
-        <div className="hp-segs"><span /><span /><span /><span /></div>
+        <div className="hp-segs" style={{ height: 13 }}>
+          {TESTIMONIALS.map((_, k) => (
+            <button key={k} aria-label={"Story " + (k + 1)} aria-current={k === at} onClick={() => go(k)}>
+              <span>{k < at && <i />}{k === at && <i key={run} style={{ animation: `hp-grow ${SLIDE_MS}ms linear both`, animationPlayState: playing ? "running" : "paused" }} />}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div></section>
   )
@@ -347,12 +564,36 @@ function UseCases({ style }: { style: StepStyle }): JSX.Element {
   )
 }
 
+/** the video player stand-in until the real file exists; Esc or a click
+ *  outside closes it */
+function Lightbox({ onClose }: { onClose: () => void }): JSX.Element {
+  React.useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", k)
+    return () => window.removeEventListener("keydown", k)
+  }, [onClose])
+  return (
+    <div className="hp-lightbox hp-in" role="dialog" aria-modal="true" aria-label="How to use Listen" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()}>
+        <button className="x" aria-label="Close" onClick={onClose} autoFocus><I name="x" size={18} /></button>
+        <p style={{ fontSize: 20, lineHeight: 1.4 }}>How to use Listen</p>
+        <p className="hp-t14" style={{ opacity: .6 }}>Video coming soon</p>
+      </div>
+    </div>
+  )
+}
+
 function HowToUse(): JSX.Element {
+  const [play, setPlay] = React.useState(false)
   return (
     <section className="hp-sec" style={{ background: C.highlight }}><div className="hp-grid">
       <div className="hp-head" style={sp("5 / 9", "2 / 8")}><p className="hp-h2">How to use Listen</p><p className="hp-lede">Get results in hours instead of weeks</p></div>
       <div className="hp-video" style={sp("3 / 11")}>
-        <img src={M + "how-to-use.jpg"} alt="" />
+        <button className="hp-videobtn" aria-label="Play: How to use Listen" onClick={() => setPlay(true)}>
+          <img src={M + "how-to-use.jpg"} alt="" loading="lazy" />
+          <span className="hp-play"><svg width="22" height="24" viewBox="0 0 22 24" fill={C.ink}><path d="M21 10.27a2 2 0 0 1 0 3.46L3 23.86A2 2 0 0 1 0 22.13V1.87A2 2 0 0 1 3 .14z" /></svg></span>
+        </button>
+        {play && <Lightbox onClose={() => setPlay(false)} />}
         <div className="hp-stats">
           {[["3x", "Longer customer responses than average"], ["<24h", "Time to results instead of days"], ["50m+", "Possible respondents for studies"]].map(([n, l]) => (
             <div key={n}><p className="hp-stat">{n}</p><p className="hp-t14 hp-soft">{l}</p></div>
@@ -383,7 +624,7 @@ function Experts(): JSX.Element {
           <p className="hp-lede" style={{ textAlign: "left" }}>Senior in-house researchers across UX, Insights, and Data Science</p>
         </div>
         <div className="hp-exp-feat">
-          <img src={M + "expert.jpg"} alt="" />
+          <img src={M + "expert.jpg"} alt="" loading="lazy" />
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <div style={{ fontSize: 20, lineHeight: 1.4, letterSpacing: -0.4 }}><p>Eric Knoben</p><p className="hp-soft">Head of Insights</p></div>
             <div className="hp-t12" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -415,25 +656,62 @@ const FOOT: Array<[string, string[]]> = [
   ["Customers", ["Monitas", "Microsoft", "Sling Money", "Emeritus", "Chubbies"]],
 ]
 
-function CtaFooter(): JSX.Element {
+/** the book-a-demo card: validates every field, then thanks */
+function DemoForm(): JSX.Element {
+  const [f, setF] = React.useState({ email: "", first: "", last: "" })
+  const [err, setErr] = React.useState<Partial<Record<keyof typeof f, string>>>({})
+  const [sent, setSent] = React.useState(false)
+  const field = (k: keyof typeof f, label: string, type = "text") => (
+    <div>
+      <input className={"hp-field hp-t16" + (err[k] ? " bad" : "")} type={type} placeholder={label} aria-label={label} aria-invalid={!!err[k]}
+        value={f[k]} onChange={(e) => { setF({ ...f, [k]: e.target.value }); setErr({ ...err, [k]: undefined }) }} />
+      {err[k] && <p className="hp-err">{err[k]}</p>}
+    </div>
+  )
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const next: typeof err = {}
+    if (!isEmail(f.email)) next.email = f.email ? "Enter a valid email address." : "Enter your email address."
+    if (!f.first.trim()) next.first = "Enter your first name."
+    if (!f.last.trim()) next.last = "Enter your last name."
+    setErr(next)
+    if (!Object.keys(next).length) setSent(true)
+  }
   return (
-    <>
-      <div className="hp-ctawrap"><div className="hp-grid"><div className="hp-cta">
-        <img src={M + "cta.jpg"} alt="" />
-        <div className="hp-form">
+    <form className="hp-form" noValidate onSubmit={submit}>
+      {sent ? (
+        <div key="sent" className="hp-in" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ fontSize: 24, lineHeight: 1.4, letterSpacing: -0.48 }}>Thanks, {f.first.trim()}.</p>
+          <p className="hp-t16 hp-soft">We’ll reach out at {f.email.trim()} to find a time that works.</p>
+          <button type="button" className="hp-t14" style={{ alignSelf: "flex-start", textDecoration: "underline", marginTop: 8 }}
+            onClick={() => { setF({ email: "", first: "", last: "" }); setSent(false) }}>Book another demo</button>
+        </div>
+      ) : (
+        <>
           <p style={{ fontSize: 24, lineHeight: 1.4, letterSpacing: -0.48 }}>Book a demo</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {["Email address", "First name", "Last name"].map((f) => <div key={f} className="hp-field hp-t16">{f}</div>)}
-            <span className="hp-btn hp-t16" style={{ height: 48, justifyContent: "center" }}>Book now <I name="arrow-right" size={20} stroke={1.25} /></span>
+            {field("email", "Email address", "email")}{field("first", "First name")}{field("last", "Last name")}
+            <button type="submit" className="hp-btn hp-t16" style={{ height: 48, justifyContent: "center" }}>Book now <I name="arrow-right" size={20} stroke={1.25} /></button>
             <p className="hp-soft" style={{ fontSize: 10, lineHeight: "14px", letterSpacing: -0.2 }}>
               By clicking “Submit”, you agree Listen Labs may use your information as described in our <u>Privacy Policy</u>, including to contact you about our products and services.
             </p>
           </div>
-        </div>
+        </>
+      )}
+    </form>
+  )
+}
+
+function CtaFooter(): JSX.Element {
+  return (
+    <>
+      <div className="hp-ctawrap" id="demo"><div className="hp-grid"><div className="hp-cta">
+        <img src={M + "cta.jpg"} alt="" loading="lazy" />
+        <DemoForm />
       </div></div></div>
       <footer className="hp-foot hp-t14"><div className="hp-grid">
         {FOOT.map(([h, links], i) => (
-          <div key={i} style={sp("span 3", "span 4", "span 2")}><p className="hp-soft">{h}</p><ul>{links.map((l) => <li key={l}>{l}</li>)}</ul></div>
+          <div key={i} style={sp("span 3", "span 4", "span 2")}><p className="hp-soft">{h}</p><ul>{links.map((l) => <li key={l}><a href={hrefFor(l)} onClick={(e) => jump(e, hrefFor(l))}>{l}</a></li>)}</ul></div>
         ))}
         <div className="hp-foot-bar hp-soft" style={{ marginTop: 48 }}><span>© 2026 Listen Labs • All rights reserved</span><span>LinkedIn • Twitter • YouTube</span></div>
       </div></footer>
@@ -456,8 +734,8 @@ function Band(): JSX.Element {
   )
   return (
     <section className="hp-band">
-      <img className="art" src={M + "footer-art.jpg"} alt="" />
-      <img className="word" src={M + "wordmark.svg"} alt="Listen Labs" />
+      <img className="art" src={M + "footer-art.jpg"} alt="" loading="lazy" />
+      <img className="word" src={M + "wordmark.svg"} alt="Listen Labs" loading="lazy" />
       <div className="hp-bandin">
         {corner({ left: "var(--margin)", top: 24 })}{corner({ right: "var(--margin)", top: 24 }, true)}
         {corner({ left: "var(--margin)", bottom: 24 })}{corner({ right: "var(--margin)", bottom: 24 }, true)}
@@ -474,7 +752,7 @@ const STYLES: Array<[StepStyle, string]> = [["captions", "Captions"], ["list", "
 function readParams() {
   const q = new URLSearchParams(location.search)
   const st = (v: string | null, d: StepStyle): StepStyle => (v === "captions" || v === "list" || v === "stage" ? v : d)
-  return { w: +(q.get("w") ?? 0) || 0, hiw: st(q.get("hiw"), "captions"), uc: st(q.get("uc"), "list"), grid: q.get("grid") === "1", panel: q.get("panel") !== "0" }
+  return { w: +(q.get("w") ?? 0) || 0, hero: q.get("hero") === "image" ? "image" : "widget", hiw: st(q.get("hiw"), "captions"), uc: st(q.get("uc"), "list"), grid: q.get("grid") === "1", panel: q.get("panel") !== "0" }
 }
 
 export default function Home(): JSX.Element {
@@ -490,6 +768,7 @@ export default function Home(): JSX.Element {
   React.useEffect(() => {
     const q = new URLSearchParams()
     if (s.w) q.set("w", String(s.w))
+    if (s.hero === "image") q.set("hero", "image")
     if (s.hiw !== "captions") q.set("hiw", s.hiw)
     if (s.uc !== "list") q.set("uc", s.uc)
     if (s.grid) q.set("grid", "1")
@@ -508,6 +787,17 @@ export default function Home(): JSX.Element {
     return () => window.removeEventListener("keydown", key)
   }, [])
   const set = (p: Partial<typeof s>) => setS((o) => ({ ...o, ...p }))
+  // the tab reads like the real site while this view is open
+  React.useEffect(() => {
+    const title = document.title
+    document.title = "Listen Labs — Customer Understanding, Loud and Clear"
+    let icon = document.querySelector<HTMLLinkElement>("link[rel=icon]")
+    const added = !icon
+    if (!icon) { icon = document.createElement("link"); icon.rel = "icon"; document.head.appendChild(icon) }
+    const prev = icon.href
+    icon.href = "data:image/svg+xml," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -1 24 24"><g fill="${C.ink}"><path d="M15.37.41H8.46a.89.89 0 0 0-.9.89v6.92c0 .5.4.9.9.9h6.91c.5 0 .9-.4.9-.9V1.3a.89.89 0 0 0-.9-.89Z"/><path d="M6.71 9.11H.89a.85.85 0 0 0-.89.94 15.6 15.6 0 0 0 7.32 12.4c.43.27 1-.13 1.25-.3l2.95-5a.86.86 0 0 0-.27-1.2 7.36 7.36 0 0 1-3.65-6.04.88.88 0 0 0-.89-.8Z"/></g></svg>`)
+    return () => { document.title = title; if (added) icon!.remove(); else icon!.href = prev }
+  }, [])
   const seg = <T extends string | number>(v: T, opts: Array<[T, string]>, on: (v: T) => void) => (
     <div className="hp-seg">{opts.map(([o, l]) => <button key={String(o)} aria-pressed={v === o} onClick={() => on(o)}>{l}</button>)}</div>
   )
@@ -520,7 +810,7 @@ export default function Home(): JSX.Element {
       <div ref={pageRef} className="hp" style={{ ["--hp-top" as string]: s.panel ? TOOLBAR_H + "px" : "0px", width: s.w ? Math.min(s.w, vw) : "100%", boxShadow: s.w ? "0 0 0 1px #C9C1B2" : undefined }}>
         {s.grid && <div className="hp-gridov">{Array.from({ length: 12 }, (_, i) => <div key={i} />)}</div>}
         <Nav />
-        <Hero />
+        <Hero widget={s.hero === "widget"} />
         <LogoWall />
         <HowItWorks style={s.hiw} />
         <Customers />
@@ -535,6 +825,8 @@ export default function Home(): JSX.Element {
           <h4>Page width · {Math.round(pageW)}px</h4>
           {seg(s.w, WIDTHS.map(([l, w]) => [w, l] as [number, string]), (w) => set({ w }))}
           <input type="range" min={320} max={Math.max(320, vw)} step={1} value={s.w || vw} onChange={(e) => set({ w: +e.target.value >= vw ? 0 : +e.target.value })} />
+          <h4>Hero image</h4>
+          {seg(s.hero, [["widget", "Insight widget"], ["image", "Static photo"]], (hero) => set({ hero }))}
           <h4>How it works</h4>
           {seg(s.hiw, STYLES, (hiw) => set({ hiw }))}
           <h4>Use Cases</h4>
