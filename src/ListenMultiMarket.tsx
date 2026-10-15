@@ -22,7 +22,7 @@
 // on a grey panel at 696×640 (2x → 1392×1280), the card inset 80px and
 // running off the right and bottom (no stacked ghost cards behind it).
 import * as React from "react"
-import { T, AppShell, studyNav, studyEditNav, ensureCss, useScene, EMOTIONS } from "./ListenKit"
+import { T, AppShell, studyNav, studyEditNav, ensureCss, useScene, EMOTIONS, ShellPrefs, useShellPrefs } from "./ListenKit"
 import { I } from "./ListenIcons"
 import { ChatShell, DocStrip, Marker, EDITOR_ACTIONS } from "./ListenScenes"
 import type { SceneProps } from "./ListenScenes"
@@ -200,7 +200,11 @@ const DETAILS_ACTIONS = (
 /** Hero A — the payoff: one question compared across the three markets */
 export function SceneMMHeroCompare(p: SceneProps): JSX.Element {
   ensureMMCss(); useStatic(p)
+  // starts with the sidebar collapsed; a surrounding SceneCanvas still decides
+  const outer = React.useContext(ShellPrefs)
+  const own = useShellPrefs({ collapsed: true })
   return (
+    <ShellPrefs.Provider value={outer ?? own}>
     <HeroBrowser>
       <AppShell nav={studyNav("Details", REPORTS)} title={STUDY} crumb={["Details"]} actions={DETAILS_ACTIONS}>
         <div className="ll-doc-fade" style={{ flex: 1, padding: "28px 64px 0 56px", position: "relative" }}>
@@ -224,6 +228,7 @@ export function SceneMMHeroCompare(p: SceneProps): JSX.Element {
         </div>
       </AppShell>
     </HeroBrowser>
+    </ShellPrefs.Provider>
   )
 }
 
