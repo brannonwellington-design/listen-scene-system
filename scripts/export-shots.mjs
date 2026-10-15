@@ -8,7 +8,7 @@
 //
 // Options: --port 4173, --scale 2, --out exports
 import { execFileSync } from "node:child_process"
-import { mkdirSync, readFileSync } from "node:fs"
+import { mkdirSync, readFileSync, statSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -33,6 +33,14 @@ if (!picked.length) {
   process.exit(1)
 }
 
+// Chrome screenshots an error page (or nothing) when the server is down, so check first
+try {
+  await fetch(`http://localhost:${port}/`)
+} catch {
+  console.error(`No dev server on localhost:${port}. Start it with: node scripts/dev-server.mjs`)
+  process.exit(1)
+}
+
 mkdirSync(out, { recursive: true })
 for (const e of picked) {
   const file = join(out, `${e.key}@${scale}x.png`)
@@ -42,6 +50,8 @@ for (const e of picked) {
     "--default-background-color=00000000", "--virtual-time-budget=4000",
     `--screenshot=${file}`, `http://localhost:${port}/?export=${e.key}`,
   ], { stdio: "ignore" })
+  const fresh = (() => { try { return statSync(file).mtimeMs > Date.now() - 60000 } catch { return false } })()
+  if (!fresh) { console.error(`Chrome didn't write ${file}`); process.exit(1) }
   console.log(`${file}  (${e.w * scale}×${e.h * scale})`)
 }
 

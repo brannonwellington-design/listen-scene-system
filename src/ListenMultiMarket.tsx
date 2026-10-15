@@ -81,12 +81,13 @@ function HeroBrowser(props: { width?: number; children: React.ReactNode }): JSX.
   )
 }
 
-/** the feature-card format: grey panel, the card running off */
+/** the feature-card format: a Paper surface-secondary panel (no stroke),
+ *  the card running off it */
 function FeatureCard(props: { zoom?: number; pad?: number; children: React.ReactNode; bg?: string }): JSX.Element {
   const { zoom = 1.2, pad = 20, bg = "#FFF" } = props
   const edge = "2px solid #E0E0E0"
   return (
-    <div className="ll" style={{ width: MM_CARD_W, height: MM_CARD_H, position: "relative", overflow: "hidden", background: "#F0F0F0", border: edge }}>
+    <div className="ll" style={{ width: MM_CARD_W, height: MM_CARD_H, position: "relative", overflow: "hidden", background: T.pageContainer }}>
       <div style={{ position: "absolute", left: 80, top: 80, right: -40, bottom: -40, background: bg, border: edge, borderRadius: 24, overflow: "hidden" }}>
         <div style={{ transform: `scale(${zoom})`, transformOrigin: "top left", padding: pad, width: 760, fontSize: 14, lineHeight: "20px", letterSpacing: -0.28 }}>
           {props.children}
