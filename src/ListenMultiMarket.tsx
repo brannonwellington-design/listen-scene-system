@@ -20,7 +20,7 @@
 // Formats match the gabor-granger feature page: heroes are the app in a
 // Safari window at 1440×800 (exported 2x → 2880×1600); features are a card
 // on a grey panel at 696×640 (2x → 1392×1280), the card inset 80px and
-// running off the right and bottom, two ghost cards stepped behind it.
+// running off the right and bottom (no stacked ghost cards behind it).
 import * as React from "react"
 import { T, AppShell, studyNav, studyEditNav, ensureCss, useScene, EMOTIONS } from "./ListenKit"
 import { I } from "./ListenIcons"
@@ -79,17 +79,12 @@ function HeroBrowser(props: { children: React.ReactNode }): JSX.Element {
   )
 }
 
-/** the feature-card format: grey panel, ghost cards, the card running off */
+/** the feature-card format: grey panel, the card running off */
 function FeatureCard(props: { zoom?: number; pad?: number; children: React.ReactNode; bg?: string }): JSX.Element {
   const { zoom = 1.2, pad = 20, bg = "#FFF" } = props
   const edge = "2px solid #E0E0E0"
-  const ghost = (x: number, y: number): JSX.Element => (
-    <div style={{ position: "absolute", left: x, top: y, right: -40, bottom: -40, background: "#F0F0F0", border: edge, borderRadius: 24 }} />
-  )
   return (
     <div className="ll" style={{ width: MM_CARD_W, height: MM_CARD_H, position: "relative", overflow: "hidden", background: "#F0F0F0", border: edge, borderRadius: 24 }}>
-      {ghost(112, 48)}
-      {ghost(96, 64)}
       <div style={{ position: "absolute", left: 80, top: 80, right: -40, bottom: -40, background: bg, border: edge, borderRadius: 24, overflow: "hidden" }}>
         <div style={{ transform: `scale(${zoom})`, transformOrigin: "top left", padding: pad, width: 760, fontSize: 14, lineHeight: "20px", letterSpacing: -0.28 }}>
           {props.children}

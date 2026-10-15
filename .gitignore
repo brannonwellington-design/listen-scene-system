@@ -5,3 +5,4 @@ site/
 .vercel
 .env*
 exports/
+scenes/
