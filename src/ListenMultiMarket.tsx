@@ -30,6 +30,8 @@ import type { SceneProps } from "./ListenScenes"
 // ------------------------------------------------------------- formats ----
 export const MM_HERO_W = 1440
 export const MM_HERO_H = 800
+/** Hero A runs narrower: 1280×800 (2x → 2560×1600) */
+export const MM_HERO_A_W = 1280
 export const MM_CARD_W = 696
 export const MM_CARD_H = 640
 
@@ -54,11 +56,11 @@ function useStatic(p: SceneProps): void {
 }
 
 /** Safari-style window with the address shown, as in the gabor-granger hero */
-function HeroBrowser(props: { children: React.ReactNode }): JSX.Element {
+function HeroBrowser(props: { width?: number; children: React.ReactNode }): JSX.Element {
   const ic = { color: "#8E8E8E" }
   const pill: React.CSSProperties = { height: 30, borderRadius: 15, background: "#FFF", boxShadow: "0 0 0 1px rgba(0,0,0,.06)", display: "inline-flex", alignItems: "center", gap: 10, padding: "0 10px" }
   return (
-    <div className="ll mm-flat" style={{ width: MM_HERO_W, height: MM_HERO_H, background: "#F6F6F6", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="ll mm-flat" style={{ width: props.width ?? MM_HERO_W, height: MM_HERO_H, background: "#F6F6F6", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ height: 52, flexShrink: 0, display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
         <span style={{ display: "inline-flex", gap: 8, marginRight: 8 }}>
           {["#FF5F57", "#FEBC2E", "#28C840"].map((c) => <span key={c} style={{ width: 12, height: 12, borderRadius: "50%", background: c }} />)}
@@ -66,7 +68,7 @@ function HeroBrowser(props: { children: React.ReactNode }): JSX.Element {
         <span style={pill}><I name="panel-left" size={15} style={ic} /><I name="chevron-down" size={12} style={ic} /></span>
         <span style={pill}><I name="chevron-left" size={15} style={ic} /><I name="chevron-right" size={15} style={{ color: "#C4C4C4" }} /></span>
         <span style={{ flex: 1, display: "flex", justifyContent: "center" }}>
-          <span style={{ ...pill, width: 520, justifyContent: "space-between", padding: "0 12px" }}>
+          <span style={{ ...pill, width: Math.round((props.width ?? MM_HERO_W) * 0.36), justifyContent: "space-between", padding: "0 12px" }}>
             <I name="monitor" size={13} style={ic} />
             <span style={{ fontSize: 13, color: T.ink, letterSpacing: -0.1 }}>listenlabs.ai</span>
             <I name="rotate-cw" size={13} style={ic} />
@@ -205,7 +207,7 @@ export function SceneMMHeroCompare(p: SceneProps): JSX.Element {
   const own = useShellPrefs({ collapsed: true })
   return (
     <ShellPrefs.Provider value={outer ?? own}>
-    <HeroBrowser>
+    <HeroBrowser width={MM_HERO_A_W}>
       <AppShell nav={studyNav("Details", REPORTS)} title={STUDY} crumb={["Details"]} actions={DETAILS_ACTIONS}>
         <div className="ll-doc-fade" style={{ flex: 1, padding: "28px 64px 0 56px", position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center" }}>

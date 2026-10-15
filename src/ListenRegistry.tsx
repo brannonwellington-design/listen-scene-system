@@ -28,7 +28,7 @@ import { APP_W, APP_H } from "./ListenKit"
 import {
   SceneMMHeroCompare, SceneMMHeroSetup, FragmentMMRecruit, FragmentMMLanguage,
   FragmentMMLocalVersion, FragmentMMCompare, FragmentMMTrace,
-  MM_HERO_W, MM_HERO_H, MM_CARD_W, MM_CARD_H,
+  MM_HERO_W, MM_HERO_A_W, MM_HERO_H, MM_CARD_W, MM_CARD_H,
 } from "./ListenMultiMarket"
 
 /** picker sections, in menu order — one per page or module a shot belongs to */
@@ -89,7 +89,7 @@ export const REGISTRY: RegistryEntry[] = [
 
   // --- Multi-market use-case page (listenlabs.ai/use-case/multi-market) ------
   // heroes: the app in a Safari window; features: the gabor-granger card format
-  { key: "mm-hero-compare", title: "Hero A · Compare by market", group: "Multi-market", n: 1, Scene: SceneMMHeroCompare, w: MM_HERO_W, h: MM_HERO_H, kind: "scene" },
+  { key: "mm-hero-compare", title: "Hero A · Compare by market", group: "Multi-market", n: 1, Scene: SceneMMHeroCompare, w: MM_HERO_A_W, h: MM_HERO_H, kind: "scene" },
   { key: "mm-hero-setup", title: "Hero B · One study, every language", group: "Multi-market", n: 2, Scene: SceneMMHeroSetup, w: MM_HERO_W, h: MM_HERO_H, kind: "scene" },
   { key: "mm-recruit", title: "Feature · Reach the right people", group: "Multi-market", n: 3, Scene: FragmentMMRecruit, w: MM_CARD_W, h: MM_CARD_H, kind: "fragment" },
   { key: "mm-language", title: "Feature · Their own language", group: "Multi-market", n: 4, Scene: FragmentMMLanguage, w: MM_CARD_W, h: MM_CARD_H, kind: "fragment" },

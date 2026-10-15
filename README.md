@@ -126,7 +126,7 @@ its own corners) and headless Chrome screenshots it at `--scale 2`.
 
 The **Multi-market** group (`src/ListenMultiMarket.tsx`) is the
 listenlabs.ai/use-case/multi-market page: two hero options in a Safari window
-(1440×800 → 2880×1600) and five feature cards in the gabor-granger card format
+(Hero A 1280×800 → 2560×1600, Hero B 1440×800 → 2880×1600) and five feature cards in the gabor-granger card format
 (696×640 → 1392×1280). One fictional study (Vela sparkling water in Brazil,
 South Korea and Germany) runs through all of them, and every surface was
 checked against the live app (Details → Compare, the Language card and its
