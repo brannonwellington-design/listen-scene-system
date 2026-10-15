@@ -25,9 +25,14 @@ import {
   SceneProps,
 } from "./ListenScenes"
 import { APP_W, APP_H } from "./ListenKit"
+import {
+  SceneMMHeroCompare, SceneMMHeroSetup, FragmentMMRecruit, FragmentMMLanguage,
+  FragmentMMLocalVersion, FragmentMMCompare, FragmentMMTrace,
+  MM_HERO_W, MM_HERO_A_W, MM_HERO_H, MM_CARD_W, MM_CARD_H,
+} from "./ListenMultiMarket"
 
 /** picker sections, in menu order — one per page or module a shot belongs to */
-export const GROUPS = ["How it works", "Use cases", "Emotional intelligence", "Cards"] as const
+export const GROUPS = ["How it works", "Use cases", "Emotional intelligence", "Multi-market", "Cards"] as const
 export type Group = (typeof GROUPS)[number]
 
 export type RegistryEntry = {
@@ -81,6 +86,16 @@ export const REGISTRY: RegistryEntry[] = [
   { key: "ei-usecase-concepts", title: "Use case · Concept comparison", group: "Emotional intelligence", n: 6, Scene: FragmentEIUseCaseConcepts, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
   { key: "ei-usecase-brand", title: "Use case · Brand research", group: "Emotional intelligence", n: 7, Scene: FragmentEIUseCaseBrand, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
   { key: "ei-usecase-ux", title: "Use case · UX research", group: "Emotional intelligence", n: 8, Scene: FragmentEIUseCaseUX, w: EI_USECASE_W, h: EI_USECASE_H, kind: "fragment" },
+
+  // --- Multi-market use-case page (listenlabs.ai/use-case/multi-market) ------
+  // heroes: the app in a Safari window; features: the gabor-granger card format
+  { key: "mm-hero-compare", title: "Hero A · Compare by market", group: "Multi-market", n: 1, Scene: SceneMMHeroCompare, w: MM_HERO_A_W, h: MM_HERO_H, kind: "scene" },
+  { key: "mm-hero-setup", title: "Hero B · One study, every language", group: "Multi-market", n: 2, Scene: SceneMMHeroSetup, w: MM_HERO_W, h: MM_HERO_H, kind: "scene" },
+  { key: "mm-recruit", title: "Feature · Reach the right people", group: "Multi-market", n: 3, Scene: FragmentMMRecruit, w: MM_CARD_W, h: MM_CARD_H, kind: "fragment" },
+  { key: "mm-language", title: "Feature · Their own language", group: "Multi-market", n: 4, Scene: FragmentMMLanguage, w: MM_CARD_W, h: MM_CARD_H, kind: "fragment" },
+  { key: "mm-local-version", title: "Feature · Test the local version", group: "Multi-market", n: 5, Scene: FragmentMMLocalVersion, w: MM_CARD_W, h: MM_CARD_H, kind: "fragment" },
+  { key: "mm-compare", title: "Feature · Compare markets", group: "Multi-market", n: 6, Scene: FragmentMMCompare, w: MM_CARD_W, h: MM_CARD_H, kind: "fragment" },
+  { key: "mm-trace", title: "Feature · Trace to a real person", group: "Multi-market", n: 7, Scene: FragmentMMTrace, w: MM_CARD_W, h: MM_CARD_H, kind: "fragment" },
 
   // --- cards — small UI pieces, not full pages -------------------------------
   { key: "top-answer-card", title: "Top answer", group: "Cards", Scene: FragmentTopAnswer, w: TOP_ANSWER_W, h: TOP_ANSWER_H, kind: "fragment" },

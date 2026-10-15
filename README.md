@@ -110,6 +110,28 @@ Scenes resolve media paths with `media()` (ListenKit), so the clip and
 `media/ad-its-fine.jpg` play from the site root locally and from the tagged
 CDN folder in Framer.
 
+## Exporting stills for the CMS
+
+Until a page gets the live code component, its shots ship as 2x PNGs:
+
+```bash
+node scripts/dev-server.mjs                 # in another terminal
+node scripts/export-shots.mjs mm- --out exports/multi-market
+```
+
+Pass shot keys, or a prefix ending in `-`. Each shot renders alone at
+`/?export=<key>` (design size, frozen on its poster frame, transparent outside
+its own corners) and headless Chrome screenshots it at `--scale 2`.
+`exports/` is git-ignored.
+
+The **Multi-market** group (`src/ListenMultiMarket.tsx`) is the
+listenlabs.ai/use-case/multi-market page: two hero options in a Safari window
+(Hero A 1280×800 → 2560×1600, Hero B 1440×800 → 2880×1600) and five feature cards in the gabor-granger card format
+(696×640 → 1392×1280). One fictional study (Vela sparkling water in Brazil,
+South Korea and Germany) runs through all of them, and every surface was
+checked against the live app (Details → Compare, the Language card and its
+per-language popover, Recruit and quotas, the transcript's language toggle).
+
 ## Local development
 
 ```bash
