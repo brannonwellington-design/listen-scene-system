@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client"
 import SceneCanvas from "./SceneCanvas"
 import Workbench from "./Workbench"
 import Home from "./Home"
-import { byKey } from "./ListenRegistry"
+import { byKey, posterOf } from "./ListenRegistry"
 import { T, ScaleBox } from "./ListenKit"
 
 const DEMO_CSS = `
@@ -330,8 +330,20 @@ function Views(): JSX.Element {
   }, [])
   return home ? <Home /> : <Workbench />
 }
+// Export mode: /?export=mm-recruit renders one shot alone at its design size,
+// frozen at its poster frame, on a transparent page (scripts/export-shots.mjs)
+const exportKey = params.get("export")
+function ExportShot(props: { shot: string }): JSX.Element {
+  const e = byKey(props.shot)
+  React.useEffect(() => { document.body.style.margin = "0"; document.body.style.background = "transparent" }, [])
+  return (
+    <div id="export-shot" style={{ width: e.w, height: e.h, position: "relative", overflow: "hidden" }}>
+      <e.Scene active hold={posterOf(e)} />
+    </div>
+  )
+}
 createRoot(document.getElementById("root")!).render(
-  onHome() ? <Views /> : params.get("demo") ? (
+  exportKey ? <ExportShot shot={exportKey} /> : onHome() ? <Views /> : params.get("demo") ? (
     <Demo />
   ) : solo && refImg ? (
     <Compare scene={solo} refImg={refImg} />

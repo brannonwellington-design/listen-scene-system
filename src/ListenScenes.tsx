@@ -37,7 +37,7 @@ const MARKER_MS = 450
 
 // ---------------------------------------------------------------- helpers ---
 /** study editor top bar, right side (live app) */
-const EDITOR_ACTIONS = (
+export const EDITOR_ACTIONS = (
   <>
     <span className="meta">Just saved</span>
     <span className="ll-tbtn">Share <I name="link" size={14} /></span>
@@ -47,7 +47,7 @@ const EDITOR_ACTIONS = (
 /** app-shell scenes start the cursor just below the frame */
 const APP_CURSOR_START = { x: APP_W / 2, y: 880 }
 
-function ChatShell(props: { step: string; placeholder: string; busy?: boolean; children: React.ReactNode }): JSX.Element {
+export function ChatShell(props: { step: string; placeholder: string; busy?: boolean; children: React.ReactNode }): JSX.Element {
   return (
     <div style={{ width: SIDE, borderRight: `1px solid ${T.appBorder}`, background: T.appPanelAlt, display: "flex", flexDirection: "column", fontSize: 13, lineHeight: 1.5 }}>
       <div style={{ padding: "10px 16px", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
@@ -76,7 +76,7 @@ function ChatShell(props: { step: string; placeholder: string; busy?: boolean; c
 }
 
 /** doc pane icon strip, per the recording's editor */
-function DocStrip(): JSX.Element {
+export function DocStrip(): JSX.Element {
   const c = { color: T.inkSoft }
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 18, padding: "12px 20px 4px" }}>
@@ -138,7 +138,7 @@ function AnsweredCard(props: { qa: Array<[string, string]> }): JSX.Element {
   )
 }
 
-function Marker(props: { icon: string; text: string; active?: boolean }): JSX.Element {
+export function Marker(props: { icon: string; text: string; active?: boolean }): JSX.Element {
   return (
     <div className="ll-enter" style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: T.inkSoft }}>
       <I name={props.icon} size={12} style={{ marginTop: 2 }} />
